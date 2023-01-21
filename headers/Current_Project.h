@@ -1,2 +1,2 @@
 #pragma once
-#define TEST
+#define CH2_2

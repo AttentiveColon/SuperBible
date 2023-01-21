@@ -60,7 +60,10 @@
     <ClCompile Include="ThirdParty\irrKlang\plugins\ikpMP3\ikpMP3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bluebook\test.cpp">
+    <ClCompile Include="bluebook\ch2_1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bluebook\ch2_2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -142,7 +142,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="bluebook\test.cpp" />
+    <ClCompile Include="bluebook\ch2_1.cpp" />
+    <ClCompile Include="bluebook\ch2_2.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />
     <ClCompile Include="source\boilerplate_main.cpp" />
     <ClCompile Include="source\System.cpp" />

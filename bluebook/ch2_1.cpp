@@ -1,5 +1,5 @@
 #include "Current_Project.h"
-#ifdef TEST
+#ifdef CH2_1
 #include "System.h"
 
 struct Application : public Program {
@@ -21,7 +21,9 @@ struct Application : public Program {
 		m_time = window.GetTime();
 	}
 	void OnDraw() {
-		static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		m_clear_color[0] = (float)sin(m_time) * 0.5 + 0.5;
+		m_clear_color[1] = (float)cos(m_time) * 0.5 + 0.5;
+	
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 	}
 	void OnGui() {
@@ -41,8 +43,8 @@ SystemConf config = {
 		"Application",			//window title
 		false,					//windowed fullscreen
 		false,					//vsync
-		144,					//framelimit
-		"resources/Icon.bmp"	//icon path
+		144,						//framelimit
+		"resources/Icon.bmp" //icon path
 };
 
 MAIN(config)
