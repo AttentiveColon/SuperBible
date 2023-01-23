@@ -147,6 +147,7 @@
     <ClCompile Include="bluebook\Chapter2\ch2_1.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_2.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_3.cpp" />
+    <ClCompile Include="bluebook\Chapter3\ch3_1.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />
     <ClCompile Include="source\boilerplate_main.cpp" />
     <ClCompile Include="source\System.cpp" />
