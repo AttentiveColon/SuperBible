@@ -1,5 +1,5 @@
 #include "Current_Project.h"
-#ifdef CH2_2
+#ifdef CH2_3
 #include "System.h"
 
 GLuint compile_shaders();
@@ -11,15 +11,13 @@ struct Application : public Program {
 
 	GLuint m_program;
 	GLuint m_vertex_array_object;
-	GLfloat m_point_size;
 
 	Application()
-		:m_clear_color{ 0.0f, 0.0f, 0.0f, 1.0f },
+		:m_clear_color{ 0.0f, 0.2f, 0.0f, 1.0f },
 		m_fps(0),
 		m_time(0),
 		m_program(NULL),
-		m_vertex_array_object(NULL),
-		m_point_size(1.0f)
+		m_vertex_array_object(NULL)
 	{}
 
 	~Application() {
@@ -36,24 +34,17 @@ struct Application : public Program {
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
-
-		m_clear_color[0] = (float)sin(m_time) * 0.5 + 0.5;
-		m_clear_color[1] = (float)cos(m_time) * 0.5 + 0.5;
-
-
 	}
 	void OnDraw() {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
-		glPointSize(m_point_size);
 		glUseProgram(m_program);
-		glDrawArrays(GL_POINTS, 0, 1);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
-		ImGui::DragFloat("Point size:", &m_point_size, 1.0f, 1.0f, 500.0f);
 		ImGui::End();
 	}
 };
@@ -82,7 +73,11 @@ GLuint compile_shaders() {
 
 void main() 
 {
-	gl_Position = vec4(0.0, 0.0, 0.5, 1.0);
+	const vec4 vertices[3] = vec4[3] (vec4(0.25, -0.25, 0.5, 1.0),
+									  vec4(-0.25, -0.25, 0.5, 1.0),
+									  vec4(0.25, 0.25, 0.5, 1.0));
+
+	gl_Position = vertices[gl_VertexID];
 }
 )";
 
@@ -112,7 +107,7 @@ void main()
 	glAttachShader(program, vertex_shader);
 	glAttachShader(program, fragment_shader);
 	glLinkProgram(program);
-	
+
 	//clean up
 	glDeleteShader(vertex_shader);
 	glDeleteShader(fragment_shader);
