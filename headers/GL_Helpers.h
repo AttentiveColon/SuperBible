@@ -39,7 +39,14 @@ struct ShaderFiles {
     GLuint shader;
 };
 
+struct ShaderText {
+    GLenum type;
+    const char* shader_text;
+    GLuint shader;
+};
+
 GLuint LoadShaders(ShaderFiles*);
+GLuint LoadShaders(ShaderText*);
 size_t GetGLTypeSize(GLenum type);
 GLFWimage rgba_bmp_load(const char* filePath);
 void Debug_Callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* user_param);

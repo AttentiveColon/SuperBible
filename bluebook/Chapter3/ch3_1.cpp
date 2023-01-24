@@ -2,7 +2,43 @@
 #ifdef CH3_1
 #include "System.h"
 
-GLuint compile_shaders();
+static const GLchar* vertex_shader_source = R"(
+#version 450 core
+
+layout (location = 0) in vec4 offset;
+layout (location = 1) in vec4 color;
+
+out vec4 vs_color;
+
+void main() 
+{
+	const vec4 vertices[3] = vec4[3] (vec4(0.25, -0.25, 0.5, 1.0),
+									  vec4(-0.25, -0.25, 0.5, 1.0),
+									  vec4(0.25, 0.25, 0.5, 1.0));
+
+	gl_Position = vertices[gl_VertexID] + offset;
+	vs_color = color;
+}
+)";
+
+static const GLchar* fragment_shader_source = R"(
+#version 450 core
+
+in vec4 vs_color;
+
+out vec4 color;
+
+void main() 
+{
+	color = vs_color;
+}
+)";
+
+static ShaderText shader_text[] = {
+	{GL_VERTEX_SHADER, vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, fragment_shader_source, NULL},
+	{GL_NONE, NULL, NULL}
+};
 
 struct Application : public Program {
 	float m_clear_color[4];
@@ -31,7 +67,8 @@ struct Application : public Program {
 
 	void OnInit(Audio& audio, Window& window) {
 		audio.PlayOneShot("./resources/startup.mp3");
-		m_program = compile_shaders();
+		m_program = LoadShaders(shader_text);
+		//m_program = compile_shaders();
 		glCreateVertexArrays(1, &m_vertex_array_object);
 		glBindVertexArray(m_vertex_array_object);
 	}
@@ -78,64 +115,4 @@ SystemConf config = {
 };
 
 MAIN(config)
-
-GLuint compile_shaders() {
-	GLuint vertex_shader;
-	GLuint fragment_shader;
-	GLuint program;
-
-	static const GLchar* vertex_shader_source = R"(
-#version 450 core
-
-layout (location = 0) in vec4 offset;
-layout (location = 1) in vec4 color;
-
-out vec4 vs_color;
-
-void main() 
-{
-	const vec4 vertices[3] = vec4[3] (vec4(0.25, -0.25, 0.5, 1.0),
-									  vec4(-0.25, -0.25, 0.5, 1.0),
-									  vec4(0.25, 0.25, 0.5, 1.0));
-
-	gl_Position = vertices[gl_VertexID] + offset;
-	vs_color = color;
-}
-)";
-
-	static const GLchar* fragment_shader_source = R"(
-#version 450 core
-
-in vec4 vs_color;
-
-out vec4 color;
-
-void main() 
-{
-	color = vs_color;
-}
-)";
-
-	//compile vertex shader
-	vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
-	glCompileShader(vertex_shader);
-
-	//compile fragment shader
-	fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
-	glCompileShader(fragment_shader);
-
-	//attach and link shaders
-	program = glCreateProgram();
-	glAttachShader(program, vertex_shader);
-	glAttachShader(program, fragment_shader);
-	glLinkProgram(program);
-
-	//clean up
-	glDeleteShader(vertex_shader);
-	glDeleteShader(fragment_shader);
-
-	return program;
-}
 #endif //TEST

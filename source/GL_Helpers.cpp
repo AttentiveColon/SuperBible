@@ -7,6 +7,8 @@
 #include <string>
 #include <sstream>
 
+#define OPENGL_NOTIFICATION
+
 std::string ReadShader(const char* filename) {
 	std::ifstream ifs;
 	ifs.open(filename);
@@ -19,6 +21,80 @@ std::string ReadShader(const char* filename) {
 	std::stringstream ss;
 	ss << ifs.rdbuf();
 	return ss.str();
+}
+
+std::string ReadShaderText(const char* shader_text) {
+	std::stringstream ss;
+	ss << shader_text;
+	return ss.str();
+}
+
+GLuint LoadShaders(ShaderText* shaders) {
+	if (shaders == nullptr) return 0;
+
+	GLuint program = glCreateProgram();
+
+	ShaderText* entry = shaders;
+	while (entry->type != GL_NONE) {
+		GLuint shader = glCreateShader(entry->type);
+		entry->shader = shader;
+
+		std::string source = ReadShaderText(entry->shader_text);
+		if (source.empty()) {
+			for (entry = shaders; entry->type != GL_NONE; ++entry) {
+				glDeleteShader(entry->shader);
+				entry->shader = 0;
+			}
+			return 0;
+		}
+
+		GLchar const* shader_source = source.c_str();
+		GLint const shader_length = static_cast<GLint>(source.size());
+
+		glShaderSource(shader, 1, &shader_source, &shader_length);
+		glCompileShader(shader);
+
+		GLint compiled;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+		if (!compiled) {
+#ifdef _DEBUG
+			GLsizei len;
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
+
+			GLchar* log = new GLchar[len + 1];
+			glGetShaderInfoLog(shader, len, &len, log);
+			std::cerr << "Shader compilation failed: " << log << std::endl;
+			delete[] log;
+#endif //_DEBUG
+			return 0;
+		}
+
+		glAttachShader(program, shader);
+		++entry;
+	}
+
+	glLinkProgram(program);
+
+	GLint linked;
+	glGetProgramiv(program, GL_LINK_STATUS, &linked);
+	if (!linked) {
+#ifdef _DEBUG
+		GLsizei len;
+		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
+
+		GLchar* log = new GLchar[len + 1];
+		glGetProgramInfoLog(program, len, &len, log);
+		std::cerr << "Shader linking failed: " << log << std::endl;
+		delete[] log;
+#endif //_DEBUG
+
+		for (entry = shaders; entry->type != GL_NONE; ++entry) {
+			glDeleteShader(entry->shader);
+			entry->shader = 0;
+		}
+		return 0;
+	}
+	return program;
 }
 
 GLuint LoadShaders(ShaderFiles* shaders) {
@@ -233,6 +309,9 @@ void Debug_Callback(
 		break;
 	case GL_DEBUG_SEVERITY_NOTIFICATION:
 		namedSeverity = "GL_DEBUG_SEVERITY_NOTIFICATION";
+#ifdef OPENGL_NOTIFICATION
+		return;
+#endif //OPENGL_NOTIFICATION
 		break;
 	default:
 		namedSeverity = "UNDEFINED SEVERITY";
