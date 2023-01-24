@@ -33,13 +33,13 @@ typedef unsigned int GLenum;
 typedef unsigned int GLuint;
 typedef char GLchar;
 
-struct ShaderInfo {
+struct ShaderFiles {
     GLenum type;
     const char* filename;
     GLuint shader;
 };
 
-GLuint LoadShaders(ShaderInfo*);
+GLuint LoadShaders(ShaderFiles*);
 size_t GetGLTypeSize(GLenum type);
 GLFWimage rgba_bmp_load(const char* filePath);
 void Debug_Callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* user_param);

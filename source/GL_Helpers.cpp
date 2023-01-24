@@ -21,12 +21,12 @@ std::string ReadShader(const char* filename) {
 	return ss.str();
 }
 
-GLuint LoadShaders(ShaderInfo* shaders) {
+GLuint LoadShaders(ShaderFiles* shaders) {
 	if (shaders == nullptr) return 0;
 
 	GLuint program = glCreateProgram();
 
-	ShaderInfo* entry = shaders;
+	ShaderFiles* entry = shaders;
 	while (entry->type != GL_NONE) {
 		GLuint shader = glCreateShader(entry->type);
 		entry->shader = shader;
