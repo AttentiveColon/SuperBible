@@ -2,4 +2,4 @@
 #define OPENGL_SUPRESS_NOTIFICATION
 
 //Current Project
-#define CH3_3
+#define BEZIER_CURVES
