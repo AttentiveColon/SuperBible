@@ -1,4 +1,4 @@
-#include "Current_Project.h"
+#include "Defines.h"
 #ifdef EXAMPLE
 #include "System.h"
 
@@ -41,8 +41,8 @@ SystemConf config = {
 		"Application",			//window title
 		false,					//windowed fullscreen
 		false,					//vsync
-		144,						//framelimit
-		"resources/Icon.bmp" //icon path
+		144,					//framelimit
+		"resources/Icon.bmp"	//icon path
 };
 
 MAIN(config)

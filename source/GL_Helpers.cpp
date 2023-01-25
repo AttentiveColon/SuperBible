@@ -7,8 +7,6 @@
 #include <string>
 #include <sstream>
 
-#define OPENGL_NOTIFICATION
-
 std::string ReadShader(const char* filename) {
 	std::ifstream ifs;
 	ifs.open(filename);
@@ -309,9 +307,9 @@ void Debug_Callback(
 		break;
 	case GL_DEBUG_SEVERITY_NOTIFICATION:
 		namedSeverity = "GL_DEBUG_SEVERITY_NOTIFICATION";
-#ifdef OPENGL_NOTIFICATION
+#ifdef OPENGL_SUPRESS_NOTIFICATION
 		return;
-#endif //OPENGL_NOTIFICATION
+#endif //OPENGL_SUPRESS_NOTIFICATION
 		break;
 	default:
 		namedSeverity = "UNDEFINED SEVERITY";

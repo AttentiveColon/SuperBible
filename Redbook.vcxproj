@@ -168,7 +168,7 @@
     <ClCompile Include="ThirdParty\irrKlang\plugins\ikpMP3\ikpMP3.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="headers\Current_Project.h" />
+    <ClInclude Include="headers\Defines.h" />
     <ClInclude Include="headers\GL_Helpers.h" />
     <ClInclude Include="headers\System.h" />
     <ClInclude Include="ThirdParty\glew-2.1.0\include\GL\eglew.h" />

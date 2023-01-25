@@ -1,1 +1,5 @@
 
+
+Updates to framework:
+	added defines header (with opengl notification suppression, all files have Defines.h included at the top)
+	added shader loader for raw text shader, new ShaderText struct and ReadShaderText helper function

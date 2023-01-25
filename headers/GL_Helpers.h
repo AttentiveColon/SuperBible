@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Defines.h"
+
 typedef signed char i8;
 typedef short i16;
 typedef int i32;
@@ -45,8 +47,8 @@ struct ShaderText {
     GLuint shader;
 };
 
-GLuint LoadShaders(ShaderFiles*);
 GLuint LoadShaders(ShaderText*);
+GLuint LoadShaders(ShaderFiles*);
 size_t GetGLTypeSize(GLenum type);
 GLFWimage rgba_bmp_load(const char* filePath);
 void Debug_Callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* user_param);
