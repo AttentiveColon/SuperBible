@@ -51,6 +51,8 @@ struct Application : public Program {
 	glm::vec4 m_anchors_1[3];
 	glm::vec4 m_anchors_2[2];
 
+	float m_step;
+
 	GLuint VBO;
 	GLuint VAO;
 
@@ -61,7 +63,8 @@ struct Application : public Program {
 		:m_clear_color{ 0.0f, 0.0f, 0.0f, 1.0f },
 		m_fps(0),
 		m_time(0),
-		controlpoints{-0.5, 0.0, 0.5, 1.0, -0.5, -0.5, 0.5, 1.0, 0.5, -0.5, 0.5, 1.0, 0.5, 0.0, 0.5, 1.0}
+		controlpoints{-0.5, 0.0, 0.5, 1.0, -0.5, -0.5, 0.5, 1.0, 0.5, -0.5, 0.5, 1.0, 0.5, 0.0, 0.5, 1.0},
+		m_step(0.01)
 	{}
 
 	void OnInit(Audio& audio, Window& window) {
@@ -82,7 +85,7 @@ struct Application : public Program {
 		glm::vec4 c(controlpoints[8], controlpoints[9], 0.5, 1.0);
 		glm::vec4 d(controlpoints[12], controlpoints[13], 0.5, 1.0);
 		f64 t = 0.0;
-		f64 step = 0.01;
+		
 		while (t < 1.0) {
 			glm::vec4 e = glm::mix(a, b, t);
 			glm::vec4 f = glm::mix(b, c, t);
@@ -94,7 +97,7 @@ struct Application : public Program {
 			glm::vec4 point = glm::mix(h, i, t);
 
 			m_points.push_back(point);
-			t += step;
+			t += m_step;
 		}
 
 		//Get point and anchors
@@ -168,6 +171,7 @@ struct Application : public Program {
 		ImGui::SliderFloat2("Control Point 2", (float*)&controlpoints[4], -1.0, 1.0);
 		ImGui::SliderFloat2("Control Point 3", (float*)&controlpoints[8], -1.0, 1.0);
 		ImGui::SliderFloat2("Control Point 4", (float*)&controlpoints[12], -1.0, 1.0);
+		ImGui::SliderFloat("Step", &m_step, 0.001, 1.0);
 		ImGui::End();
 	}
 };
