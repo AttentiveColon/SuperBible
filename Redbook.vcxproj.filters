@@ -84,6 +84,9 @@
     <ClCompile Include="bluebook\Chapter4\Bezier_Curvers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\Chapter4\Cubic_Bezier.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">

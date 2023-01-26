@@ -151,6 +151,7 @@
     <ClCompile Include="bluebook\Chapter3\ch3_2.cpp" />
     <ClCompile Include="bluebook\Chapter3\ch3_3.cpp" />
     <ClCompile Include="bluebook\Chapter4\Bezier_Curvers.cpp" />
+    <ClCompile Include="bluebook\Chapter4\Cubic_Bezier.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />
     <ClCompile Include="source\boilerplate_main.cpp" />
     <ClCompile Include="source\System.cpp" />
