@@ -46,12 +46,14 @@ struct Application : public Program {
 	f64 m_time;
 	GLuint m_program;
 
-	std::vector<glm::vec4> points;
+	std::vector<glm::vec4> m_points;
+	glm::vec4 m_point;
+	glm::vec4 m_anchors_1[3];
+	glm::vec4 m_anchors_2[2];
 
 	GLuint VBO;
-	GLuint VBO2;
 	GLuint VAO;
-	GLuint VAO2;
+
 
 	float controlpoints[16];
 
@@ -65,27 +67,22 @@ struct Application : public Program {
 	void OnInit(Audio& audio, Window& window) {
 		audio.PlayOneShot("./resources/startup.mp3");
 		glGenVertexArrays(1, &VAO);
-		glGenVertexArrays(1, &VAO2);
-		
 		glGenBuffers(1, &VBO);
-		glGenBuffers(1, &VBO2);
-
+		glPointSize(10.0);
 		m_program = LoadShaders(shader_text);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 
+		//Gen curve
+		m_points.clear();
 		glm::vec4 a(controlpoints[0], controlpoints[1], 0.5, 1.0);
 		glm::vec4 b(controlpoints[4], controlpoints[5], 0.5, 1.0);
 		glm::vec4 c(controlpoints[8], controlpoints[9], 0.5, 1.0);
 		glm::vec4 d(controlpoints[12], controlpoints[13], 0.5, 1.0);
-
-		points.clear();
-
 		f64 t = 0.0;
 		f64 step = 0.01;
-
 		while (t < 1.0) {
 			glm::vec4 e = glm::mix(a, b, t);
 			glm::vec4 f = glm::mix(b, c, t);
@@ -96,9 +93,27 @@ struct Application : public Program {
 
 			glm::vec4 point = glm::mix(h, i, t);
 
-			points.push_back(point);
+			m_points.push_back(point);
 			t += step;
 		}
+
+		//Get point and anchors
+		t = ((sin(m_time * 0.25) + 1.0) * 0.5);
+		glm::vec4 e = glm::mix(a, b, t);
+		glm::vec4 f = glm::mix(b, c, t);
+		glm::vec4 g = glm::mix(c, d, t);
+
+		glm::vec4 h = glm::mix(e, f, t);
+		glm::vec4 i = glm::mix(f, g, t);
+
+		m_point = glm::mix(h, i, t);
+
+		m_anchors_1[0] = e;
+		m_anchors_1[1] = f;
+		m_anchors_1[2] = g;
+
+		m_anchors_2[0] = h;
+		m_anchors_2[1] = i;
 	}
 	void OnDraw() {
 		static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -107,24 +122,42 @@ struct Application : public Program {
 
 		static const float white[] = { 1.0, 1.0, 1.0, 1.0 };
 		static const float red[] = { 1.0, 0.0, 0.0, 1.0 };
+		static const float green[] = { 0.0, 1.0, 0.0, 1.0 };
+		static const float blue[] = { 0.0, 0.0, 1.0, 1.0 };
 
 		glBindVertexArray(VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glEnableVertexAttribArray(0);
+
+		//Draw control points
 		glBufferData(GL_ARRAY_BUFFER, sizeof(controlpoints), controlpoints, GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
 		glVertexAttrib4fv(1, white);
 		glDrawArrays(GL_LINE_STRIP, 0, 4);
-		glDisableVertexAttribArray(0);
 
-		glBindVertexArray(VAO2);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-		glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float) * 4, &points[0], GL_STATIC_DRAW);
+		//Draw Curve
+		glBufferData(GL_ARRAY_BUFFER, m_points.size() * sizeof(float) * 4, &m_points[0], GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
 		glVertexAttrib4fv(1, red);
-		glDrawArrays(GL_LINE_STRIP, 0, points.size());
-		glDisableVertexAttribArray(0);
+		glDrawArrays(GL_LINE_STRIP, 0, m_points.size());
+
+		//Draw Curve Point
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4, &m_point, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+		glVertexAttrib4fv(1, green);
+		glDrawArrays(GL_POINTS, 0, 1);
+
+		//Draw Anchors 1
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 3, &m_anchors_1[0], GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+		glVertexAttrib4fv(1, green);
+		glDrawArrays(GL_LINE_STRIP, 0, 3);
+
+		//Draw Anchors 2
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 2, &m_anchors_2[0], GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+		glVertexAttrib4fv(1, blue);
+		glDrawArrays(GL_LINE_STRIP, 0, 2);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
