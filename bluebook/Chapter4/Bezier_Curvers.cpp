@@ -46,6 +46,8 @@ struct Application : public Program {
 	f64 m_time;
 	GLuint m_program;
 
+	glm::vec4 m_control_points[4];
+
 	std::vector<glm::vec4> m_points;
 	glm::vec4 m_point;
 	glm::vec4 m_anchors_1[3];
@@ -56,21 +58,34 @@ struct Application : public Program {
 	GLuint VBO;
 	GLuint VAO;
 
-
-	float controlpoints[16];
-
 	Application()
 		:m_clear_color{ 0.0f, 0.0f, 0.0f, 1.0f },
 		m_fps(0),
 		m_time(0),
-		controlpoints{-0.5, 0.0, 0.5, 1.0, -0.5, -0.5, 0.5, 1.0, 0.5, -0.5, 0.5, 1.0, 0.5, 0.0, 0.5, 1.0},
-		m_step(0.01)
-	{}
+		m_step(0.01f),
+		VAO(0),
+		VBO(0),
+		m_program(0),
+		m_point{},
+		m_anchors_1{},
+		m_anchors_2{}
+	{
+		glm::vec4 a(-0.5f, 0.0f, 0.5f, 1.0f);
+		glm::vec4 b(-0.5f, -0.5f, 0.5f, 1.0f);
+		glm::vec4 c(0.5f, -0.5f, 0.5f, 1.0f);
+		glm::vec4 d(0.5f, 0.0f, 0.5f, 1.0f);
+		glm::vec4 e(0.6f, 1.0f, 0.5f, 1.0f);
+		m_control_points[0] = a;
+		m_control_points[1] = b;
+		m_control_points[2] = c;
+		m_control_points[3] = d;
+	}
 
 	void OnInit(Audio& audio, Window& window) {
 		audio.PlayOneShot("./resources/startup.mp3");
 		glGenVertexArrays(1, &VAO);
 		glGenBuffers(1, &VBO);
+		glEnable(GL_LINE_SMOOTH);
 		glPointSize(10.0);
 		m_program = LoadShaders(shader_text);
 	}
@@ -80,16 +95,15 @@ struct Application : public Program {
 
 		//Gen curve
 		m_points.clear();
-		glm::vec4 a(controlpoints[0], controlpoints[1], 0.5, 1.0);
-		glm::vec4 b(controlpoints[4], controlpoints[5], 0.5, 1.0);
-		glm::vec4 c(controlpoints[8], controlpoints[9], 0.5, 1.0);
-		glm::vec4 d(controlpoints[12], controlpoints[13], 0.5, 1.0);
 		f64 t = 0.0;
 		
 		while (t < 1.0) {
-			glm::vec4 e = glm::mix(a, b, t);
-			glm::vec4 f = glm::mix(b, c, t);
-			glm::vec4 g = glm::mix(c, d, t);
+			if (t + m_step > 1.0) {
+				t += 1.0 - t;
+			}
+			glm::vec4 e = glm::mix(m_control_points[0], m_control_points[1], t);
+			glm::vec4 f = glm::mix(m_control_points[1], m_control_points[2], t);
+			glm::vec4 g = glm::mix(m_control_points[2], m_control_points[3], t);
 
 			glm::vec4 h = glm::mix(e, f, t);
 			glm::vec4 i = glm::mix(f, g, t);
@@ -102,9 +116,9 @@ struct Application : public Program {
 
 		//Get point and anchors
 		t = ((sin(m_time * 0.25) + 1.0) * 0.5);
-		glm::vec4 e = glm::mix(a, b, t);
-		glm::vec4 f = glm::mix(b, c, t);
-		glm::vec4 g = glm::mix(c, d, t);
+		glm::vec4 e = glm::mix(m_control_points[0], m_control_points[1], t);
+		glm::vec4 f = glm::mix(m_control_points[1], m_control_points[2], t);
+		glm::vec4 g = glm::mix(m_control_points[2], m_control_points[3], t);
 
 		glm::vec4 h = glm::mix(e, f, t);
 		glm::vec4 i = glm::mix(f, g, t);
@@ -133,7 +147,7 @@ struct Application : public Program {
 		glEnableVertexAttribArray(0);
 
 		//Draw control points
-		glBufferData(GL_ARRAY_BUFFER, sizeof(controlpoints), controlpoints, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(m_control_points), m_control_points, GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
 		glVertexAttrib4fv(1, white);
 		glDrawArrays(GL_LINE_STRIP, 0, 4);
@@ -142,7 +156,7 @@ struct Application : public Program {
 		glBufferData(GL_ARRAY_BUFFER, m_points.size() * sizeof(float) * 4, &m_points[0], GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
 		glVertexAttrib4fv(1, red);
-		glDrawArrays(GL_LINE_STRIP, 0, m_points.size());
+		glDrawArrays(GL_LINE_STRIP, 0, static_cast<i32>(m_points.size()));
 
 		//Draw Curve Point
 		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4, &m_point, GL_STATIC_DRAW);
@@ -167,11 +181,11 @@ struct Application : public Program {
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
-		ImGui::SliderFloat2("Control Point 1", (float*)&controlpoints[0], -1.0, 1.0);
-		ImGui::SliderFloat2("Control Point 2", (float*)&controlpoints[4], -1.0, 1.0);
-		ImGui::SliderFloat2("Control Point 3", (float*)&controlpoints[8], -1.0, 1.0);
-		ImGui::SliderFloat2("Control Point 4", (float*)&controlpoints[12], -1.0, 1.0);
-		ImGui::SliderFloat("Step", &m_step, 0.001, 1.0);
+		ImGui::SliderFloat2("Control Point 1", (float*)&m_control_points[0], -1.0, 1.0);
+		ImGui::SliderFloat2("Control Point 2", (float*)&m_control_points[1], -1.0, 1.0);
+		ImGui::SliderFloat2("Control Point 3", (float*)&m_control_points[2], -1.0, 1.0);
+		ImGui::SliderFloat2("Control Point 4", (float*)&m_control_points[3], -1.0, 1.0);
+		ImGui::SliderFloat("Step", &m_step, 0.001f, 0.1f);
 		ImGui::End();
 	}
 };
