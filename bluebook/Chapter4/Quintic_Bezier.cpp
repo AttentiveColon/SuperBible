@@ -46,7 +46,7 @@ struct Application : public Program {
 	f64 m_time;
 	GLuint m_program;
 
-	glm::vec4 m_control_points[5];
+	glm::vec4 m_cp[5];
 
 	std::vector<glm::vec4> m_points;
 	glm::vec4 m_point;
@@ -77,11 +77,11 @@ struct Application : public Program {
 		glm::vec4 c(0.11f, -1.0f, 0.5f, 1.0f);
 		glm::vec4 d(0.84f, -0.7f, 0.5f, 1.0f);
 		glm::vec4 e(1.0f, 1.0f, 0.5f, 1.0f);
-		m_control_points[0] = a;
-		m_control_points[1] = b;
-		m_control_points[2] = c;
-		m_control_points[3] = d;
-		m_control_points[4] = e;
+		m_cp[0] = a;
+		m_cp[1] = b;
+		m_cp[2] = c;
+		m_cp[3] = d;
+		m_cp[4] = e;
 	}
 
 	void OnInit(Audio& audio, Window& window) {
@@ -104,10 +104,10 @@ struct Application : public Program {
 			if (t + m_step > 1.0) {
 				t += 1.0 - t;
 			}
-			glm::vec4 f = glm::mix(m_control_points[0], m_control_points[1], t);
-			glm::vec4 g = glm::mix(m_control_points[1], m_control_points[2], t);
-			glm::vec4 h = glm::mix(m_control_points[2], m_control_points[3], t);
-			glm::vec4 i = glm::mix(m_control_points[3], m_control_points[4], t);
+			glm::vec4 f = glm::mix(m_cp[0], m_cp[1], t);
+			glm::vec4 g = glm::mix(m_cp[1], m_cp[2], t);
+			glm::vec4 h = glm::mix(m_cp[2], m_cp[3], t);
+			glm::vec4 i = glm::mix(m_cp[3], m_cp[4], t);
 
 			glm::vec4 j = glm::mix(f, g, t);
 			glm::vec4 k = glm::mix(g, h, t);
@@ -124,10 +124,10 @@ struct Application : public Program {
 
 		//Get point and anchors
 		t = ((sin(m_time * 0.25) + 1.0) * 0.5);
-		glm::vec4 f = glm::mix(m_control_points[0], m_control_points[1], t);
-		glm::vec4 g = glm::mix(m_control_points[1], m_control_points[2], t);
-		glm::vec4 h = glm::mix(m_control_points[2], m_control_points[3], t);
-		glm::vec4 i = glm::mix(m_control_points[3], m_control_points[4], t);
+		glm::vec4 f = glm::mix(m_cp[0], m_cp[1], t);
+		glm::vec4 g = glm::mix(m_cp[1], m_cp[2], t);
+		glm::vec4 h = glm::mix(m_cp[2], m_cp[3], t);
+		glm::vec4 i = glm::mix(m_cp[3], m_cp[4], t);
 
 		glm::vec4 j = glm::mix(f, g, t);
 		glm::vec4 k = glm::mix(g, h, t);
@@ -166,7 +166,7 @@ struct Application : public Program {
 		glEnableVertexAttribArray(0);
 
 		//Draw control points
-		glBufferData(GL_ARRAY_BUFFER, sizeof(m_control_points), m_control_points, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(m_cp), m_cp, GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
 		glVertexAttrib4fv(1, white);
 		glDrawArrays(GL_LINE_STRIP, 0, 5);
@@ -206,11 +206,11 @@ struct Application : public Program {
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
-		ImGui::SliderFloat2("Control Point 1", (float*)&m_control_points[0], -1.0, 1.0);
-		ImGui::SliderFloat2("Control Point 2", (float*)&m_control_points[1], -1.0, 1.0);
-		ImGui::SliderFloat2("Control Point 3", (float*)&m_control_points[2], -1.0, 1.0);
-		ImGui::SliderFloat2("Control Point 4", (float*)&m_control_points[3], -1.0, 1.0);
-		ImGui::SliderFloat2("Control Point 5", (float*)&m_control_points[4], -1.0, 1.0);
+		ImGui::SliderFloat2("Control Point 1", (float*)&m_cp[0], -1.0, 1.0);
+		ImGui::SliderFloat2("Control Point 2", (float*)&m_cp[1], -1.0, 1.0);
+		ImGui::SliderFloat2("Control Point 3", (float*)&m_cp[2], -1.0, 1.0);
+		ImGui::SliderFloat2("Control Point 4", (float*)&m_cp[3], -1.0, 1.0);
+		ImGui::SliderFloat2("Control Point 5", (float*)&m_cp[4], -1.0, 1.0);
 		ImGui::SliderFloat("Step", &m_step, 0.001f, 0.1f);
 		ImGui::End();
 	}

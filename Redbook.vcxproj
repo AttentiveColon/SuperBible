@@ -153,6 +153,7 @@
     <ClCompile Include="bluebook\Chapter4\Cubic_Bezier.cpp" />
     <ClCompile Include="bluebook\Chapter4\Quintic_Bezier.cpp" />
     <ClCompile Include="bluebook\Chapter4\GLM_Math_Equivelents.cpp" />
+    <ClCompile Include="bluebook\Chapter4\Splines.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />
     <ClCompile Include="source\boilerplate_main.cpp" />
     <ClCompile Include="source\System.cpp" />
