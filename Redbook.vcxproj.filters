@@ -90,7 +90,10 @@
     <ClCompile Include="bluebook\Chapter4\GLM_Math_Equivelents.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bluebook\Chapter4\Splines.cpp">
+    <ClCompile Include="bluebook\Chapter4\Splines%28incomplete%29.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bluebook\Chapter5\Buffers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
