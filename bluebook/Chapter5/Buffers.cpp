@@ -2,6 +2,23 @@
 #ifdef BUFFERS
 #include "System.h"
 
+struct vertex {
+	f32 x;
+	f32 y;
+	f32 z;
+	f32 r;
+	f32 g;
+	f32 b;
+	f32 a;
+};
+
+static const vertex vertex_data[] =
+{
+	{0.25, -0.25, 0.5, 1.0, 0.0, 0.0, 1.0},		//vertex 1
+	{-0.25, -0.25, 0.5, 0.0, 1.0, 0.0, 1.0},	//vertex 2
+	{0.25, 0.25, 0.5, 0.0, 0.0, 1.0, 1.0}		//vertex 3
+};
+
 static const float mega_data[] =
 {
 	0.25, -0.25, 0.5, 1.0,	//vertex 1
@@ -29,14 +46,14 @@ static const float color_data[] =
 static const GLchar* vertex_shader_source = R"(
 #version 450 core
 
-layout (location = 0) in vec4 position;
+layout (location = 0) in vec3 position;
 layout (location = 1) in vec4 color;
 
 out vec4 vs_color;
 
 void main() 
 {
-	gl_Position = position;
+	gl_Position = vec4(position, 1.0);
 	vs_color = color;
 }
 )";
@@ -71,34 +88,22 @@ struct Triangle {
 	void OnInit() {
 		m_program = LoadShaders(shader_text);
 		glCreateVertexArrays(1, &VAO);
-		//glBindVertexArray(VAO);
-
+		
+		//Allocate and initialize buffer
 		glCreateBuffers(1, &m_vertex_buffer);
-		glNamedBufferStorage(m_vertex_buffer, sizeof(mega_data), &mega_data, GL_MAP_WRITE_BIT);
-		glVertexArrayVertexBuffer(
-			VAO,				//vaobj
-			0,					//binding index
-			m_vertex_buffer,	//buffer object
-			0,					//offset
-			sizeof(float) * 8	//stride
-		);
-		glVertexArrayAttribFormat(
-			VAO,				//vaobj
-			0,					//attribute index
-			4,					//size
-			GL_FLOAT,			//type
-			GL_FALSE,			//normalized
-			0					//relative offset
-		);
+		glNamedBufferStorage(m_vertex_buffer, sizeof(vertex_data), vertex_data, 0);
+
+		//Set up two vertex attributes (positions and colors)
 		glVertexArrayAttribBinding(VAO, 0, 0);
+		glVertexArrayAttribFormat(VAO, 0, 3, GL_FLOAT, GL_FALSE, offsetof(vertex, x));
 		glEnableVertexArrayAttrib(VAO, 0);
 
-		glCreateBuffers(1, &m_color_buffer);
-		glNamedBufferStorage(m_color_buffer, sizeof(mega_data), &mega_data, GL_MAP_WRITE_BIT);
-		glVertexArrayVertexBuffer(VAO, 1, m_color_buffer, 0, sizeof(float) * 8);
-		glVertexArrayAttribFormat(VAO, 1, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 4);
-		glVertexArrayAttribBinding(VAO, 1, 1);
+		glVertexArrayAttribBinding(VAO, 1, 0);
+		glVertexArrayAttribFormat(VAO, 1, 4, GL_FLOAT, GL_FALSE, offsetof(vertex, r));
 		glEnableVertexArrayAttrib(VAO, 1);
+
+		//bind buffer to Vertex array object (VAO)
+		glVertexArrayVertexBuffer(VAO, 0, m_vertex_buffer, 0, sizeof(vertex));
 
 		//Using two seperate data buffers
 
