@@ -1,6 +1,7 @@
 #include "Defines.h"
 #ifdef BUFFERS
 #include "System.h"
+#include "OBJ_Loader.h"
 
 struct vertex {
 	f32 x;

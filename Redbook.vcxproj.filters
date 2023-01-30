@@ -1856,6 +1856,9 @@
     <ClInclude Include="headers\Defines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ThirdParty\OBJ-loader\OBJ_Loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\triangles.vert">
