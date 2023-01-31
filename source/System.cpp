@@ -489,6 +489,32 @@ void Audio::StopLoop(ISound* audio_track_ptr)
 }
 
 //-------------------------------------------------------------------------------------------------
+// Random
+//-------------------------------------------------------------------------------------------------
+
+void Random::Init()
+{
+	s_RandomEngine.seed(std::random_device()());
+}
+
+float Random::Float()
+{
+	return (float)s_Distribution(s_RandomEngine) / (float)std::numeric_limits<u32>::max();
+}
+
+i32 Random::IntRange(i32 low, i32 high)
+{
+#ifdef _DEBUG
+	assert(low < high);
+#endif //_DEBUG
+
+	return (static_cast<i32>((high - low) * Random::Float())) + low;
+}
+
+std::mt19937 Random::s_RandomEngine;
+std::uniform_int_distribution<std::mt19937::result_type> Random::s_Distribution;
+
+//-------------------------------------------------------------------------------------------------
 // EVENT
 //-------------------------------------------------------------------------------------------------
 
@@ -507,7 +533,8 @@ void Event::Run(System* system, Program& program)
 	OpenGL_Debug_Init();
 	ImGui_Init(window.m_handle);
 #endif //_DEBUG
-
+	
+	Random::Init();
 	program.OnInit(audio, window);
 
 	f64 ticks = glfwGetTime();

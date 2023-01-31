@@ -161,6 +161,7 @@ struct Application : public Program {
 
 	void OnInit(Audio& audio, Window& window) {
 		audio.PlayOneShot("./resources/startup.mp3");
+		
 
 		m_triangle.OnInit();
 
@@ -172,7 +173,6 @@ struct Application : public Program {
 		memcpy(ptr, data, sizeof(1));
 		glUnmapNamedBuffer(m_buffer);*/
 
-		
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();

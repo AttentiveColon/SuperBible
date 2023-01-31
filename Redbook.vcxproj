@@ -769,7 +769,6 @@
     <None Include="ikpFlac.dll" />
     <None Include="ikpMP3.dll" />
     <None Include="irrKlang.dll" />
-    <None Include="resources\cube.mtl" />
     <None Include="shaders\triangles.frag" />
     <None Include="shaders\triangles.vert" />
     <None Include="ThirdParty\glew-2.1.0\bin\Release\x64\glew32.dll" />
@@ -1068,9 +1067,6 @@
     <Media Include="resources\startup.mp3" />
     <Media Include="ThirdParty\irrKlang\media\bell.wav" />
     <Media Include="ThirdParty\irrKlang\media\ophelia.mp3" />
-  </ItemGroup>
-  <ItemGroup>
-    <Object Include="resources\cube.obj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

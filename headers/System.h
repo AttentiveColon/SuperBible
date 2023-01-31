@@ -20,6 +20,8 @@
 #include <irrKlang.h>
 using namespace irrklang;
 
+#include <random>
+
 struct GLFWwindow;
 struct SystemConf;
 
@@ -150,6 +152,19 @@ struct Audio {
 	void PlayOneShot(const char* file);
 	ISound* PlayLoop(const char* file);
 	void StopLoop(ISound* audio_track_ptr);
+};
+
+//-------------------------------------------------------------------------------------------------
+// Random
+//-------------------------------------------------------------------------------------------------
+
+struct Random {
+	static void Init();
+	static f32 Float();
+	static i32 IntRange(i32 low, i32 high);
+private:
+	static std::mt19937 s_RandomEngine;
+	static std::uniform_int_distribution<std::mt19937::result_type> s_Distribution;
 };
 
 //-------------------------------------------------------------------------------------------------

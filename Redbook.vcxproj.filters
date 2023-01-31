@@ -2695,7 +2695,6 @@
     <None Include="ThirdParty\glm\glm\detail\type_vec4_simd.inl">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="resources\cube.mtl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="resources\Notes.txt">
@@ -2721,8 +2720,5 @@
     </Media>
     <Media Include="ThirdParty\irrKlang\media\ophelia.mp3" />
     <Media Include="resources\startup.mp3" />
-  </ItemGroup>
-  <ItemGroup>
-    <Object Include="resources\cube.obj" />
   </ItemGroup>
 </Project>
