@@ -2,6 +2,7 @@
 #include "System.h"
 #include <locale>
 #include <codecvt>
+#include <limits>
 #undef _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
 //-------------------------------------------------------------------------------------------------
@@ -499,7 +500,8 @@ void Random::Init()
 
 float Random::Float()
 {
-	return (float)s_Distribution(s_RandomEngine) / (float)std::numeric_limits<u32>::max();
+	//return (float)s_Distribution(s_RandomEngine) / (float)std::numeric_limits<unsigned int>::max();
+	return (float)s_Distribution(s_RandomEngine) / (float)U32_MAX;
 }
 
 i32 Random::IntRange(i32 low, i32 high)

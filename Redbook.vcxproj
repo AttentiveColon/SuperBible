@@ -770,11 +770,8 @@
     <None Include="ikpFlac.dll" />
     <None Include="ikpMP3.dll" />
     <None Include="irrKlang.dll" />
-    <None Include="shaders\triangles.frag" />
-    <None Include="shaders\triangles.vert" />
     <None Include="ThirdParty\glew-2.1.0\bin\Release\x64\glew32.dll" />
     <None Include="ThirdParty\glfw\lib-vc2022\glfw3.dll" />
-    <None Include="ThirdParty\glfw\LICENSE.md" />
     <None Include="ThirdParty\glm\detail\func_common.inl" />
     <None Include="ThirdParty\glm\detail\func_common_simd.inl" />
     <None Include="ThirdParty\glm\detail\func_exponential.inl" />
@@ -1052,12 +1049,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="ThirdParty\glm\glm\copying.txt" />
-    <Text Include="todo.txt" />
-    <Text Include="resources\Notes.txt" />
-    <Text Include="ThirdParty\glew-2.1.0\LICENSE.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="resources\Icon.bmp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="ThirdParty\glew-2.1.0\lib\Release\x64\glew32.lib" />
@@ -1065,7 +1056,6 @@
     <Library Include="ThirdParty\irrKlang\lib\Winx64-visualStudio\irrKlang.lib" />
   </ItemGroup>
   <ItemGroup>
-    <Media Include="resources\startup.mp3" />
     <Media Include="ThirdParty\irrKlang\media\bell.wav" />
     <Media Include="ThirdParty\irrKlang\media\ophelia.mp3" />
   </ItemGroup>

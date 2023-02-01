@@ -1864,17 +1864,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\triangles.vert">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="shaders\triangles.frag">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="ThirdParty\glfw\lib-vc2022\glfw3.dll" />
     <None Include="glew32.dll" />
     <None Include="glfw3.dll" />
     <None Include="ThirdParty\glew-2.1.0\bin\Release\x64\glew32.dll" />
-    <None Include="ThirdParty\glfw\LICENSE.md" />
     <None Include=".gitignore" />
     <None Include="ikpFlac.dll" />
     <None Include="ikpMP3.dll" />
@@ -2700,17 +2693,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="resources\Notes.txt">
-      <Filter>Resource Files</Filter>
-    </Text>
-    <Text Include="ThirdParty\glew-2.1.0\LICENSE.txt" />
-    <Text Include="todo.txt" />
     <Text Include="ThirdParty\glm\glm\copying.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="resources\Icon.bmp">
-      <Filter>Resource Files</Filter>
-    </Image>
   </ItemGroup>
   <ItemGroup>
     <Library Include="ThirdParty\glew-2.1.0\lib\Release\x64\glew32.lib" />
@@ -2722,6 +2705,5 @@
       <Filter>Resource Files</Filter>
     </Media>
     <Media Include="ThirdParty\irrKlang\media\ophelia.mp3" />
-    <Media Include="resources\startup.mp3" />
   </ItemGroup>
 </Project>
