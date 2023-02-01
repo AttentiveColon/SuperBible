@@ -40,7 +40,7 @@ out vec4 color;
 
 void main() 
 {
-	color = vec4(0.5 * vs_uv.x, 0.5 * vs_uv.x, 0.5 * vs_uv.x, 1.0);
+	color = vec4(0.5 * vs_uv.x, 0.5 * vs_uv.x, 0.5, 1.0);
 }
 )";
 
@@ -113,7 +113,7 @@ struct Mesh {
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_mvp));
 		
-		glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
+		glDrawElements(GL_LINES, m_count, GL_UNSIGNED_INT, (void*)0);
 	}
 };
 
@@ -145,7 +145,7 @@ struct Application : public Program {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 
-		glm::mat4 lookat = glm::lookAt(glm::vec3(-2.0f * sin(m_time * 0.5), 0.5f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 lookat = glm::lookAt(glm::vec3(-2.0f * sin(m_time * 0.5), 0.5f * sin(m_time * 0.5), 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 100.0f);
 		m_mvp = perspective * lookat;
 
