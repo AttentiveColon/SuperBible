@@ -52,6 +52,7 @@ static ShaderText shader_text[] = {
 
 struct Mesh {
 	GLuint m_vao;
+	std::vector<GLuint> m_vertex_buffers;
 	GLuint m_vertex_buffer;
 	GLuint m_index_buffer;
 	GLsizei m_count;
@@ -59,11 +60,64 @@ struct Mesh {
 
 	glm::mat4 m_mvp;
 
+	void OnInit2(const char* filename) {
+		m_program = LoadShaders(shader_text);
+		objl::Loader loader;
+		bool success = loader.LoadFile(filename);
+		if (success) {
+			GLsizei mesh_count = loader.LoadedMeshes.size();
+			for (int i = 0; i < mesh_count; ++i) {
+				m_vertex_buffers.push_back(0);
+			}
+
+			glCreateVertexArrays(1, &m_vao);
+			glCreateBuffers(1, &m_vertex_buffer);
+			glCreateBuffers(1, &m_index_buffer);
+
+			m_count = loader.LoadedIndices.size();
+
+			std::vector<objl::Vertex> vertex_buffer;
+			for (int i = 0; i < mesh_count; ++i) {
+				auto curr_mesh = loader.LoadedMeshes[i];
+				for (int j = 0; j < curr_mesh.Vertices.size(); ++j) {
+					vertex_buffer.push_back(curr_mesh.Vertices[j]);
+				}
+
+			}
+
+			std::cout << "Done loading" << std::endl;
+			glNamedBufferStorage(m_vertex_buffer, vertex_buffer.size() * sizeof(objl::Vertex), &vertex_buffer[0], 0);
+			glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(objl::Vertex));
+
+			glNamedBufferStorage(m_index_buffer, m_count * sizeof(GLuint), &loader.LoadedIndices[0], 0);
+			glVertexArrayElementBuffer(m_vao, m_index_buffer);
+
+			glVertexArrayAttribBinding(m_vao, 0, 0);
+			glVertexArrayAttribFormat(m_vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, Position));
+			glEnableVertexArrayAttrib(m_vao, 0);
+
+			glVertexArrayAttribBinding(m_vao, 1, 0);
+			glVertexArrayAttribFormat(m_vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, Normal));
+			glEnableVertexArrayAttrib(m_vao, 1);
+
+			glVertexArrayAttribBinding(m_vao, 2, 0);
+			glVertexArrayAttribFormat(m_vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, TextureCoordinate));
+			glEnableVertexArrayAttrib(m_vao, 2);
+
+
+			glBindVertexArray(0);
+		}
+	}
+
 	void OnInit(const char* filename) {
 		m_program = LoadShaders(shader_text);
 		objl::Loader loader;
 		bool success = loader.LoadFile(filename);
 		if (success) {
+
+			for (int i = 0; i < loader.LoadedMeshes.size(); ++i) {
+
+			}
 			std::cout << "SUCCESS" << std::endl;
 			int vert_count = loader.LoadedMeshes[0].Vertices.size();
 			m_count = loader.LoadedIndices.size();
@@ -113,6 +167,13 @@ struct Mesh {
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_mvp));
 		glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
 	}
+
+	void OnDraw2() {
+		glUseProgram(m_program);
+		glBindVertexArray(m_vao);
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_mvp));
+		glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
+	}
 };
 
 struct Application : public Program {
@@ -122,28 +183,30 @@ struct Application : public Program {
 
 	Mesh m_mesh;
 
+	glm::vec3 m_cam_pos;
 	glm::mat4 m_mvp;
 
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
 		m_fps(0),
-		m_time(0)
+		m_time(0),
+		m_cam_pos(-2.0f, 0.5f, 2.0f)
 	{}
 
 	void OnInit(Audio& audio, Window& window) {
 		audio.PlayOneShot("./resources/startup.mp3");
 		glEnable(GL_DEPTH_TEST);
 
-		m_mesh.OnInit("./resources/sphere.obj");
+		m_mesh.OnInit2("./resources/sponza.obj");
 
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 
-		glm::mat4 lookat = glm::lookAt(glm::vec3(-2.0f * sin(m_time * 0.5), sin(m_time) * 0.5f, cos(m_time * 0.5) * 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 100.0f);
+		glm::mat4 lookat = glm::lookAt(glm::vec3(m_cam_pos.x, m_cam_pos.y, m_cam_pos.z), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 10000.0f);
 		m_mvp = perspective * lookat;
 
 
@@ -154,13 +217,14 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
-		m_mesh.OnDraw();
+		m_mesh.OnDraw2();
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
+		ImGui::InputFloat3("Cam Pos", glm::value_ptr(m_cam_pos));
 		ImGui::End();
 	}
 };
