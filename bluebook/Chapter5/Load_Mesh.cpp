@@ -70,29 +70,31 @@ struct Mesh {
 		if (success) {
 			GLsizei mesh_count = loader.LoadedMeshes.size();
 
+			std::cout << "Mesh Count: " << mesh_count << std::endl;
+
 			m_vaos.resize(mesh_count);
 			m_vertex_buffers.resize(mesh_count);
 			m_index_buffers.resize(mesh_count);
+			m_counts.resize(mesh_count);
 
 			glCreateVertexArrays(mesh_count, &m_vaos[0]);
 			glCreateBuffers(mesh_count, &m_vertex_buffers[0]);
 			glCreateBuffers(mesh_count, &m_index_buffers[0]);
+			std::cout << "Loaded vert size: " << loader.LoadedVertices.size() << std::endl;
+			std::cout << "Loaded index size: " << loader.LoadedIndices.size() << std::endl;
 
-
-
-			
-
-			m_count = loader.LoadedIndices.size();
-
-			
 			for (int i = 0; i < mesh_count; ++i) {
 				auto curr_mesh = loader.LoadedMeshes[i];
-				m_counts.push_back(curr_mesh.Indices.size());
+				m_counts[i] = curr_mesh.Vertices.size();
+
+				std::cout << "Vertices size: " << curr_mesh.Vertices.size() << std::endl;
+				std::cout << "Indices size: " << curr_mesh.Indices.size() << std::endl;
+
 				
 				glNamedBufferStorage(m_vertex_buffers[i], curr_mesh.Vertices.size() * sizeof(objl::Vertex), &curr_mesh.Vertices[i], 0);
 				glVertexArrayVertexBuffer(m_vaos[i], 0, m_vertex_buffers[i], 0, sizeof(objl::Vertex));
 
-				glNamedBufferStorage(m_index_buffers[i], m_count * sizeof(GLuint), &curr_mesh.Indices[i], 0);
+				glNamedBufferStorage(m_index_buffers[i], curr_mesh.Indices.size() * sizeof(GLuint), &curr_mesh.Indices[i], 0);
 				glVertexArrayElementBuffer(m_vaos[i], m_index_buffers[i]);
 
 				glVertexArrayAttribBinding(m_vaos[i], 0, 0);
@@ -126,7 +128,7 @@ struct Mesh {
 			}
 			std::cout << "SUCCESS" << std::endl;
 			int vert_count = loader.LoadedMeshes[0].Vertices.size();
-			m_count = loader.LoadedIndices.size();
+			m_count = loader.LoadedIndices.size() * 3;
 
 			std::cout << "Size of vertices: " << loader.LoadedMeshes[0].Vertices.size() * 8 * sizeof(float) << std::endl;
 			std::cout << "Number of meshes: " << loader.LoadedMeshes.size() << std::endl;
@@ -176,11 +178,12 @@ struct Mesh {
 
 	void OnDraw2() {
 		glUseProgram(m_program);
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_mvp));
 
 		for (int i = 0; i < m_vaos.size(); ++i) {
 			glBindVertexArray(m_vaos[i]);
-			glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_mvp));
-			glDrawElements(GL_TRIANGLES, m_counts[i], GL_UNSIGNED_INT, (void*)0);
+			//glDrawElements(GL_TRIANGLES, m_counts[i], GL_UNSIGNED_INT, (void*)0);
+			glDrawArrays(GL_TRIANGLES, 0, m_counts[i]);
 		}
 	}
 };
@@ -237,10 +240,10 @@ struct Application : public Program {
 
 
 		if (input.Held(GLFW_KEY_W)) {
-			m_cam_pos += glm::normalize(front) * (f32)dt * 222.0f;
+			m_cam_pos += glm::normalize(front) * (f32)dt * 2.0f;
 		}
 		if (input.Held(GLFW_KEY_S)) {
-			m_cam_pos += -glm::normalize(front) * (f32)dt * 222.0f;
+			m_cam_pos += -glm::normalize(front) * (f32)dt * 2.0f;
 		}
 
 
