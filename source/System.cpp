@@ -537,7 +537,7 @@ void Event::Run(System* system, Program& program)
 #endif //_DEBUG
 	
 	Random::Init();
-	program.OnInit(audio, window);
+	program.OnInit(input, audio, window);
 
 	f64 ticks = glfwGetTime();
 	while (!glfwWindowShouldClose(window.m_handle) && window.IsRunning()) {

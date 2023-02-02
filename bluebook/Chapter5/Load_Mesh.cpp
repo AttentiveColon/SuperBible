@@ -51,8 +51,11 @@ static ShaderText shader_text[] = {
 };
 
 struct Mesh {
-	GLuint m_vao;
+	std::vector<GLuint> m_vaos;
 	std::vector<GLuint> m_vertex_buffers;
+	std::vector<GLuint> m_index_buffers;
+	std::vector<GLuint> m_counts;
+	GLuint m_vao;
 	GLuint m_vertex_buffer;
 	GLuint m_index_buffer;
 	GLsizei m_count;
@@ -66,46 +69,50 @@ struct Mesh {
 		bool success = loader.LoadFile(filename);
 		if (success) {
 			GLsizei mesh_count = loader.LoadedMeshes.size();
-			for (int i = 0; i < mesh_count; ++i) {
-				m_vertex_buffers.push_back(0);
-			}
 
-			glCreateVertexArrays(1, &m_vao);
-			glCreateBuffers(1, &m_vertex_buffer);
-			glCreateBuffers(1, &m_index_buffer);
+			m_vaos.resize(mesh_count);
+			m_vertex_buffers.resize(mesh_count);
+			m_index_buffers.resize(mesh_count);
+
+			glCreateVertexArrays(mesh_count, &m_vaos[0]);
+			glCreateBuffers(mesh_count, &m_vertex_buffers[0]);
+			glCreateBuffers(mesh_count, &m_index_buffers[0]);
+
+
+
+			
 
 			m_count = loader.LoadedIndices.size();
 
-			std::vector<objl::Vertex> vertex_buffer;
+			
 			for (int i = 0; i < mesh_count; ++i) {
 				auto curr_mesh = loader.LoadedMeshes[i];
-				for (int j = 0; j < curr_mesh.Vertices.size(); ++j) {
-					vertex_buffer.push_back(curr_mesh.Vertices[j]);
-				}
+				m_counts.push_back(curr_mesh.Indices.size());
+				
+				glNamedBufferStorage(m_vertex_buffers[i], curr_mesh.Vertices.size() * sizeof(objl::Vertex), &curr_mesh.Vertices[i], 0);
+				glVertexArrayVertexBuffer(m_vaos[i], 0, m_vertex_buffers[i], 0, sizeof(objl::Vertex));
 
+				glNamedBufferStorage(m_index_buffers[i], m_count * sizeof(GLuint), &curr_mesh.Indices[i], 0);
+				glVertexArrayElementBuffer(m_vaos[i], m_index_buffers[i]);
+
+				glVertexArrayAttribBinding(m_vaos[i], 0, 0);
+				glVertexArrayAttribFormat(m_vaos[i], 0, 3, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, Position));
+				glEnableVertexArrayAttrib(m_vaos[i], 0);
+
+				glVertexArrayAttribBinding(m_vaos[i], 1, 0);
+				glVertexArrayAttribFormat(m_vaos[i], 1, 3, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, Normal));
+				glEnableVertexArrayAttrib(m_vaos[i], 1);
+
+				glVertexArrayAttribBinding(m_vaos[i], 2, 0);
+				glVertexArrayAttribFormat(m_vaos[i], 2, 2, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, TextureCoordinate));
+				glEnableVertexArrayAttrib(m_vaos[i], 2);
+
+
+				glBindVertexArray(0);
 			}
 
 			std::cout << "Done loading" << std::endl;
-			glNamedBufferStorage(m_vertex_buffer, vertex_buffer.size() * sizeof(objl::Vertex), &vertex_buffer[0], 0);
-			glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(objl::Vertex));
-
-			glNamedBufferStorage(m_index_buffer, m_count * sizeof(GLuint), &loader.LoadedIndices[0], 0);
-			glVertexArrayElementBuffer(m_vao, m_index_buffer);
-
-			glVertexArrayAttribBinding(m_vao, 0, 0);
-			glVertexArrayAttribFormat(m_vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, Position));
-			glEnableVertexArrayAttrib(m_vao, 0);
-
-			glVertexArrayAttribBinding(m_vao, 1, 0);
-			glVertexArrayAttribFormat(m_vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, Normal));
-			glEnableVertexArrayAttrib(m_vao, 1);
-
-			glVertexArrayAttribBinding(m_vao, 2, 0);
-			glVertexArrayAttribFormat(m_vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, TextureCoordinate));
-			glEnableVertexArrayAttrib(m_vao, 2);
-
-
-			glBindVertexArray(0);
+			
 		}
 	}
 
@@ -114,7 +121,6 @@ struct Mesh {
 		objl::Loader loader;
 		bool success = loader.LoadFile(filename);
 		if (success) {
-
 			for (int i = 0; i < loader.LoadedMeshes.size(); ++i) {
 
 			}
@@ -170,9 +176,12 @@ struct Mesh {
 
 	void OnDraw2() {
 		glUseProgram(m_program);
-		glBindVertexArray(m_vao);
-		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_mvp));
-		glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
+
+		for (int i = 0; i < m_vaos.size(); ++i) {
+			glBindVertexArray(m_vaos[i]);
+			glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_mvp));
+			glDrawElements(GL_TRIANGLES, m_counts[i], GL_UNSIGNED_INT, (void*)0);
+		}
 	}
 };
 
@@ -184,6 +193,9 @@ struct Application : public Program {
 	Mesh m_mesh;
 
 	glm::vec3 m_cam_pos;
+	glm::vec3 m_direction;
+	GLfloat m_angle_x;
+	GLfloat m_angle_y;
 	glm::mat4 m_mvp;
 
 
@@ -191,23 +203,52 @@ struct Application : public Program {
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
 		m_fps(0),
 		m_time(0),
-		m_cam_pos(-2.0f, 0.5f, 2.0f)
-	{}
+		m_cam_pos(-2.0f, 0.5f, 2.0f),
+		m_direction(0.0f, 0.0f, 0.0f),
+		m_angle_x(0.0),
+		m_angle_y(0.0)
+	{
+		m_direction = glm::normalize(m_direction - m_cam_pos);
+	}
 
-	void OnInit(Audio& audio, Window& window) {
+	void OnInit(Input& input, Audio& audio, Window& window) {
+		input.SetRawMouseMode(window.GetHandle());
 		audio.PlayOneShot("./resources/startup.mp3");
 		glEnable(GL_DEPTH_TEST);
 
-		m_mesh.OnInit2("./resources/sponza.obj");
+		m_mesh.OnInit2("./resources/basic_scene.obj");
+
+		
 
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 
-		glm::mat4 lookat = glm::lookAt(glm::vec3(m_cam_pos.x, m_cam_pos.y, m_cam_pos.z), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		MousePos mouse_pos = input.GetMouseRaw();
+		m_angle_x += mouse_pos.x;
+		m_angle_y = glm::clamp(m_angle_y + mouse_pos.y, -45.0, 45.0);
+
+		glm::vec3 front;
+		front.x = cos(glm::radians(m_angle_x) * cos(glm::radians(0.0)));
+		front.y = -sin(glm::radians(m_angle_y));
+		front.z = sin(glm::radians(m_angle_x) * cos(glm::radians(0.0)));
+		m_direction = front + m_cam_pos;
+
+
+		if (input.Held(GLFW_KEY_W)) {
+			m_cam_pos += glm::normalize(front) * (f32)dt * 222.0f;
+		}
+		if (input.Held(GLFW_KEY_S)) {
+			m_cam_pos += -glm::normalize(front) * (f32)dt * 222.0f;
+		}
+
+
+		glm::mat4 lookat = glm::lookAt(m_cam_pos, m_direction, glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 10000.0f);
 		m_mvp = perspective * lookat;
+
+
 
 
 		m_mesh.OnUpdate(m_mvp);
@@ -224,7 +265,10 @@ struct Application : public Program {
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
-		ImGui::InputFloat3("Cam Pos", glm::value_ptr(m_cam_pos));
+		ImGui::DragFloat3("Cam Pos", glm::value_ptr(m_cam_pos));
+		ImGui::Text("AngleX: %f", m_angle_x);
+		ImGui::Text("AngleY: %f", m_angle_y);
+		//ImGui::InputFloat3("Cam Pos", glm::value_ptr(m_cam_pos));
 		ImGui::End();
 	}
 };

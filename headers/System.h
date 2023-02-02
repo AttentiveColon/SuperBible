@@ -52,6 +52,7 @@ struct Window {
 	f64 GetTime() { return m_time; }
 	f64 GetFrameLimit() { return m_framelimit; }
 	bool IsRunning() { return m_running; }
+	GLFWwindow* GetHandle() { return m_handle; }
 
 private:
 	void UpdateFPS();
@@ -207,7 +208,7 @@ struct System
 //-------------------------------------------------------------------------------------------------
 
 struct Program {
-	virtual void OnInit(Audio& audio, Window& window) = 0;
+	virtual void OnInit(Input& input, Audio& audio, Window& window) = 0;
 	virtual void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) = 0;
 	virtual void OnDraw() = 0;
 	virtual void OnGui() = 0;
