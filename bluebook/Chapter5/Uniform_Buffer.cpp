@@ -1,5 +1,5 @@
 #include "Defines.h"
-#ifdef LOAD_MESH
+#ifdef UNIFORM_BUFFER
 #include "System.h"
 
 #include "glm/common.hpp"
@@ -62,7 +62,7 @@ struct Application : public Program {
 
 	ObjMesh m_mesh;
 	GLuint m_program;
-	
+
 	glm::vec3 m_cam_pos;
 	glm::vec3 m_direction;
 	GLfloat m_angle_x;
@@ -83,7 +83,7 @@ struct Application : public Program {
 		m_direction(0.0f, 0.0f, 0.0f),
 		m_angle_x(0.0),
 		m_angle_y(0.0),
-		m_model_rot_z(0.0f),
+		m_model_rot_z(10.0f),
 		m_model_rot_x(0.0f)
 	{
 		m_direction = glm::normalize(m_direction - m_cam_pos);
@@ -111,7 +111,7 @@ struct Application : public Program {
 				input.SetRawMouseMode(window.GetHandle(), true);
 			}
 		}
-		
+
 		if (input.IsMouseRawActive()) {
 			MousePos mouse_pos = input.GetMouseRaw();
 			m_angle_x += mouse_pos.x * 0.1;
@@ -133,7 +133,7 @@ struct Application : public Program {
 		}
 
 		glm::mat4 model = glm::mat4(1.0f);
-		m_model = glm::rotate(model, glm::radians(m_model_rot_z), glm::vec3(0.0f, 0.0f, 1.0f));
+		m_model = glm::rotate(model, glm::radians(m_model_rot_z * (float)sin(m_time)), glm::vec3(0.0f, sin(m_time) * 50.0f, 1.0f));
 		m_model = glm::rotate(m_model, glm::radians(m_model_rot_x), glm::vec3(1.0f, 0.0f, 0.0f));
 
 		glm::mat4 lookat = glm::lookAt(m_cam_pos, m_direction, glm::vec3(0.0f, 1.0f, 0.0f));

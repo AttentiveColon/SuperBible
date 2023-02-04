@@ -102,6 +102,9 @@
     <ClCompile Include="source\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\Chapter5\Uniform_Buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">
