@@ -16,14 +16,23 @@ layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 uv;
 
-uniform mat4 mvp;
+layout (location = 4) uniform mat4 mvp;
+layout (location = 5) uniform float u_time;
+layout (location = 6) uniform vec2 u_resolution;
+
+uniform UniformBlock
+{
+	float u_time;
+	vec2 u_resolution;
+	mat4 mvp;
+} u_block;
 
 out vec3 vs_normal;
 out vec2 vs_uv;
 
 void main() 
 {
-	vec4 new_pos = mvp * vec4(position, 1.0);
+	vec4 new_pos = mvp * vec4(position.x, position.y, position.z, 1.0);
 	gl_Position = new_pos;
 	vs_normal = normal;
 	vs_uv = uv;
@@ -40,7 +49,7 @@ out vec4 color;
 
 void main() 
 {
-	color = vec4(0.5 * vs_normal.y, 0.5 * vs_normal.x, 0.5 * vs_normal.z, 1.0);
+	color = vec4(0.5 * (vs_normal.y * vs_normal.x + 0.1) + 0.1, 0.5 * (vs_normal.y * (vs_normal.z + 0.2)) + 0.1, 0.5 * (vs_normal.y * (vs_normal.x + 0.3)) + 0.1, 1.0);
 }
 )";
 
@@ -51,10 +60,6 @@ static ShaderText shader_text[] = {
 };
 
 struct Mesh {
-	std::vector<GLuint> m_vaos;
-	std::vector<GLuint> m_vertex_buffers;
-	std::vector<GLuint> m_index_buffers;
-	std::vector<GLuint> m_counts;
 	GLuint m_vao;
 	GLuint m_vertex_buffer;
 	GLuint m_index_buffer;
@@ -62,86 +67,24 @@ struct Mesh {
 	GLuint m_program;
 
 	glm::mat4 m_mvp;
+	f64 m_time;
+	WindowSize m_resolution;
 
-	void OnInit2(const char* filename) {
+	void Load_OBJ(const char* filename) {
 		m_program = LoadShaders(shader_text);
 		objl::Loader loader;
 		bool success = loader.LoadFile(filename);
 		if (success) {
-			GLsizei mesh_count = loader.LoadedMeshes.size();
-
-			std::cout << "Mesh Count: " << mesh_count << std::endl;
-
-			m_vaos.resize(mesh_count);
-			m_vertex_buffers.resize(mesh_count);
-			m_index_buffers.resize(mesh_count);
-			m_counts.resize(mesh_count);
-
-			glCreateVertexArrays(mesh_count, &m_vaos[0]);
-			glCreateBuffers(mesh_count, &m_vertex_buffers[0]);
-			glCreateBuffers(mesh_count, &m_index_buffers[0]);
-			std::cout << "Loaded vert size: " << loader.LoadedVertices.size() << std::endl;
-			std::cout << "Loaded index size: " << loader.LoadedIndices.size() << std::endl;
-
-			for (int i = 0; i < mesh_count; ++i) {
-				auto curr_mesh = loader.LoadedMeshes[i];
-				m_counts[i] = curr_mesh.Vertices.size();
-
-				std::cout << "Vertices size: " << curr_mesh.Vertices.size() << std::endl;
-				std::cout << "Indices size: " << curr_mesh.Indices.size() << std::endl;
-
-				
-				glNamedBufferStorage(m_vertex_buffers[i], curr_mesh.Vertices.size() * sizeof(objl::Vertex), &curr_mesh.Vertices[i], 0);
-				glVertexArrayVertexBuffer(m_vaos[i], 0, m_vertex_buffers[i], 0, sizeof(objl::Vertex));
-
-				glNamedBufferStorage(m_index_buffers[i], curr_mesh.Indices.size() * sizeof(GLuint), &curr_mesh.Indices[i], 0);
-				glVertexArrayElementBuffer(m_vaos[i], m_index_buffers[i]);
-
-				glVertexArrayAttribBinding(m_vaos[i], 0, 0);
-				glVertexArrayAttribFormat(m_vaos[i], 0, 3, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, Position));
-				glEnableVertexArrayAttrib(m_vaos[i], 0);
-
-				glVertexArrayAttribBinding(m_vaos[i], 1, 0);
-				glVertexArrayAttribFormat(m_vaos[i], 1, 3, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, Normal));
-				glEnableVertexArrayAttrib(m_vaos[i], 1);
-
-				glVertexArrayAttribBinding(m_vaos[i], 2, 0);
-				glVertexArrayAttribFormat(m_vaos[i], 2, 2, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, TextureCoordinate));
-				glEnableVertexArrayAttrib(m_vaos[i], 2);
-
-
-				glBindVertexArray(0);
-			}
-
-			std::cout << "Done loading" << std::endl;
-			
-		}
-	}
-
-	void OnInit(const char* filename) {
-		m_program = LoadShaders(shader_text);
-		objl::Loader loader;
-		bool success = loader.LoadFile(filename);
-		if (success) {
-			for (int i = 0; i < loader.LoadedMeshes.size(); ++i) {
-
-			}
-			std::cout << "SUCCESS" << std::endl;
-			int vert_count = loader.LoadedMeshes[0].Vertices.size();
+			int vert_count = loader.LoadedVertices.size();
 			m_count = loader.LoadedIndices.size() * 3;
-
-			std::cout << "Size of vertices: " << loader.LoadedMeshes[0].Vertices.size() * 8 * sizeof(float) << std::endl;
-			std::cout << "Number of meshes: " << loader.LoadedMeshes.size() << std::endl;
-			std::cout << "Number of indices: " << loader.LoadedIndices.size() << std::endl;
 			
 			glCreateVertexArrays(1, &m_vao);
 
 			glCreateBuffers(1, &m_vertex_buffer);
-			glNamedBufferStorage(m_vertex_buffer, vert_count * sizeof(objl::Vertex), &loader.LoadedMeshes[0].Vertices[0], 0);
+			glNamedBufferStorage(m_vertex_buffer, vert_count * sizeof(objl::Vertex), &loader.LoadedVertices[0], 0);
 
 			glCreateBuffers(1, &m_index_buffer);
 			glNamedBufferStorage(m_index_buffer, loader.LoadedIndices.size() * sizeof(GLuint), &loader.LoadedIndices[0], 0);
-
 
 			glVertexArrayAttribBinding(m_vao, 0, 0);
 			glVertexArrayAttribFormat(m_vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(objl::Vertex, Position));
@@ -161,30 +104,24 @@ struct Mesh {
 			glBindVertexArray(0);
 		}
 		else {
-			std::cout << "FAILURE" << std::endl;
+			std::cout << "Failed to load mesh: " << filename << std::endl;
 		}
 	}
 
-	void OnUpdate(glm::mat4 mvp) {
+	void OnUpdate(glm::mat4 mvp, f64 time, WindowSize resolution) {
 		m_mvp = mvp;
+		m_time = time;
+		m_resolution = resolution;
 	}
 
+	//associate mvp, m_time and window resolution in uniform array
 	void OnDraw() {
 		glUseProgram(m_program);
 		glBindVertexArray(m_vao);
-		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_mvp));
+		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_mvp));
+		glUniform1f(5, (float)m_time);
+		glUniform2i(6, m_resolution.width, m_resolution.height);
 		glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
-	}
-
-	void OnDraw2() {
-		glUseProgram(m_program);
-		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_mvp));
-
-		for (int i = 0; i < m_vaos.size(); ++i) {
-			glBindVertexArray(m_vaos[i]);
-			//glDrawElements(GL_TRIANGLES, m_counts[i], GL_UNSIGNED_INT, (void*)0);
-			glDrawArrays(GL_TRIANGLES, 0, m_counts[i]);
-		}
 	}
 };
 
@@ -215,11 +152,11 @@ struct Application : public Program {
 	}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
-		input.SetRawMouseMode(window.GetHandle());
+		input.SetRawMouseMode(window.GetHandle(), true);
 		audio.PlayOneShot("./resources/startup.mp3");
 		glEnable(GL_DEPTH_TEST);
 
-		m_mesh.OnInit2("./resources/basic_scene.obj");
+		m_mesh.Load_OBJ("./resources/basic_scene.obj");
 
 		
 
@@ -228,9 +165,20 @@ struct Application : public Program {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 
-		MousePos mouse_pos = input.GetMouseRaw();
-		m_angle_x += mouse_pos.x;
-		m_angle_y = glm::clamp(m_angle_y + mouse_pos.y, -45.0, 45.0);
+		if (input.Pressed(GLFW_KEY_BACKSPACE)) {
+			if (input.IsMouseRawActive()) {
+				input.SetRawMouseMode(window.GetHandle(), false);
+			}
+			else {
+				input.SetRawMouseMode(window.GetHandle(), true);
+			}
+		}
+		
+		if (input.IsMouseRawActive()) {
+			MousePos mouse_pos = input.GetMouseRaw();
+			m_angle_x += mouse_pos.x;
+			m_angle_y = glm::clamp(m_angle_y + mouse_pos.y, -45.0, 45.0);
+		}
 
 		glm::vec3 front;
 		front.x = cos(glm::radians(m_angle_x) * cos(glm::radians(0.0)));
@@ -254,14 +202,14 @@ struct Application : public Program {
 
 
 
-		m_mesh.OnUpdate(m_mvp);
+		m_mesh.OnUpdate(m_mvp, m_time, window.GetWindowDimensions());
 	}
 	void OnDraw() {
 		static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
-		m_mesh.OnDraw2();
+		m_mesh.OnDraw();
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");

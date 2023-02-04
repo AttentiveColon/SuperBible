@@ -375,16 +375,33 @@ MousePos Input::GetMousePos()
 	return mouse;
 }
 
-bool Input::MouseIsActive()
+bool Input::IsMouseActive()
 {
 	return m_mouseActive;
 }
 
-void Input::SetRawMouseMode(GLFWwindow* window)
+bool Input::IsMouseRawActive()
 {
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	if (glfwRawMouseMotionSupported()) {
-		glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+	return m_raw_mouse;
+}
+
+void Input::SetRawMouseMode(GLFWwindow* window, bool active)
+{
+	if (active) {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		if (glfwRawMouseMotionSupported()) {
+			glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+		}
+		m_raw_mouse = true;
+		return;
+	}
+	else {
+		if (glfwRawMouseMotionSupported()) {
+			glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+		}
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		m_raw_mouse = false;
+		return;
 	}
 }
 

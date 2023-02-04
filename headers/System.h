@@ -29,6 +29,11 @@ struct SystemConf;
 // WINDOW
 //-------------------------------------------------------------------------------------------------
 
+struct WindowSize {
+	i32 width;
+	i32 height;
+};
+
 struct Window {
 	friend struct System;
 	friend struct Event;
@@ -53,6 +58,7 @@ struct Window {
 	f64 GetFrameLimit() { return m_framelimit; }
 	bool IsRunning() { return m_running; }
 	GLFWwindow* GetHandle() { return m_handle; }
+	WindowSize GetWindowDimensions() { return WindowSize{ m_width, m_height }; }
 
 private:
 	void UpdateFPS();
@@ -114,8 +120,9 @@ private:
 	//Mouse Input
 public:
 	MousePos GetMousePos();
-	bool MouseIsActive();
-	void SetRawMouseMode(GLFWwindow* window);
+	bool IsMouseActive();
+	bool IsMouseRawActive();
+	void SetRawMouseMode(GLFWwindow* window, bool active);
 	void UnsetRawMouseMode(GLFWwindow* window);
 	MousePos GetMouseRaw();
 	bool MousePressed(i32 button);
@@ -130,6 +137,7 @@ private:
 	bool m_mouseActive;
 	bool m_mouse_state[8] = { false };
 	bool m_mouse_prevState[8] = { false };
+	bool m_raw_mouse = false;
 	f64 m_mouseXpos;
 	f64 m_mouseYpos;
 	f64 m_mouseXposPrev;
