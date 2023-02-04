@@ -28,7 +28,7 @@ void main()
 {
 	vec4 new_pos = mvp * vec4(position.x, position.y, position.z, 1.0);
 	gl_Position = new_pos;
-	vs_normal = normal;
+	vs_normal = normal * sin(u_time);
 	vs_uv = uv;
 }
 )";
@@ -66,6 +66,7 @@ struct Application : public Program {
 	GLfloat m_angle_x;
 	GLfloat m_angle_y;
 	glm::mat4 m_mvp;
+	WindowXY m_resolution;
 
 
 	Application()
@@ -87,6 +88,7 @@ struct Application : public Program {
 
 		m_program = LoadShaders(shader_text);
 		m_mesh.Load_OBJ("./resources/basic_scene.obj");
+		m_resolution = window.GetWindowDimensions();
 
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
@@ -130,14 +132,19 @@ struct Application : public Program {
 
 
 
-		m_mesh.OnUpdate(m_mvp, m_time, window.GetWindowDimensions());
+		m_mesh.OnUpdate(dt);
 	}
 	void OnDraw() {
 		static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
-		m_mesh.OnDraw(m_program);
+		glUseProgram(m_program);
+		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_mvp));
+		glUniform1f(5, (float)m_time);
+		glUniform2i(6, m_resolution.width, m_resolution.height);
+
+		m_mesh.OnDraw();
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");

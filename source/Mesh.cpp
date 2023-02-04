@@ -43,17 +43,11 @@ void ObjMesh::Load_OBJ(const char* filename) {
 	}
 }
 
-void ObjMesh::OnUpdate(glm::mat4 mvp, f64 time, WindowXY resolution) {
-	m_mvp = mvp;
-	m_time = time;
-	m_resolution = resolution;
+void ObjMesh::OnUpdate(f64 dt) {
+
 }
 
-void ObjMesh::OnDraw(GLuint shader) {
-	glUseProgram(shader);
+void ObjMesh::OnDraw() {
 	glBindVertexArray(m_vao);
-	glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_mvp));
-	glUniform1f(5, (float)m_time);
-	glUniform2i(6, m_resolution.width, m_resolution.height);
 	glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
 }

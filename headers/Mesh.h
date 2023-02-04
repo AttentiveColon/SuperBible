@@ -14,6 +14,6 @@ struct ObjMesh {
     glm::mat4 m_mvp;
 
     void Load_OBJ(const char* filename);
-    void OnUpdate(glm::mat4 mvp, f64 time, WindowXY resolution);
-    void OnDraw(GLuint shader);
+    void OnUpdate(f64 dt);
+    void OnDraw();
 };
