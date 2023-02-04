@@ -29,11 +29,6 @@ struct SystemConf;
 // WINDOW
 //-------------------------------------------------------------------------------------------------
 
-struct WindowSize {
-	i32 width;
-	i32 height;
-};
-
 struct Window {
 	friend struct System;
 	friend struct Event;
@@ -58,7 +53,7 @@ struct Window {
 	f64 GetFrameLimit() { return m_framelimit; }
 	bool IsRunning() { return m_running; }
 	GLFWwindow* GetHandle() { return m_handle; }
-	WindowSize GetWindowDimensions() { return WindowSize{ m_width, m_height }; }
+	WindowXY GetWindowDimensions() { return WindowXY{ m_width, m_height }; }
 
 private:
 	void UpdateFPS();
@@ -82,10 +77,6 @@ private:
 // INPUT
 //-------------------------------------------------------------------------------------------------
 
-struct MousePos {
-	f64 x;
-	f64 y;
-};
 
 struct Input {
 	friend struct System;

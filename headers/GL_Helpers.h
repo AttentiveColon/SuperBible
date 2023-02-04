@@ -33,7 +33,9 @@ typedef double f64;
 struct GLFWimage;
 typedef unsigned int GLenum;
 typedef unsigned int GLuint;
+typedef int GLsizei;
 typedef char GLchar;
+
 
 struct ShaderFiles {
     GLenum type;
@@ -47,8 +49,21 @@ struct ShaderText {
     GLuint shader;
 };
 
+struct MousePos {
+    f64 x;
+    f64 y;
+};
+
+struct WindowXY {
+    i32 width;
+    i32 height;
+};
+
 GLuint LoadShaders(ShaderText*);
 GLuint LoadShaders(ShaderFiles*);
 size_t GetGLTypeSize(GLenum type);
 GLFWimage rgba_bmp_load(const char* filePath);
 void Debug_Callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* user_param);
+
+
+

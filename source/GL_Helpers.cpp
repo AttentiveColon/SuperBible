@@ -321,3 +321,4 @@ void Debug_Callback(
 		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
 		namedType.c_str(), namedSeverity.c_str(), message);
 }
+
