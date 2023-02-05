@@ -1,5 +1,8 @@
 
+Today:
+
+
 
 Updates to framework:
 
-	add obj mesh loader
+	camera look system

@@ -17,10 +17,13 @@ layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 uv;
 
-layout (location = 3) uniform mat4 u_model;
-layout (location = 4) uniform mat4 u_viewproj;
-layout (location = 5) uniform float u_time;
-layout (location = 6) uniform vec2 u_resolution;
+layout (binding = 0) uniform DefaultUniform
+{
+	mat4 u_model;
+	mat4 u_viewproj;
+	vec2 u_resolution;
+	float u_time;
+};
 
 out vec4 vs_normal;
 out vec2 vs_uv;
@@ -62,6 +65,12 @@ struct Application : public Program {
 
 	ObjMesh m_mesh;
 	GLuint m_program;
+	GLuint m_ubo;
+
+	GLubyte* m_block_buffer;
+	GLint m_block_size;
+	GLuint m_indices[4];
+	GLint m_offsets[4];
 
 	glm::vec3 m_cam_pos;
 	glm::vec3 m_direction;
@@ -95,6 +104,26 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 
 		m_program = LoadShaders(shader_text);
+		GLuint blockIndex = glGetUniformBlockIndex(m_program, "DefaultUniform");
+		std::cout << "UBO index is: " << blockIndex << std::endl;
+		std::cout << "sizeof(GLM::MAT4): " << sizeof(glm::mat4) << std::endl;
+		
+		glGetActiveUniformBlockiv(m_program, blockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &m_block_size);
+		std::cout << "block size: " << m_block_size << std::endl;
+
+		
+		m_block_buffer = (GLubyte*)malloc(m_block_size);
+
+		const GLchar* names[] = { "u_model", "u_viewproj", "u_resolution", "u_time" };
+		
+		glGetUniformIndices(m_program, 4, names, m_indices);
+
+		std::cout << "Active indices: " << m_indices[0] << " " << m_indices[1] << " " << m_indices[2] << " " << m_indices[3] << std::endl;
+		glGetActiveUniformsiv(m_program, 4, m_indices, GL_UNIFORM_OFFSET, m_offsets);
+
+		glGenBuffers(1, &m_ubo);
+
+
 		m_mesh.Load_OBJ("./resources/basic_scene.obj");
 		m_resolution = window.GetWindowDimensions();
 
@@ -140,7 +169,10 @@ struct Application : public Program {
 		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 10000.0f);
 		m_viewproj = perspective * lookat;
 
-
+		memcpy(m_block_buffer + m_offsets[0], &m_model, sizeof(glm::mat4));
+		memcpy(m_block_buffer + m_offsets[1], &m_viewproj, sizeof(glm::mat4));
+		memcpy(m_block_buffer + m_offsets[2], &m_resolution, sizeof(glm::vec2));
+		memcpy(m_block_buffer + m_offsets[3], &m_time, sizeof(GLfloat));
 
 
 		m_mesh.OnUpdate(dt);
@@ -151,10 +183,13 @@ struct Application : public Program {
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(m_program);
-		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(m_model));
+		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
+		glBufferData(GL_UNIFORM_BUFFER, m_block_size, m_block_buffer, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
+		/*glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(m_model));
 		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_viewproj));
 		glUniform1f(5, (float)m_time);
-		glUniform2i(6, m_resolution.width, m_resolution.height);
+		glUniform2i(6, m_resolution.width, m_resolution.height);*/
 
 		m_mesh.OnDraw();
 	}
