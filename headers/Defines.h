@@ -2,4 +2,4 @@
 #define OPENGL_SUPRESS_NOTIFICATION
 
 //Current Project
-#define UNIFORM_BUFFER
+#define SPINNING_CUBE

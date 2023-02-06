@@ -105,20 +105,15 @@ struct Application : public Program {
 
 		m_program = LoadShaders(shader_text);
 		GLuint blockIndex = glGetUniformBlockIndex(m_program, "DefaultUniform");
-		std::cout << "UBO index is: " << blockIndex << std::endl;
-		std::cout << "sizeof(GLM::MAT4): " << sizeof(glm::mat4) << std::endl;
 		
 		glGetActiveUniformBlockiv(m_program, blockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &m_block_size);
-		std::cout << "block size: " << m_block_size << std::endl;
 
-		
 		m_block_buffer = (GLubyte*)malloc(m_block_size);
 
 		const GLchar* names[] = { "u_model", "u_viewproj", "u_resolution", "u_time" };
 		
 		glGetUniformIndices(m_program, 4, names, m_indices);
 
-		std::cout << "Active indices: " << m_indices[0] << " " << m_indices[1] << " " << m_indices[2] << " " << m_indices[3] << std::endl;
 		glGetActiveUniformsiv(m_program, 4, m_indices, GL_UNIFORM_OFFSET, m_offsets);
 
 		glGenBuffers(1, &m_ubo);
@@ -174,7 +169,6 @@ struct Application : public Program {
 		memcpy(m_block_buffer + m_offsets[2], &m_resolution, sizeof(glm::vec2));
 		memcpy(m_block_buffer + m_offsets[3], &m_time, sizeof(GLfloat));
 
-
 		m_mesh.OnUpdate(dt);
 	}
 	void OnDraw() {
@@ -186,10 +180,6 @@ struct Application : public Program {
 		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
 		glBufferData(GL_UNIFORM_BUFFER, m_block_size, m_block_buffer, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
-		/*glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(m_model));
-		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_viewproj));
-		glUniform1f(5, (float)m_time);
-		glUniform2i(6, m_resolution.width, m_resolution.height);*/
 
 		m_mesh.OnDraw();
 	}

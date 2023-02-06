@@ -4,5 +4,7 @@ Today:
 
 
 Updates to framework:
+	
+	ability to resize window and a OnResize function
 
 	camera look system
