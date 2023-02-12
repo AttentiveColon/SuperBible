@@ -1,7 +1,7 @@
 #include "Defines.h"
 #ifdef BUFFERS
 #include "System.h"
-#include "OBJ_Loader.h"
+
 
 struct vertex {
 	f32 x;
@@ -159,7 +159,7 @@ struct Application : public Program {
 		m_triangle()
 	{}
 
-	void OnInit(Audio& audio, Window& window) {
+	void OnInit(Input& input, Audio& audio, Window& window) {
 		audio.PlayOneShot("./resources/startup.mp3");
 		
 

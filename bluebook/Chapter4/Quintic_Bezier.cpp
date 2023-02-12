@@ -84,7 +84,7 @@ struct Application : public Program {
 		m_cp[4] = e;
 	}
 
-	void OnInit(Audio& audio, Window& window) {
+	void OnInit(Input& input, Audio& audio, Window& window) {
 		audio.PlayOneShot("./resources/startup.mp3");
 		glGenVertexArrays(1, &VAO);
 		glGenBuffers(1, &VBO);

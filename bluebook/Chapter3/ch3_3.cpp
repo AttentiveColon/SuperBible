@@ -60,7 +60,7 @@ struct Application : public Program {
 		glDeleteProgram(m_program);
 	}
 
-	void OnInit(Audio& audio, Window& window) {
+	void OnInit(Input& input, Audio& audio, Window& window) {
 		audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
 		glCreateVertexArrays(1, &m_vertex_array_object);

@@ -81,7 +81,7 @@ struct Application : public Program {
 		m_control_points[3] = d;
 	}
 
-	void OnInit(Audio& audio, Window& window) {
+	void OnInit(Input& input, Audio& audio, Window& window) {
 		audio.PlayOneShot("./resources/startup.mp3");
 		glGenVertexArrays(1, &VAO);
 		glGenBuffers(1, &VBO);

@@ -13,7 +13,7 @@ struct Application : public Program {
 		m_time(0)
 	{}
 
-	void OnInit(Audio& audio, Window& window) {
+	void OnInit(Input& input, Audio& audio, Window& window) {
 		audio.PlayOneShot("./resources/startup.mp3");
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
