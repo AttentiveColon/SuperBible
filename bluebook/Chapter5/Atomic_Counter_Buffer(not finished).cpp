@@ -112,6 +112,7 @@ struct Application : public Program {
 		//Pass the data to the buffer
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(storage_block), storage_block, GL_STREAM_READ);
 		//glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(storage_block), storage_block, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+		
 		//Bind the data to binding point 0 in shader
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_storage_buffer);
 		//Unbind the buffer
