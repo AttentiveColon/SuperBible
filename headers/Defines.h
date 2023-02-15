@@ -2,4 +2,4 @@
 #define OPENGL_SUPRESS_NOTIFICATION
 
 //Current Project
-#define SPLINES
+#define SHADER_STORAGE_BLOCKS

@@ -43,13 +43,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>ClangCL</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>ClangCL</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -156,6 +156,7 @@
     <ClCompile Include="bluebook\Chapter4\Splines%28incomplete%29.cpp" />
     <ClCompile Include="bluebook\Chapter5\Buffers.cpp" />
     <ClCompile Include="bluebook\Chapter5\Load_Mesh.cpp" />
+    <ClCompile Include="bluebook\Chapter5\Shader_Storage_Blocks.cpp" />
     <ClCompile Include="bluebook\Chapter5\Spinning_Cube.cpp" />
     <ClCompile Include="bluebook\Chapter5\Uniform_Buffer.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />
