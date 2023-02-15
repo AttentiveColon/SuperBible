@@ -154,7 +154,7 @@
     <ClCompile Include="bluebook\Chapter4\Quintic_Bezier.cpp" />
     <ClCompile Include="bluebook\Chapter4\GLM_Math_Equivelents.cpp" />
     <ClCompile Include="bluebook\Chapter4\Splines%28incomplete%29.cpp" />
-    <ClCompile Include="bluebook\Chapter5\Atomic_Counter_Buffer%28not finished%29.cpp" />
+    <ClCompile Include="bluebook\Chapter5\Atomic_Counter_Buffer.cpp" />
     <ClCompile Include="bluebook\Chapter5\Buffers.cpp" />
     <ClCompile Include="bluebook\Chapter5\Load_Mesh.cpp" />
     <ClCompile Include="bluebook\Chapter5\Shader_Storage_Blocks.cpp" />
