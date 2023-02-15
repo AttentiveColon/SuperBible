@@ -111,6 +111,9 @@
     <ClCompile Include="bluebook\Chapter5\Shader_Storage_Blocks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\Chapter5\Atomic_Counter_Buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">

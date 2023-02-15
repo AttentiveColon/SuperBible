@@ -1,5 +1,5 @@
 #include "Defines.h"
-#ifdef SHADER_STORAGE_BLOCKS
+#ifdef ATOMIC_COUNTER_BUFFER
 #include "System.h"
 
 static const GLfloat vertices[] = {
@@ -45,11 +45,18 @@ static const GLchar* fragment_shader_source = R"(
 
 layout (location = 1) uniform vec2 u_resolution;
 
+layout (binding = 0, std430) buffer storage_block
+{
+	int number;
+	int number2;
+};
+
 out vec4 color;
 
 void main() 
 {
-	color = vec4(gl_FragCoord.y / u_resolution.y, gl_FragCoord.x / u_resolution.x, 0.0, 1.0);
+	float coordY = mod(gl_FragCoord.y, 4);
+	color = vec4(coordY / u_resolution.y, gl_FragCoord.x / u_resolution.x, 0.0, 1.0);
 }
 )";
 
@@ -103,16 +110,20 @@ struct Application : public Program {
 		//Bind the storage buffer
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_storage_buffer);
 		//Pass the data to the buffer
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(storage_block), storage_block, GL_DYNAMIC_READ);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(storage_block), storage_block, GL_STREAM_READ);
+		//glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(storage_block), storage_block, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 		//Bind the data to binding point 0 in shader
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_storage_buffer);
 		//Unbind the buffer
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-		
+		//glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
 		glDrawArrays(GL_TRIANGLES, 0, 18);
 
 		//Map the storage buffer and check the values were modified in the shader
-		GLint* array = (GLint*)glMapNamedBuffer(m_storage_buffer, GL_READ_ONLY);
+		GLint array[2];
+		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(storage_block), &array);
+		
+		//GLint* array = (GLint*)glMapNamedBuffer(m_storage_buffer, GL_READ_ONLY);
 		std::cout << &array << std::endl;
 		std::cout << "number one:" << array[0] << std::endl;
 		std::cout << "number two:" << array[1] << std::endl;
