@@ -159,6 +159,7 @@
     <ClCompile Include="bluebook\Chapter5\Load_Mesh.cpp" />
     <ClCompile Include="bluebook\Chapter5\Shader_Storage_Blocks.cpp" />
     <ClCompile Include="bluebook\Chapter5\Spinning_Cube.cpp" />
+    <ClCompile Include="bluebook\Chapter5\Textures.cpp" />
     <ClCompile Include="bluebook\Chapter5\Uniform_Buffer.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />
     <ClCompile Include="source\boilerplate_main.cpp" />
