@@ -46,7 +46,7 @@ out vec4 color;
 void main() 
 {
 	//color = vec4(0.5 * (vs_normal.y * vs_normal.x + 0.1) + 0.1, 0.5 * (vs_normal.y * (vs_normal.z + 0.2)) + 0.1, 0.5 * (vs_normal.y * (vs_normal.x + 0.3)) + 0.1, 1.0);
-	color = texture(u_texture, vs_uv * 3.0);
+	color = texture(u_texture, vs_uv * -5.0);
 }
 )";
 
@@ -89,7 +89,7 @@ struct Application : public Program {
 		glGenVertexArrays(1, &m_vao);
 
 		m_model = glm::mat4(1.0f);
-		glm::mat4 lookat = glm::lookAt(glm::vec3(-2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 lookat = glm::lookAt(glm::vec3(-1.5f, 1.5f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 100.0f);
 		m_viewproj = perspective * lookat;
 		m_resolution = window.GetWindowDimensions();
