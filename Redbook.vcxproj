@@ -161,11 +161,13 @@
     <ClCompile Include="bluebook\Chapter5\Shader_Storage_Blocks.cpp" />
     <ClCompile Include="bluebook\Chapter5\Spinning_Cube.cpp" />
     <ClCompile Include="bluebook\Chapter5\Textures.cpp" />
+    <ClCompile Include="bluebook\Chapter5\Texture_Coordinates.cpp" />
     <ClCompile Include="bluebook\Chapter5\Uniform_Buffer.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />
     <ClCompile Include="source\boilerplate_main.cpp" />
     <ClCompile Include="source\Mesh.cpp" />
     <ClCompile Include="source\System.cpp" />
+    <ClCompile Include="source\Texture.cpp" />
     <ClCompile Include="ThirdParty\glm\glm\detail\glm.cpp" />
     <ClCompile Include="ThirdParty\imgui\imgui.cpp" />
     <ClCompile Include="ThirdParty\imgui\imgui_demo.cpp" />
@@ -185,6 +187,7 @@
     <ClInclude Include="headers\GL_Helpers.h" />
     <ClInclude Include="headers\Mesh.h" />
     <ClInclude Include="headers\System.h" />
+    <ClInclude Include="headers\Texture.h" />
     <ClInclude Include="ThirdParty\glew-2.1.0\include\GL\eglew.h" />
     <ClInclude Include="ThirdParty\glew-2.1.0\include\GL\glew.h" />
     <ClInclude Include="ThirdParty\glew-2.1.0\include\GL\glxew.h" />

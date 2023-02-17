@@ -2,4 +2,4 @@
 #define OPENGL_SUPRESS_NOTIFICATION
 
 //Current Project
-#define KTX_LOADER
+#define TEXTURE_COORDINATES
