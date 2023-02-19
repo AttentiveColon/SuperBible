@@ -105,7 +105,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\glew-2.1.0\include;$(ProjectDir)ThirdParty\glm;$(ProjectDir)headers;$(ProjectDir)ThirdParty\imgui;$(ProjectDir)ThirdParty\irrKlang\include;$(ProjectDir)ThirdParty\OBJ-loader;$(ProjectDir)ThirdParty\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\glew-2.1.0\include;$(ProjectDir)ThirdParty\glm;$(ProjectDir)headers;$(ProjectDir)ThirdParty\imgui;$(ProjectDir)ThirdParty\irrKlang\include;$(ProjectDir)ThirdParty\OBJ-loader;$(ProjectDir)ThirdParty\glfw\include;$(ProejctDir)ThirdParty\tinygltf;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -127,7 +127,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\glew-2.1.0\include;$(ProjectDir)ThirdParty\glm;$(ProjectDir)headers;$(ProjectDir)ThirdParty\imgui;$(ProjectDir)ThirdParty\irrKlang\include;$(ProjectDir)ThirdParty\OBJ-loader;$(ProjectDir)ThirdParty\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\glew-2.1.0\include;$(ProjectDir)ThirdParty\glm;$(ProjectDir)headers;$(ProjectDir)ThirdParty\imgui;$(ProjectDir)ThirdParty\irrKlang\include;$(ProjectDir)ThirdParty\OBJ-loader;$(ProjectDir)ThirdParty\glfw\include;$(ProejctDir)ThirdParty\tinygltf;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -157,6 +157,7 @@
     <ClCompile Include="bluebook\Chapter5\Atomic_Counter_Buffer.cpp" />
     <ClCompile Include="bluebook\Chapter5\Buffers.cpp" />
     <ClCompile Include="bluebook\Chapter5\KTX_Loader.cpp" />
+    <ClCompile Include="bluebook\Chapter5\Load_GLTF_Mesh.cpp" />
     <ClCompile Include="bluebook\Chapter5\Load_Mesh.cpp" />
     <ClCompile Include="bluebook\Chapter5\Shader_Storage_Blocks.cpp" />
     <ClCompile Include="bluebook\Chapter5\Spinning_Cube.cpp" />
@@ -772,6 +773,10 @@
     <ClInclude Include="ThirdParty\irrKlang\plugins\ikpMP3\decoder\mpaudectab.h" />
     <ClInclude Include="ThirdParty\irrKlang\plugins\ikpMP3\decoder\mpegaudio.h" />
     <ClInclude Include="ThirdParty\OBJ-loader\OBJ_Loader.h" />
+    <ClInclude Include="ThirdParty\tinygltf\json.hpp" />
+    <ClInclude Include="ThirdParty\tinygltf\stb_image.h" />
+    <ClInclude Include="ThirdParty\tinygltf\stb_image_write.h" />
+    <ClInclude Include="ThirdParty\tinygltf\tiny_gltf.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitattributes" />
