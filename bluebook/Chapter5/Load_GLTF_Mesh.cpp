@@ -41,6 +41,8 @@ struct Application : public Program {
 			printf("Failed to parse glTF\n");
 			assert(false);
 		}
+
+		
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
