@@ -2,11 +2,17 @@
 #ifdef LOAD_GLTF_MESH
 #include "System.h"
 #include "tiny_gltf.h"
-#include <String>
+#include <string>
+#include <vector>
 
 using namespace tinygltf;
 
-
+struct GLTFMeshData {
+	std::vector<f32> positions;
+	std::vector<f32> normals;
+	std::vector<f32> texcoords;
+	std::vector<i32> indices;
+};
 
 struct Application : public Program {
 	float m_clear_color[4];
@@ -21,6 +27,8 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		audio.PlayOneShot("./resources/startup.mp3");
+
+		GLTFMeshData meshData;
 
 		Model model;
 		TinyGLTF loader;
@@ -43,6 +51,50 @@ struct Application : public Program {
 		}
 
 		
+
+		for (const auto& mesh : model.meshes) {
+			for (const auto& primitive : mesh.primitives) {
+				//Get Vertex Positions
+				const Accessor& positionAccessor = model.accessors[primitive.attributes.at("POSITION")];
+				const BufferView& positionView = model.bufferViews[positionAccessor.bufferView];
+				const float* positionData = reinterpret_cast<const float*>(model.buffers[positionView.buffer].data.data() + positionView.byteOffset + positionAccessor.byteOffset);
+				for (usize i = 0; i < positionAccessor.count * 3; i++) {
+					meshData.positions.push_back(positionData[i]);
+				}
+
+				//Get Normals
+				if (primitive.attributes.count("NORMAL") > 0) {
+					const Accessor& normalAccessor = model.accessors[primitive.attributes.at("NORMAL")];
+					const BufferView& normalView = model.bufferViews[normalAccessor.bufferView];
+					const float* normalData = reinterpret_cast<const float*>(model.buffers[normalView.buffer].data.data() + normalView.byteOffset + normalAccessor.byteOffset);
+					for (usize i = 0; i < normalAccessor.count * 3; i++) {
+						meshData.normals.push_back(normalData[i]);
+					}
+				}
+
+				//Get Texture Coords
+				if (primitive.attributes.count("TEXCOORD_0") > 0) {
+					const Accessor& texAccessor = model.accessors[primitive.attributes.at("TEXCOORD_0")];
+					const BufferView& texView = model.bufferViews[texAccessor.bufferView];
+					const float* texCoordData = reinterpret_cast<const float*>(model.buffers[texView.buffer].data.data() + texView.byteOffset + texAccessor.byteOffset);
+					for (usize i = 0; i < texAccessor.count * 3; i++) {
+						meshData.texcoords.push_back(texCoordData[i]);
+					}
+				}
+
+				//Get Indices
+				const Accessor& indexAccessor = model.accessors[primitive.indices];
+				const BufferView& indexView = model.bufferViews[indexAccessor.bufferView];
+				const u16* indexData = reinterpret_cast<const u16*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
+				for (usize i = 0; i < indexAccessor.count; i++) {
+					meshData.indices.push_back(indexData[i]);
+				}
+
+				
+			}
+		}
+		std::cout << "ALL DONE" << std::endl;
+
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
