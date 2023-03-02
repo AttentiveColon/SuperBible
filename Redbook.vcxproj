@@ -186,6 +186,7 @@
   <ItemGroup>
     <ClInclude Include="headers\Defines.h" />
     <ClInclude Include="headers\GL_Helpers.h" />
+    <ClInclude Include="headers\Scene.h" />
     <ClInclude Include="headers\Mesh.h" />
     <ClInclude Include="headers\System.h" />
     <ClInclude Include="headers\Texture.h" />

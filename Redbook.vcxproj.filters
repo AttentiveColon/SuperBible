@@ -1910,6 +1910,9 @@
     <ClInclude Include="ThirdParty\tinygltf\tiny_gltf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="headers\Scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ThirdParty\glfw\lib-vc2022\glfw3.dll" />
