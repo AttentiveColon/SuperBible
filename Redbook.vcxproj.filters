@@ -1910,7 +1910,7 @@
     <ClInclude Include="ThirdParty\tinygltf\tiny_gltf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\Scene.h">
+    <ClInclude Include="headers\Model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

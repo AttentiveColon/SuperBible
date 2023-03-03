@@ -1,23 +1,63 @@
 #include "Defines.h"
 #ifdef LOAD_GLTF_MESH
 #include "System.h"
-#include "tiny_gltf.h"
+#include "Model.h"
 #include <string>
 #include <vector>
 
-using namespace tinygltf;
+static const GLchar* vertex_shader_source = R"(
+#version 450 core
 
-struct GLTFMeshData {
-	std::vector<f32> positions;
-	std::vector<f32> normals;
-	std::vector<f32> texcoords;
-	std::vector<i32> indices;
+layout (location = 0) in vec3 position;
+layout (location = 1) in vec3 normal;
+layout (location = 2) in vec2 uv;
+
+layout (location = 3) uniform mat4 u_model;
+layout (location = 4) uniform mat4 u_viewproj;
+layout (location = 5) uniform float u_time;
+layout (location = 6) uniform vec2 u_resolution;
+
+out vec4 vs_normal;
+out vec2 vs_uv;
+
+void main() 
+{
+	vec4 new_pos = u_viewproj * u_model * vec4(position.x, position.y, position.z, 1.0);
+	gl_Position = new_pos;
+	vs_normal = u_model * vec4(normal, 1.0);
+	vs_uv = uv;
+}
+)";
+
+static const GLchar* fragment_shader_source = R"(
+#version 450 core
+
+in vec4 vs_normal;
+in vec2 vs_uv;
+
+out vec4 color;
+
+void main() 
+{
+	color = vec4(0.5 * (vs_normal.y * vs_normal.x + 0.1) + 0.1, 0.5 * (vs_normal.y * (vs_normal.z + 0.2)) + 0.1, 0.5 * (vs_normal.y * (vs_normal.x + 0.3)) + 0.1, 1.0);
+}
+)";
+
+static ShaderText shader_text[] = {
+	{GL_VERTEX_SHADER, vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, fragment_shader_source, NULL},
+	{GL_NONE, NULL, NULL}
 };
 
 struct Application : public Program {
 	float m_clear_color[4];
 	u64 m_fps;
 	f64 m_time;
+
+	GLuint m_program;
+	SB::Model m_model;
+	glm::mat4 m_viewproj;
+	
 
 	Application()
 		:m_clear_color{ 0.0f, 0.0f, 0.0f, 1.0f },
@@ -27,82 +67,30 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		audio.PlayOneShot("./resources/startup.mp3");
-
-		GLTFMeshData meshData;
-
-		Model model;
-		TinyGLTF loader;
-		std::string err;
-		std::string warn;
-
-		bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "./resources/two_planes.glb");
-
-		if (!warn.empty()) {
-			printf("Warn: %s\n", warn.c_str());
-		}
-
-		if (!err.empty()) {
-			printf("Err: %s\n", err.c_str());
-		}
-
-		if (!ret) {
-			printf("Failed to parse glTF\n");
-			assert(false);
-		}
-
-		
-
-		for (const auto& mesh : model.meshes) {
-			for (const auto& primitive : mesh.primitives) {
-				//Get Vertex Positions
-				const Accessor& positionAccessor = model.accessors[primitive.attributes.at("POSITION")];
-				const BufferView& positionView = model.bufferViews[positionAccessor.bufferView];
-				const float* positionData = reinterpret_cast<const float*>(model.buffers[positionView.buffer].data.data() + positionView.byteOffset + positionAccessor.byteOffset);
-				for (usize i = 0; i < positionAccessor.count * 3; i++) {
-					meshData.positions.push_back(positionData[i]);
-				}
-
-				//Get Normals
-				if (primitive.attributes.count("NORMAL") > 0) {
-					const Accessor& normalAccessor = model.accessors[primitive.attributes.at("NORMAL")];
-					const BufferView& normalView = model.bufferViews[normalAccessor.bufferView];
-					const float* normalData = reinterpret_cast<const float*>(model.buffers[normalView.buffer].data.data() + normalView.byteOffset + normalAccessor.byteOffset);
-					for (usize i = 0; i < normalAccessor.count * 3; i++) {
-						meshData.normals.push_back(normalData[i]);
-					}
-				}
-
-				//Get Texture Coords
-				if (primitive.attributes.count("TEXCOORD_0") > 0) {
-					const Accessor& texAccessor = model.accessors[primitive.attributes.at("TEXCOORD_0")];
-					const BufferView& texView = model.bufferViews[texAccessor.bufferView];
-					const float* texCoordData = reinterpret_cast<const float*>(model.buffers[texView.buffer].data.data() + texView.byteOffset + texAccessor.byteOffset);
-					for (usize i = 0; i < texAccessor.count * 3; i++) {
-						meshData.texcoords.push_back(texCoordData[i]);
-					}
-				}
-
-				//Get Indices
-				const Accessor& indexAccessor = model.accessors[primitive.indices];
-				const BufferView& indexView = model.bufferViews[indexAccessor.bufferView];
-				const u16* indexData = reinterpret_cast<const u16*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
-				for (usize i = 0; i < indexAccessor.count; i++) {
-					meshData.indices.push_back(indexData[i]);
-				}
-
-				
-			}
-		}
+		m_program = LoadShaders(shader_text);
+		m_model = SB::Model("./resources/two_planes.glb");
 		std::cout << "ALL DONE" << std::endl;
 
+		glm::mat4 lookat = glm::lookAt(glm::vec3(-1.0f, 1.0, 4.0), glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
+		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
+		m_viewproj = perspective * lookat;
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
+
+		glm::mat4 rotation_matrix = glm::mat4(1.0f);
+		m_viewproj *= glm::rotate(rotation_matrix, glm::radians(0.15f), glm::vec3(0.0f, 1.0f, 0.0f));
 	}
 	void OnDraw() {
 		static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
+
+		glUseProgram(m_program);
+		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_viewproj));
+		glUniform1f(5, (float)m_time);
+		glUniform2i(6, 1600, 900);
+		m_model.OnDraw();
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
