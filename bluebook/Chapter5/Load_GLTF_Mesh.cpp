@@ -39,7 +39,8 @@ out vec4 color;
 
 void main() 
 {
-	color = vec4(0.5 * (vs_normal.y * vs_normal.x + 0.1) + 0.1, 0.5 * (vs_normal.y * (vs_normal.z + 0.2)) + 0.1, 0.5 * (vs_normal.y * (vs_normal.x + 0.3)) + 0.1, 1.0);
+	color = vec4(vs_uv.x, vs_uv.y, 0.0, 1.0);
+	//color = vec4(0.5 * (vs_normal.y * vs_normal.x + 0.1) + 0.1, 0.5 * (vs_normal.y * (vs_normal.z + 0.2)) + 0.1, 0.5 * (vs_normal.y * (vs_normal.x + 0.3)) + 0.1, 1.0);
 }
 )";
 
@@ -66,12 +67,13 @@ struct Application : public Program {
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
+		glEnable(GL_DEPTH_TEST);
 		audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
 		m_model = SB::Model("./resources/two_planes.glb");
 		std::cout << "ALL DONE" << std::endl;
 
-		glm::mat4 lookat = glm::lookAt(glm::vec3(-1.0f, 1.0, 4.0), glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
+		glm::mat4 lookat = glm::lookAt(glm::vec3(-1.0f, 1.0, 2.0), glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
 		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
 		m_viewproj = perspective * lookat;
 	}
@@ -85,6 +87,7 @@ struct Application : public Program {
 	void OnDraw() {
 		static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
+		glClear(GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(m_program);
 		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_viewproj));

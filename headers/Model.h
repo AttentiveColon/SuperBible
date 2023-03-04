@@ -13,6 +13,7 @@ using std::vector;
 #include "glm/common.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "glm/gtc/quaternion.hpp"
 #include "glm/gtx/string_cast.hpp"
 using namespace glm;
 
@@ -37,7 +38,7 @@ namespace SB
 		vector<float> positions;
 		vector<float> normals;
 		vector<float> texcoords;
-		vector<int> indices;
+		vector<unsigned int> indices;
 
 		//Continue Here
 		const auto& mesh = model.meshes[mesh_index];
@@ -82,14 +83,14 @@ namespace SB
 		//Rearrange data into a vector<float> of vertex data
 		vector<float> vertex;
 		for (size_t i = 0; i < positions.size() / 3; ++i) {
-			vertex.push_back(positions[i + 0]);
-			vertex.push_back(positions[i + 1]);
-			vertex.push_back(positions[i + 2]);
-			vertex.push_back(normals[i + 0]);
-			vertex.push_back(normals[i + 1]);
-			vertex.push_back(normals[i + 2]);
-			vertex.push_back(texcoords[i + 0]);
-			vertex.push_back(texcoords[i + 1]);
+			vertex.push_back(positions[3 * i + 0]);
+			vertex.push_back(positions[3 * i + 1]);
+			vertex.push_back(positions[3 * i + 2]);
+			vertex.push_back(normals[3 * i + 0]);
+			vertex.push_back(normals[3 * i + 1]);
+			vertex.push_back(normals[3 * i + 2]);
+			vertex.push_back(texcoords[2 * i + 0]);
+			vertex.push_back(texcoords[2 * i + 1]);
 		}
 		m_count = indices.size();
 
@@ -97,10 +98,10 @@ namespace SB
 		glCreateVertexArrays(1, &m_vao);
 
 		glCreateBuffers(1, &m_vertex_buffer);
-		glNamedBufferStorage(m_vertex_buffer, vertex.size() * sizeof(float), vertex.data(), 0);
+		glNamedBufferStorage(m_vertex_buffer, vertex.size() * sizeof(float), &vertex[0], 0);
 
 		glCreateBuffers(1, &m_index_buffer);
-		glNamedBufferStorage(m_index_buffer, indices.size() * sizeof(int), indices.data(), 0);
+		glNamedBufferStorage(m_index_buffer, indices.size() * sizeof(unsigned int), &indices[0], 0);
 
 		glVertexArrayAttribBinding(m_vao, 0, 0);
 		glVertexArrayAttribFormat(m_vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
@@ -118,8 +119,6 @@ namespace SB
 		glVertexArrayElementBuffer(m_vao, m_index_buffer);
 
 		glBindVertexArray(0);
-		//Create update and draw calls to render our scene data
-		std::cout << "hi" << std::endl;
 	}
 
 	void Mesh::OnDraw() {
@@ -158,7 +157,9 @@ namespace SB
 		}
 
 		glm::mat4 translation_matrix = glm::translate(glm::mat4(1.0f), m_translation);
-		glm::mat4 rotation_matrix = glm::rotate(glm::mat4(1.0f), m_rotation.w, glm::vec3(m_rotation));
+
+		//FIX ROTATION
+		glm::mat4 rotation_matrix = glm::mat4(1.0f);
 		glm::mat4 scaling_matrix = glm::scale(glm::mat4(1.0f), m_scale);
 
 		std::cout << glm::to_string(translation_matrix) << std::endl;
@@ -221,7 +222,7 @@ namespace SB
 		std::string err;
 		std::string warn;
 
-		bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "./resources/two_planes.glb");
+		bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, filename);
 
 		if (!warn.empty()) {
 			printf("Warn: %s\n", warn.c_str());
@@ -250,9 +251,7 @@ namespace SB
 	}
 
 	void Model::OnDraw() {
-		for (Scene& scene : m_scenes) {
-			scene.OnDraw();
-		}
+		m_scenes[m_current_scene].OnDraw();
 	}
 }
 
