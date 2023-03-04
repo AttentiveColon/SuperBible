@@ -73,7 +73,7 @@ struct Application : public Program {
 		m_model = SB::Model("./resources/two_planes.glb");
 		std::cout << "ALL DONE" << std::endl;
 
-		glm::mat4 lookat = glm::lookAt(glm::vec3(-1.0f, 1.0, 2.0), glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
+		glm::mat4 lookat = glm::lookAt(glm::vec3(-1.0f, 3.0, 3.0), glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
 		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
 		m_viewproj = perspective * lookat;
 	}
@@ -94,6 +94,7 @@ struct Application : public Program {
 		glUniform1f(5, (float)m_time);
 		glUniform2i(6, 1600, 900);
 		m_model.OnDraw();
+		//m_model.m_scenes[m_model.m_current_scene].m_nodes[0].OnDraw();
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");

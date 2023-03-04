@@ -24,10 +24,10 @@ namespace SB
 	struct Mesh {
 		Mesh(const tinygltf::Model& model, int mesh_index);
 		string m_name;
-		GLuint m_vao;
-		GLuint m_vertex_buffer;
-		GLuint m_index_buffer;
-		GLsizei m_count;
+		GLuint m_vao = 0;
+		GLuint m_vertex_buffer = 0;
+		GLuint m_index_buffer = 0;
+		GLsizei m_count = 0;
 
 		void OnDraw();
 	};
@@ -124,6 +124,7 @@ namespace SB
 	void Mesh::OnDraw() {
 		glBindVertexArray(m_vao);
 		glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
+		glBindVertexArray(0);
 	}
 
 	struct Node {
