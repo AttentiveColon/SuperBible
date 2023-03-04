@@ -73,7 +73,7 @@ struct Application : public Program {
 		m_model = SB::Model("./resources/two_planes.glb");
 		std::cout << "ALL DONE" << std::endl;
 
-		glm::mat4 lookat = glm::lookAt(glm::vec3(-1.0f, 3.0, 3.0), glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
+		glm::mat4 lookat = glm::lookAt(glm::vec3(-1.0f, 6.0, 6.0), glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
 		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
 		m_viewproj = perspective * lookat;
 	}

@@ -131,7 +131,7 @@ namespace SB
 		Node(const tinygltf::Model& model, int current_node);
 		string m_name;
 		vec3 m_translation;
-		vec4 m_rotation;
+		quat m_rotation;
 		vec3 m_scale;
 		mat4 m_trs_matrix;
 		Mesh m_mesh;
@@ -142,7 +142,7 @@ namespace SB
 	Node::Node(const tinygltf::Model& model, int current_node)
 		:m_name(model.nodes[current_node].name), 
 		m_translation(vec3(0.0f)), 
-		m_rotation(vec4(0.0f)), 
+		m_rotation(quat(0.0f, 0.0, 0.0, 0.0)), 
 		m_scale(vec3(1.0f)), 
 		m_mesh(model, model.nodes[current_node].mesh)
 	{
@@ -151,16 +151,14 @@ namespace SB
 			m_translation = vec3((float)node.translation[0], node.translation[1], node.translation[2]);
 		}
 		if (node.rotation.size() != 0) {
-			m_rotation = vec4((float)node.rotation[0], node.rotation[1], node.rotation[2], node.rotation[3]);
+			m_rotation = quat((float)node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
 		}
 		if (node.scale.size() != 0) {
 			m_scale = vec3((float)node.scale[0], node.scale[1], node.scale[2]);
 		}
 
 		glm::mat4 translation_matrix = glm::translate(glm::mat4(1.0f), m_translation);
-
-		//FIX ROTATION
-		glm::mat4 rotation_matrix = glm::mat4(1.0f);
+		glm::mat4 rotation_matrix = glm::mat4_cast(m_rotation);
 		glm::mat4 scaling_matrix = glm::scale(glm::mat4(1.0f), m_scale);
 
 		std::cout << glm::to_string(translation_matrix) << std::endl;
