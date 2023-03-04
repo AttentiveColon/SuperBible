@@ -75,9 +75,17 @@ namespace SB
 			//Get Indices
 			const auto& indexAccessor = model.accessors[primitive.indices];
 			const auto& indexView = model.bufferViews[indexAccessor.bufferView];
-			const u16* indexData = reinterpret_cast<const u16*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
-			for (size_t i = 0; i < indexAccessor.count; i++) {
-				indices.push_back(indexData[i]);
+			if (indexAccessor.componentType == GL_UNSIGNED_INT) {
+				const unsigned int* indexData = reinterpret_cast<const unsigned int*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
+				for (size_t i = 0; i < indexAccessor.count; i++) {
+					indices.push_back(indexData[i]);
+				}
+			}
+			else {
+				const unsigned short* indexData = reinterpret_cast<const unsigned short*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
+				for (size_t i = 0; i < indexAccessor.count; i++) {
+					indices.push_back(indexData[i]);
+				}
 			}
 		}
 		//Rearrange data into a vector<float> of vertex data
@@ -124,7 +132,6 @@ namespace SB
 	void Mesh::OnDraw() {
 		glBindVertexArray(m_vao);
 		glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
-		glBindVertexArray(0);
 	}
 
 	struct Node {

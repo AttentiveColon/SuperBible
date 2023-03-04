@@ -58,22 +58,28 @@ struct Application : public Program {
 	GLuint m_program;
 	SB::Model m_model;
 	glm::mat4 m_viewproj;
+	glm::vec3 m_cam_pos;
+	float m_cam_rotation;
 	
 
 	Application()
 		:m_clear_color{ 0.0f, 0.0f, 0.0f, 1.0f },
 		m_fps(0),
-		m_time(0)
+		m_time(0),
+		m_cam_pos(glm::vec3(-1.0f, 6.0, 6.0)),
+		m_cam_rotation(0.0f)
 	{}
+
+	//TODO: To load sponza I probably need to check the type of incides buffer
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
 		audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		m_model = SB::Model("./resources/two_planes.glb");
+		m_model = SB::Model("./resources/sponza.glb");
 		std::cout << "ALL DONE" << std::endl;
 
-		glm::mat4 lookat = glm::lookAt(glm::vec3(-1.0f, 6.0, 6.0), glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
+		glm::mat4 lookat = glm::lookAt(m_cam_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
 		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
 		m_viewproj = perspective * lookat;
 	}
@@ -81,8 +87,13 @@ struct Application : public Program {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 
-		glm::mat4 rotation_matrix = glm::mat4(1.0f);
-		m_viewproj *= glm::rotate(rotation_matrix, glm::radians(0.15f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		glm::mat4 lookat = glm::lookAt(m_cam_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
+		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
+		m_viewproj = perspective * lookat;
+		
+		m_cam_rotation += 0.1f;
+		m_viewproj *= glm::rotate(glm::mat4(1.0f), glm::radians(m_cam_rotation), glm::vec3(0.0f, 1.0f, 0.0f));
 	}
 	void OnDraw() {
 		static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -101,6 +112,7 @@ struct Application : public Program {
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
+		ImGui::DragFloat3("CamPos", glm::value_ptr(m_cam_pos), -10.0f, 10.0f);
 		ImGui::End();
 	}
 };
