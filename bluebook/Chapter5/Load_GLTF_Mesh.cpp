@@ -56,7 +56,7 @@ struct Application : public Program {
 	f64 m_time;
 
 	GLuint m_program;
-	SB::Model m_model;
+	SB2::Model m_model;
 	glm::mat4 m_viewproj;
 	glm::vec3 m_cam_pos;
 	float m_cam_rotation;
@@ -66,18 +66,18 @@ struct Application : public Program {
 		:m_clear_color{ 0.0f, 0.0f, 0.0f, 1.0f },
 		m_fps(0),
 		m_time(0),
-		m_cam_pos(glm::vec3(-1.0f, 6.0, 6.0)),
+		m_cam_pos(glm::vec3(0.0f, 0.3, 0.5)),
 		m_cam_rotation(0.0f)
 	{}
-
+	//TODO: Load every mesh into GL buffers once, have nodes contain only the buffer GLuint to mesh
+	// so you dont duplicate meshes across multiple buffers
 	//TODO: Figure out loading children of pawn meshes
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
 		audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		m_model = SB::Model("./resources/ABeautifulGame.glb");
-		std::cout << "ALL DONE" << std::endl;
+		m_model = SB2::Model("./resources/ABeautifulGame.glb");
 
 		glm::mat4 lookat = glm::lookAt(m_cam_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
 		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
