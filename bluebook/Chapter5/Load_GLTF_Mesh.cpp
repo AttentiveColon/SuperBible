@@ -70,13 +70,13 @@ struct Application : public Program {
 		m_cam_rotation(0.0f)
 	{}
 
-	//TODO: To load sponza I probably need to check the type of incides buffer
+	//TODO: Figure out loading children of pawn meshes
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
 		audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		m_model = SB::Model("./resources/sponza.glb");
+		m_model = SB::Model("./resources/ABeautifulGame.glb");
 		std::cout << "ALL DONE" << std::endl;
 
 		glm::mat4 lookat = glm::lookAt(m_cam_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));

@@ -9,6 +9,9 @@
 using std::string;
 using std::vector;
 
+#include <filesystem>
+using std::filesystem::path;
+
 #include "glm/glm.hpp"
 #include "glm/common.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -227,8 +230,17 @@ namespace SB
 		tinygltf::TinyGLTF loader;
 		std::string err;
 		std::string warn;
+		bool ret;
 
-		bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, filename);
+		path filepath = filename;
+
+		if (filepath.extension() == ".glb") {
+			ret = loader.LoadBinaryFromFile(&model, &err, &warn, filename);
+		}
+		else {
+			ret = loader.LoadASCIIFromFile(&model, &err, &warn, filename);
+		}
+
 
 		if (!warn.empty()) {
 			printf("Warn: %s\n", warn.c_str());
