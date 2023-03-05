@@ -56,7 +56,7 @@ struct Application : public Program {
 	f64 m_time;
 
 	GLuint m_program;
-	SB2::Model m_model;
+	SB::Model m_model;
 	glm::mat4 m_viewproj;
 	glm::vec3 m_cam_pos;
 	float m_cam_rotation;
@@ -77,7 +77,7 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		m_model = SB2::Model("./resources/ABeautifulGame.glb");
+		m_model = SB::Model("./resources/node_children_test.glb");
 
 		glm::mat4 lookat = glm::lookAt(m_cam_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
 		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
