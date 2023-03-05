@@ -69,9 +69,8 @@ struct Application : public Program {
 		m_cam_pos(glm::vec3(0.0f, 0.3, 0.5)),
 		m_cam_rotation(0.0f)
 	{}
-	//TODO: Load every mesh into GL buffers once, have nodes contain only the buffer GLuint to mesh
-	// so you dont duplicate meshes across multiple buffers
-	//TODO: Figure out loading children of pawn meshes
+
+	//TODO: Texture Loading, Camera Loading
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);

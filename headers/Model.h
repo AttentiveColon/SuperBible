@@ -284,8 +284,6 @@ namespace SB
 			DrawNode(m_nodes[node_index].m_trs_matrix, node_index);
 		}
 	}
-
-	
 }
 
 
