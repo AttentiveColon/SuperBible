@@ -66,7 +66,7 @@ struct Application : public Program {
 		:m_clear_color{ 0.0f, 0.0f, 0.0f, 1.0f },
 		m_fps(0),
 		m_time(0),
-		m_cam_pos(glm::vec3(0.0f, 0.3, 0.5)),
+		m_cam_pos(glm::vec3(0.0f, 10.0, 12.0)),
 		m_cam_rotation(0.0f)
 	{}
 
@@ -86,6 +86,11 @@ struct Application : public Program {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 
+		glm::vec3 forward = glm::normalize(glm::vec3(0.0f) - m_cam_pos);
+		if (m_cam_pos.y < 1.0f || m_cam_pos.z < 1.0f) {
+			m_cam_pos = vec3(0.0f, 5.0f, 6.0f);
+		}
+		m_cam_pos += forward * (float)dt;
 
 		glm::mat4 lookat = glm::lookAt(m_cam_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
 		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
@@ -93,6 +98,10 @@ struct Application : public Program {
 		
 		m_cam_rotation += 0.1f;
 		m_viewproj *= glm::rotate(glm::mat4(1.0f), glm::radians(m_cam_rotation), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		
+
+		
 	}
 	void OnDraw() {
 		static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };

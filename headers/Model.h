@@ -267,7 +267,9 @@ namespace SB
 
 	void Model::DrawNode(glm::mat4 trs_matrix, int node_index) {
 		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(trs_matrix));
-		m_meshes[m_nodes[node_index].m_mesh_index].OnDraw();
+		if (m_nodes[node_index].m_mesh_index >= 0) {
+			m_meshes[m_nodes[node_index].m_mesh_index].OnDraw();
+		}
 
 		for (const auto& child_node_index : m_nodes[node_index].m_children_nodes) {
 			glm::mat4 new_trs_matrix = trs_matrix * m_nodes[child_node_index].m_trs_matrix;
