@@ -17,6 +17,7 @@ using std::filesystem::path;
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/quaternion.hpp"
+#include "glm/gtx/quaternion.hpp"
 #include "glm/gtx/string_cast.hpp"
 using namespace glm;
 
@@ -45,6 +46,7 @@ namespace SB
 	struct Camera {
 		Camera();
 		Camera(CameraDescriptor camera);
+		Camera(string name, glm::vec3 eye, glm::vec3 center, CameraType type, double aspect_or_xmag, double fovy_or_ymag, double znear, double zfar);
 
 		glm::mat4 ViewProj() { return m_viewproj; }
 
@@ -66,12 +68,28 @@ namespace SB
 		m_cam_position(camera.translation),
 		m_rotation(camera.rotation)
 	{
-		m_view = glm::lookAt(m_cam_position, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::vec3 pointing_vector = glm::rotate(m_rotation, glm::vec3(0.0f, 0.0f, -1.0f));
+		m_view = glm::lookAt(m_cam_position, pointing_vector, glm::vec3(0.0f, 1.0f, 0.0f));
 		if (camera.type == CameraType::Perspective) {
 			m_proj = glm::perspective(camera.fovy_or_ymag, camera.aspect_or_xmag, camera.znear, camera.zfar);
 		}
 		else {
 			m_proj = glm::ortho(camera.aspect_or_xmag, camera.fovy_or_ymag, camera.znear, camera.zfar);
+		}
+		m_viewproj = m_proj * m_view;
+	}
+
+	Camera::Camera(string name, glm::vec3 eye, glm::vec3 center, CameraType type, double aspect_or_xmag, double fovy_or_ymag, double znear, double zfar) 
+		:m_name(name),
+		m_cam_position(eye)
+	{
+		m_view = glm::lookAt(eye, center, glm::vec3(0.0f, 1.0f, 0.0));
+		m_rotation = glm::conjugate(glm::toQuat(m_view));
+		if (type == CameraType::Perspective) {
+			m_proj = glm::perspective(fovy_or_ymag, aspect_or_xmag, znear, zfar);
+		}
+		else {
+			m_proj = glm::ortho(aspect_or_xmag, fovy_or_ymag, znear, zfar);
 		}
 		m_viewproj = m_proj * m_view;
 	}
@@ -253,6 +271,7 @@ namespace SB
 		string m_filename;
 		int m_default_scene;
 		int m_current_scene;
+		int m_current_camera;
 
 		vector<Scene> m_scenes;
 		vector<Node> m_nodes;
@@ -261,6 +280,7 @@ namespace SB
 
 		void DrawNode(glm::mat4 trs_matrix, int node_index);
 		Camera GetCamera(int index);
+		Camera GetNextCamera();
 
 		void OnUpdate(f64 dt);
 		void OnDraw();
@@ -269,7 +289,8 @@ namespace SB
 	Model::Model()
 		:m_filename(""),
 		m_default_scene(0),
-		m_current_scene(0)
+		m_current_scene(0),
+		m_current_camera(0)
 	{}
 
 	Model::Model(const char* filename)
@@ -361,6 +382,14 @@ namespace SB
 
 	Camera Model::GetCamera(int index) {
 		return m_cameras[index];
+	}
+
+	Camera Model::GetNextCamera() {
+		++m_current_camera;
+		if (m_current_camera >= m_cameras.size()) {
+			m_current_camera = 0;
+		}
+		return GetCamera(m_current_camera);
 	}
 
 	void Model::OnUpdate(f64 dt) {

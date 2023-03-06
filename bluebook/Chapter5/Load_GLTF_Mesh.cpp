@@ -78,12 +78,14 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		m_model = SB::Model("./resources/node_children_test.glb");
-		m_camera = m_model.GetCamera(0);
+		m_model = SB::Model("./resources/ABeautifulGame.glb");
 
-		/*glm::mat4 lookat = glm::lookAt(m_cam_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
-		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
-		m_viewproj = perspective * lookat;*/
+		if (m_model.m_cameras.size()) {
+			m_camera = m_model.GetCamera(0);
+		}
+		else {
+			m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.40, 0.1, 100.0);
+		}
 
 		m_viewproj = m_camera.ViewProj();
 	}
@@ -91,22 +93,15 @@ struct Application : public Program {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 
-		/*glm::vec3 forward = glm::normalize(glm::vec3(0.0f) - m_cam_pos);
-		if (m_cam_pos.y < 1.0f || m_cam_pos.z < 1.0f) {
-			m_cam_pos = vec3(0.0f, 5.0f, 6.0f);
+		if (input.Pressed(GLFW_KEY_SPACE)) {
+			m_camera = m_model.GetNextCamera();
 		}
-		m_cam_pos += forward * (float)dt;
 
-		glm::mat4 lookat = glm::lookAt(m_cam_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
-		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
-		m_viewproj = perspective * lookat;
-		
-		m_cam_rotation += 0.1f;
-		m_viewproj *= glm::rotate(glm::mat4(1.0f), glm::radians(m_cam_rotation), glm::vec3(0.0f, 1.0f, 0.0f));*/
+		//Implement Camera Movement Functions
+
 
 		
-
-		
+		m_viewproj = m_camera.ViewProj();
 	}
 	void OnDraw() {
 		static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -118,7 +113,6 @@ struct Application : public Program {
 		glUniform1f(5, (float)m_time);
 		glUniform2i(6, 1600, 900);
 		m_model.OnDraw();
-		//m_model.m_scenes[m_model.m_current_scene].m_nodes[0].OnDraw();
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
