@@ -60,6 +60,8 @@ struct Application : public Program {
 	glm::mat4 m_viewproj;
 	glm::vec3 m_cam_pos;
 	float m_cam_rotation;
+
+	SB::Camera m_camera;
 	
 
 	Application()
@@ -77,16 +79,19 @@ struct Application : public Program {
 		audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
 		m_model = SB::Model("./resources/node_children_test.glb");
+		m_camera = m_model.GetCamera(0);
 
-		glm::mat4 lookat = glm::lookAt(m_cam_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
+		/*glm::mat4 lookat = glm::lookAt(m_cam_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0, 0.0));
 		glm::mat4 perspective = glm::perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
-		m_viewproj = perspective * lookat;
+		m_viewproj = perspective * lookat;*/
+
+		m_viewproj = m_camera.ViewProj();
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 
-		glm::vec3 forward = glm::normalize(glm::vec3(0.0f) - m_cam_pos);
+		/*glm::vec3 forward = glm::normalize(glm::vec3(0.0f) - m_cam_pos);
 		if (m_cam_pos.y < 1.0f || m_cam_pos.z < 1.0f) {
 			m_cam_pos = vec3(0.0f, 5.0f, 6.0f);
 		}
@@ -97,7 +102,7 @@ struct Application : public Program {
 		m_viewproj = perspective * lookat;
 		
 		m_cam_rotation += 0.1f;
-		m_viewproj *= glm::rotate(glm::mat4(1.0f), glm::radians(m_cam_rotation), glm::vec3(0.0f, 1.0f, 0.0f));
+		m_viewproj *= glm::rotate(glm::mat4(1.0f), glm::radians(m_cam_rotation), glm::vec3(0.0f, 1.0f, 0.0f));*/
 
 		
 

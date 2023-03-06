@@ -24,6 +24,58 @@ using namespace glm;
 
 namespace SB
 {
+	enum CameraType {
+		Perspective,
+		Orthographic
+	};
+
+	struct CameraDescriptor {
+		string name;
+
+		glm::vec3 translation;
+		glm::quat rotation;
+
+		CameraType type;
+		double aspect_or_xmag;
+		double fovy_or_ymag;
+		double znear;
+		double zfar;
+	};
+
+	struct Camera {
+		Camera();
+		Camera(CameraDescriptor camera);
+
+		glm::mat4 ViewProj() { return m_viewproj; }
+
+		string m_name;
+		glm::vec3 m_cam_position;
+		glm::quat m_rotation;
+
+		glm::mat4 m_proj;
+		glm::mat4 m_view;
+		glm::mat4 m_viewproj;
+	};
+
+	Camera::Camera() {
+
+	}
+
+	Camera::Camera(CameraDescriptor camera) 
+		:m_name(camera.name),
+		m_cam_position(camera.translation),
+		m_rotation(camera.rotation)
+	{
+		m_view = glm::lookAt(m_cam_position, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		if (camera.type == CameraType::Perspective) {
+			m_proj = glm::perspective(camera.fovy_or_ymag, camera.aspect_or_xmag, camera.znear, camera.zfar);
+		}
+		else {
+			m_proj = glm::ortho(camera.aspect_or_xmag, camera.fovy_or_ymag, camera.znear, camera.zfar);
+		}
+		m_viewproj = m_proj * m_view;
+	}
+
 	struct Mesh {
 		Mesh(const tinygltf::Model& model, int mesh_index);
 		string m_name;
@@ -205,8 +257,10 @@ namespace SB
 		vector<Scene> m_scenes;
 		vector<Node> m_nodes;
 		vector<Mesh> m_meshes;
+		vector<Camera> m_cameras;
 
 		void DrawNode(glm::mat4 trs_matrix, int node_index);
+		Camera GetCamera(int index);
 
 		void OnUpdate(f64 dt);
 		void OnDraw();
@@ -263,6 +317,34 @@ namespace SB
 		for (size_t i = 0; i < model.meshes.size(); ++i) {
 			m_meshes.push_back(Mesh(model, i));
 		}
+
+		//Cameras
+		for (size_t i = 0; i < model.nodes.size(); ++i) {
+			if (model.nodes[i].camera >= 0) {
+				tinygltf::Node& curr_node = model.nodes[i];
+				CameraDescriptor cam_desc;
+				cam_desc.name = curr_node.name;
+				cam_desc.translation = glm::vec3(curr_node.translation[0], curr_node.translation[1], curr_node.translation[2]);
+				cam_desc.rotation = glm::quat(curr_node.rotation[3], curr_node.rotation[0], curr_node.rotation[1], curr_node.rotation[2]);
+
+				tinygltf::Camera& curr_camera = model.cameras[curr_node.camera];
+				if (curr_camera.type == "perspective") {
+					cam_desc.type = CameraType::Perspective;
+					cam_desc.aspect_or_xmag = curr_camera.perspective.aspectRatio;
+					cam_desc.fovy_or_ymag = curr_camera.perspective.yfov;
+					cam_desc.znear = curr_camera.perspective.znear;
+					cam_desc.zfar = curr_camera.perspective.zfar;
+				}
+				else {
+					cam_desc.type = CameraType::Perspective;
+					cam_desc.aspect_or_xmag = curr_camera.orthographic.xmag;
+					cam_desc.fovy_or_ymag = curr_camera.orthographic.ymag;
+					cam_desc.znear = curr_camera.orthographic.znear;
+					cam_desc.zfar = curr_camera.orthographic.zfar;
+				}
+				m_cameras.push_back(Camera(cam_desc));
+			}
+		}
 	}
 
 	void Model::DrawNode(glm::mat4 trs_matrix, int node_index) {
@@ -275,6 +357,10 @@ namespace SB
 			glm::mat4 new_trs_matrix = trs_matrix * m_nodes[child_node_index].m_trs_matrix;
 			DrawNode(new_trs_matrix, child_node_index);
 		}
+	}
+
+	Camera Model::GetCamera(int index) {
+		return m_cameras[index];
 	}
 
 	void Model::OnUpdate(f64 dt) {
