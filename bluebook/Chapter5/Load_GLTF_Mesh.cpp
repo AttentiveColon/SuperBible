@@ -92,6 +92,7 @@ struct Application : public Program {
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
+		input.SetRawMouseMode(window.GetHandle(), true);
 
 		if (input.Pressed(GLFW_KEY_SPACE)) {
 			m_camera = m_model.GetNextCamera();

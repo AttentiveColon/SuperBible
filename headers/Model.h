@@ -99,6 +99,9 @@ namespace SB
 	}
 
 	void Camera::OnUpdate(Input& input, float speed, double dt) {
+		MousePos mouse_delta = input.GetMouseRaw();
+		
+
 		if (input.Held(GLFW_KEY_W)) {
 			glm::vec3 translation_vector = -m_forward_vector * (float)dt * speed;
 			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
