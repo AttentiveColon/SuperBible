@@ -19,6 +19,7 @@ using std::filesystem::path;
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtx/quaternion.hpp"
 #include "glm/gtx/string_cast.hpp"
+#include "glm/gtx/rotate_vector.hpp"
 using namespace glm;
 
 #include "tiny_gltf.h"
@@ -71,8 +72,8 @@ namespace SB
 		m_cam_position(camera.translation),
 		m_rotation(camera.rotation)
 	{
-		m_forward_vector = glm::rotate(m_rotation, glm::vec3(0.0f, 0.0f, -1.0f));
-		m_view = glm::lookAt(m_cam_position, m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f));
+		m_forward_vector = -glm::rotate(m_rotation, glm::vec3(0.0f, 0.0f, 1.0f));
+		m_view = glm::lookAt(m_cam_position, m_cam_position + m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f));
 		if (camera.type == CameraType::Perspective) {
 			m_proj = glm::perspective(camera.fovy_or_ymag, camera.aspect_or_xmag, camera.znear, camera.zfar);
 		}
@@ -99,36 +100,30 @@ namespace SB
 	}
 
 	void Camera::OnUpdate(Input& input, float speed, double dt) {
-		//MousePos mouse_delta = input.GetMouseRaw();
-		
+		MousePos mouse_delta = input.GetMouseRaw();
+		m_forward_vector = glm::rotate(m_forward_vector, glm::clamp(-(float)mouse_delta.x, -1.0f, 1.0f) * speed * (float)dt, glm::vec3(0.0f, 1.0f, 0.0f));
+		m_forward_vector = glm::rotate(m_forward_vector, glm::clamp(-(float)mouse_delta.y, -1.0f, 1.0f) * speed * (float)dt, glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f)));
 
 		if (input.Held(GLFW_KEY_W)) {
-			glm::vec3 translation_vector = -m_forward_vector * (float)dt * speed;
-			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
+			m_cam_position += m_forward_vector * (float)dt * speed;
 		}
 		if (input.Held(GLFW_KEY_S)) {
-			glm::vec3 translation_vector = m_forward_vector * (float)dt * speed;
-			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
+			m_cam_position -= m_forward_vector * (float)dt * speed;
  		}
 		if (input.Held(GLFW_KEY_A)) {
-			glm::vec3 translation_vector = glm::rotate(m_rotation, glm::vec3(1.0f, 0.0f, 0.0f)) * (float)dt * speed;
-			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
+			m_cam_position -= glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f)) * (float)dt * speed;
 		}
 		if (input.Held(GLFW_KEY_D)) {
-			glm::vec3 translation_vector = glm::rotate(m_rotation, glm::vec3(-1.0f, 0.0f, 0.0f)) * (float)dt * speed;
-			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
+			m_cam_position += glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f)) * (float)dt * speed;
 		}
 		if (input.Held(GLFW_KEY_Q)) {
-			glm::vec3 translation_vector = glm::vec3(0.0f, 1.0f, 0.0f) * (float)dt * speed;
-			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
+			m_cam_position += glm::cross(m_forward_vector, glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f))) * (float)dt * speed;
 		}
 		if (input.Held(GLFW_KEY_E)) {
-			glm::vec3 translation_vector = glm::vec3(0.0f, -1.0f, 0.0f) * (float)dt * speed;
-			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
+			m_cam_position -= glm::cross(m_forward_vector, glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f))) * (float)dt * speed;
 		}
 
-		m_cam_position = glm::vec3(m_view[3][0], m_view[3][1], m_view[3][2]);
-		m_forward_vector = glm::rotate(m_rotation, glm::vec3(0.0f, 0.0f, -1.0f));
+		m_view = glm::lookAt(m_cam_position, m_cam_position + m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f));
 		m_viewproj = m_proj * m_view;
 	}
 
