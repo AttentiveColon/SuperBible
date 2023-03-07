@@ -52,11 +52,14 @@ namespace SB
 
 		string m_name;
 		glm::vec3 m_cam_position;
+		glm::vec3 m_forward_vector;
 		glm::quat m_rotation;
 
 		glm::mat4 m_proj;
 		glm::mat4 m_view;
 		glm::mat4 m_viewproj;
+
+		void OnUpdate(Input& input, float speed, double dt);
 	};
 
 	Camera::Camera() {
@@ -68,8 +71,8 @@ namespace SB
 		m_cam_position(camera.translation),
 		m_rotation(camera.rotation)
 	{
-		glm::vec3 pointing_vector = glm::rotate(m_rotation, glm::vec3(0.0f, 0.0f, -1.0f));
-		m_view = glm::lookAt(m_cam_position, pointing_vector, glm::vec3(0.0f, 1.0f, 0.0f));
+		m_forward_vector = glm::rotate(m_rotation, glm::vec3(0.0f, 0.0f, -1.0f));
+		m_view = glm::lookAt(m_cam_position, m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f));
 		if (camera.type == CameraType::Perspective) {
 			m_proj = glm::perspective(camera.fovy_or_ymag, camera.aspect_or_xmag, camera.znear, camera.zfar);
 		}
@@ -83,7 +86,8 @@ namespace SB
 		:m_name(name),
 		m_cam_position(eye)
 	{
-		m_view = glm::lookAt(eye, center, glm::vec3(0.0f, 1.0f, 0.0));
+		m_forward_vector = glm::normalize(center - eye);
+		m_view = glm::lookAt(eye, m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0));
 		m_rotation = glm::conjugate(glm::toQuat(m_view));
 		if (type == CameraType::Perspective) {
 			m_proj = glm::perspective(fovy_or_ymag, aspect_or_xmag, znear, zfar);
@@ -91,6 +95,37 @@ namespace SB
 		else {
 			m_proj = glm::ortho(aspect_or_xmag, fovy_or_ymag, znear, zfar);
 		}
+		m_viewproj = m_proj * m_view;
+	}
+
+	void Camera::OnUpdate(Input& input, float speed, double dt) {
+		if (input.Held(GLFW_KEY_W)) {
+			glm::vec3 translation_vector = -m_forward_vector * (float)dt * speed;
+			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
+		}
+		if (input.Held(GLFW_KEY_S)) {
+			glm::vec3 translation_vector = m_forward_vector * (float)dt * speed;
+			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
+ 		}
+		if (input.Held(GLFW_KEY_A)) {
+			glm::vec3 translation_vector = glm::rotate(m_rotation, glm::vec3(1.0f, 0.0f, 0.0f)) * (float)dt * speed;
+			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
+		}
+		if (input.Held(GLFW_KEY_D)) {
+			glm::vec3 translation_vector = glm::rotate(m_rotation, glm::vec3(-1.0f, 0.0f, 0.0f)) * (float)dt * speed;
+			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
+		}
+		if (input.Held(GLFW_KEY_Q)) {
+			glm::vec3 translation_vector = glm::vec3(0.0f, 1.0f, 0.0f) * (float)dt * speed;
+			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
+		}
+		if (input.Held(GLFW_KEY_E)) {
+			glm::vec3 translation_vector = glm::vec3(0.0f, -1.0f, 0.0f) * (float)dt * speed;
+			m_view *= glm::translate(glm::mat4(1.0f), translation_vector);
+		}
+
+		m_cam_position = glm::vec3(m_view[3][0], m_view[3][1], m_view[3][2]);
+		m_forward_vector = glm::rotate(m_rotation, glm::vec3(0.0f, 0.0f, -1.0f));
 		m_viewproj = m_proj * m_view;
 	}
 

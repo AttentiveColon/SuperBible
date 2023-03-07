@@ -98,7 +98,7 @@ struct Application : public Program {
 		}
 
 		//Implement Camera Movement Functions
-
+		m_camera.OnUpdate(input, 1.0f, dt);
 
 		
 		m_viewproj = m_camera.ViewProj();
