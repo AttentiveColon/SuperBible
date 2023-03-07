@@ -1,4 +1,7 @@
 #pragma once
+//Deprecation Defines
+#define _CRT_SECURE_NO_WARNINGS
+
 //OpenGL Defines
 #define OPENGL_SUPRESS_NOTIFICATION
 

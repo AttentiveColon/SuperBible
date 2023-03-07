@@ -99,7 +99,7 @@ namespace SB
 	}
 
 	void Camera::OnUpdate(Input& input, float speed, double dt) {
-		MousePos mouse_delta = input.GetMouseRaw();
+		//MousePos mouse_delta = input.GetMouseRaw();
 		
 
 		if (input.Held(GLFW_KEY_W)) {
@@ -332,7 +332,10 @@ namespace SB
 	{}
 
 	Model::Model(const char* filename)
-		:m_filename(filename)
+		:m_filename(filename),
+		m_default_scene(0),
+		m_current_scene(0),
+		m_current_camera(0)
 	{
 		tinygltf::Model model;
 		tinygltf::TinyGLTF loader;

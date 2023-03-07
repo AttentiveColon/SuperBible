@@ -127,14 +127,14 @@ void System::Mouse_Scroll_Callback(GLFWwindow* window, double xoffset, double yo
 //-------------------------------------------------------------------------------------------------
 
 Window::Window(SystemConf config)
-	:m_width(config.width),
-	m_height(config.height),
-	m_xPos(config.pos_x),
+	:m_xPos(config.pos_x),
 	m_yPos(config.pos_y),
 	m_running(true),
-	m_framecount(0),
-	m_frametime(0),
 	m_framelimit(1.0 / config.frame_limit),
+	m_width(config.width),
+	m_height(config.height),
+	m_frametime(0),
+	m_framecount(0),
 	m_fps(0),
 	m_time(0.0)
 {

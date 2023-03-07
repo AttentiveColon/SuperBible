@@ -78,7 +78,7 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		m_model = SB::Model("./resources/ABeautifulGame.glb");
+		m_model = SB::Model("./resources/sponza.glb");
 
 		if (m_model.m_cameras.size()) {
 			m_camera = m_model.GetCamera(0);
@@ -99,13 +99,12 @@ struct Application : public Program {
 		}
 
 		//Implement Camera Movement Functions
-		m_camera.OnUpdate(input, 1.0f, dt);
+		m_camera.OnUpdate(input, 3.0f, dt);
 
 		
 		m_viewproj = m_camera.ViewProj();
 	}
 	void OnDraw() {
-		static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -117,10 +116,10 @@ struct Application : public Program {
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
-		ImGui::Text("FPS: %d", m_fps);
-		ImGui::Text("Time: %f", m_time);
+		ImGui::Text("FPS: %d", (int)m_fps);
+		ImGui::Text("Time: %f", (double)m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
-		ImGui::DragFloat3("CamPos", glm::value_ptr(m_cam_pos), -10.0f, 10.0f);
+		ImGui::LabelText("Current Camera", "{%d}", m_model.m_current_camera);
 		ImGui::End();
 	}
 };
