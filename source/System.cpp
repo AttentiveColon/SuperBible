@@ -150,6 +150,7 @@ Window::Window(SystemConf config)
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
 	glfwWindowHint(GLFW_CENTER_CURSOR, GLFW_TRUE);
+	glfwWindowHint(GLFW_SAMPLES, 4);
 
 	GLFWwindow* handle;
 

@@ -24,6 +24,8 @@ using namespace glm;
 
 #include "tiny_gltf.h"
 
+#include "System.h"
+
 namespace SB
 {
 	enum CameraType {
@@ -60,7 +62,11 @@ namespace SB
 		glm::mat4 m_view;
 		glm::mat4 m_viewproj;
 
-		void OnUpdate(Input& input, float speed, double dt);
+		void OnUpdate(Input& input, float translation_speed, float rotation_speed, double dt);
+
+	private:
+		void Rotate(Input& input, float speed, double dt);
+		void Translate(Input& input, float speed, double dt);
 	};
 
 	Camera::Camera() {
@@ -99,17 +105,27 @@ namespace SB
 		m_viewproj = m_proj * m_view;
 	}
 
-	void Camera::OnUpdate(Input& input, float speed, double dt) {
-		MousePos mouse_delta = input.GetMouseRaw();
-		m_forward_vector = glm::rotate(m_forward_vector, glm::clamp(-(float)mouse_delta.x, -1.0f, 1.0f) * speed * (float)dt, glm::vec3(0.0f, 1.0f, 0.0f));
-		m_forward_vector = glm::rotate(m_forward_vector, glm::clamp(-(float)mouse_delta.y, -1.0f, 1.0f) * speed * (float)dt, glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f)));
+	void Camera::OnUpdate(Input& input, float translation_speed, float rotation_speed, double dt) {
+		this->Rotate(input, rotation_speed, dt);
+		this->Translate(input, translation_speed, dt);
 
+		m_view = glm::lookAt(m_cam_position, m_cam_position + m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f));
+		m_viewproj = m_proj * m_view;
+	}
+
+	void Camera::Rotate(Input& input, float speed, double dt) {
+		MousePos mouse_delta = input.GetMouseRaw();
+		m_forward_vector = glm::rotate(m_forward_vector, glm::radians((-(float)mouse_delta.x * (float)dt * speed)), glm::vec3(0.0f, 1.0f, 0.0f));
+		m_forward_vector = glm::rotate(m_forward_vector, glm::radians((-(float)mouse_delta.y * (float)dt * speed)), glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f)));
+	}
+
+	void Camera::Translate(Input& input, float speed, double dt) {
 		if (input.Held(GLFW_KEY_W)) {
 			m_cam_position += m_forward_vector * (float)dt * speed;
 		}
 		if (input.Held(GLFW_KEY_S)) {
 			m_cam_position -= m_forward_vector * (float)dt * speed;
- 		}
+		}
 		if (input.Held(GLFW_KEY_A)) {
 			m_cam_position -= glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f)) * (float)dt * speed;
 		}
@@ -122,9 +138,6 @@ namespace SB
 		if (input.Held(GLFW_KEY_E)) {
 			m_cam_position -= glm::cross(m_forward_vector, glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f))) * (float)dt * speed;
 		}
-
-		m_view = glm::lookAt(m_cam_position, m_cam_position + m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f));
-		m_viewproj = m_proj * m_view;
 	}
 
 	struct Mesh {
