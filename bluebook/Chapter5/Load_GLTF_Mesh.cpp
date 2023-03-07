@@ -72,7 +72,8 @@ struct Application : public Program {
 		m_cam_rotation(0.0f)
 	{}
 
-	//TODO: Texture Loading, Camera Loading
+	//TODO: Look into and try to limit excessive loading on startup
+	//TODO: Texture Loading
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
