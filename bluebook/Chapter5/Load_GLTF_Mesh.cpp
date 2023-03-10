@@ -93,14 +93,19 @@ struct Application : public Program {
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
-		input.SetRawMouseMode(window.GetHandle(), true);
 
 		if (input.Pressed(GLFW_KEY_SPACE)) {
 			m_camera = m_model.GetNextCamera();
 		}
 
 		//Implement Camera Movement Functions
-		m_camera.OnUpdate(input, 3.0f, 2.5f, dt);
+		if (input.Held(GLFW_KEY_LEFT_CONTROL)) {
+			input.SetRawMouseMode(window.GetHandle(), false);
+		}
+		else {
+			input.SetRawMouseMode(window.GetHandle(), true);	
+			m_camera.OnUpdate(input, 3.0f, 2.5f, dt);
+		}
 
 		
 		m_viewproj = m_camera.ViewProj();

@@ -5,6 +5,11 @@
 #include <limits>
 #undef _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
+//Make executable use higher performace GPU if available
+extern "C" {
+	_declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+}
+
 //-------------------------------------------------------------------------------------------------
 // SYSTEM
 //-------------------------------------------------------------------------------------------------

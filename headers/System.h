@@ -5,7 +5,11 @@
 #ifndef _DEBUG
 #define WIN32_LEAN_AND_MEAN 1
 #include <Windows.h>
+#else
+typedef unsigned long DWORD;
 #endif //!_DEBUG
+
+
 
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
@@ -21,6 +25,8 @@
 using namespace irrklang;
 
 #include <random>
+
+
 
 struct GLFWwindow;
 struct SystemConf;
