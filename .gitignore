@@ -3,4 +3,4 @@
 *.vcxproj.user
 *.ini
 /resources/sponza.obj
-
+build
