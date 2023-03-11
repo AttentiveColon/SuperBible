@@ -34,13 +34,15 @@ include_directories(ThirdParty\\OBJ-loader)
 include_directories(ThirdParty\\glfw\\include)
 include_directories(ThirdParty\\tinygltf)
 
+file(GLOB book_sources bluebook/**/*.cpp)
+
 set(SOURCE
     source/GL_Helpers.cpp
     source/Mesh.cpp
     source/System.cpp
     source/Texture.cpp
     source/boilerplate_main.cpp
-    bluebook/Chapter5/Load_GLTF_Mesh.cpp
+    ${book_sources}
     ThirdParty/imgui/imgui.cpp
     ThirdParty/imgui/imgui_demo.cpp
     ThirdParty/imgui/imgui_draw.cpp
