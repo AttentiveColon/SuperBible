@@ -35,11 +35,14 @@ static const GLchar* fragment_shader_source = R"(
 in vec4 vs_normal;
 in vec2 vs_uv;
 
+uniform sampler2D u_texture;
+
 out vec4 color;
 
 void main() 
 {
-	color = vec4(vs_uv.x, vs_uv.y, 0.0, 1.0);
+	color = texture(u_texture, vs_uv);
+	//color = vec4(vs_uv.x, vs_uv.y, 0.0, 1.0);
 	//color = vec4(0.5 * (vs_normal.y * vs_normal.x + 0.1) + 0.1, 0.5 * (vs_normal.y * (vs_normal.z + 0.2)) + 0.1, 0.5 * (vs_normal.y * (vs_normal.x + 0.3)) + 0.1, 1.0);
 }
 )";
@@ -73,6 +76,8 @@ struct Application : public Program {
 	{}
 
 	//TODO: Look into and try to limit excessive loading on startup
+	// (might have to create script to create custom model format)
+	// 
 	//TODO: Texture Loading
 
 	void OnInit(Input& input, Audio& audio, Window& window) {

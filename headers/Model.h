@@ -149,7 +149,9 @@ namespace SB
 		GLuint m_index_buffer = 0;
 		GLsizei m_count = 0;
 
-		void OnDraw();
+		int m_material;
+
+		void OnDraw(GLuint texture);
 	};
 
 	Mesh::Mesh(const tinygltf::Model& model, int mesh_index)
@@ -207,6 +209,9 @@ namespace SB
 					indices.push_back(indexData[i]);
 				}
 			}
+
+			//Set the associated material
+			m_material = primitive.material;
 		}
 		//Rearrange data into a vector<float> of vertex data
 		vector<float> vertex;
@@ -249,8 +254,9 @@ namespace SB
 		glBindVertexArray(0);
 	}
 
-	void Mesh::OnDraw() {
+	void Mesh::OnDraw(GLuint texture) {
 		glBindVertexArray(m_vao);
+		glBindTexture(GL_TEXTURE_2D, texture);
 		glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
 	}
 
@@ -311,6 +317,34 @@ namespace SB
 		}
 	}
 
+	struct Material {
+		Material(string name, int texture_index) :m_name(name), m_texture_index(texture_index) {}
+		string m_name;
+		int m_texture_index;
+	};
+
+	struct Texture {
+		Texture(int sampler, int source) :m_sampler(sampler), m_source(source) {}
+		int m_sampler;
+		int m_source;
+	};
+
+	struct Image {
+		Image(string name, int width, int height, int component, int bits, int pixel_type, unsigned char* data, size_t size);
+		string m_name;
+		GLuint m_texture;
+	};
+
+	Image::Image(string name, int width, int height, int component, int bits, int pixel_type, unsigned char* data, size_t size) 
+		:m_name(name), m_texture(0)
+	{
+		glCreateTextures(GL_TEXTURE_2D, 1, &m_texture);
+		glTextureStorage2D(m_texture, 1, GL_RGBA32F, width, height);
+		glBindTexture(GL_TEXTURE_2D, m_texture);
+		glTextureSubImage2D(m_texture, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+
 	struct Model {
 		Model();
 		Model(const char* filename);
@@ -323,6 +357,9 @@ namespace SB
 		vector<Node> m_nodes;
 		vector<Mesh> m_meshes;
 		vector<Camera> m_cameras;
+		vector<Material> m_materials;
+		vector<Texture> m_textures;
+		vector<Image> m_images;
 
 		void DrawNode(glm::mat4 trs_matrix, int node_index);
 		Camera GetCamera(int index);
@@ -377,15 +414,42 @@ namespace SB
 		m_default_scene = model.defaultScene;
 		m_current_scene = model.defaultScene;
 
-
+		//Collect scenes
 		for (size_t i = 0; i < model.scenes.size(); ++i) {
 			m_scenes.push_back(Scene(model.scenes[i], i));
 		}
+		//Collect nodes
 		for (size_t i = 0; i < model.nodes.size(); ++i) {
 			m_nodes.push_back(Node(model.nodes[i], i));
 		}
+		//Collect meshes
 		for (size_t i = 0; i < model.meshes.size(); ++i) {
 			m_meshes.push_back(Mesh(model, i));
+		}
+		//Collect materials
+		for (size_t i = 0; i < model.materials.size(); ++i) {
+			if (model.materials[i].pbrMetallicRoughness.baseColorTexture.index >= 0)
+			{
+				m_materials.push_back(Material(model.materials[i].name, model.materials[i].pbrMetallicRoughness.baseColorTexture.index));
+			}
+			else {
+				m_materials.push_back(Material(model.materials[i].name, model.materials[i].normalTexture.index));
+			}
+		}
+		//Collect Textures
+		for (size_t i = 0; i < model.textures.size(); ++i) {
+			m_textures.push_back(Texture(model.textures[i].sampler, model.textures[i].source));
+		}
+		//Collect Images
+		for (size_t i = 0; i < model.images.size(); ++i) {
+			m_images.push_back(Image(model.images[i].name, 
+				model.images[i].width, 
+				model.images[i].height, 
+				model.images[i].component, 
+				model.images[i].bits, 
+				model.images[i].pixel_type, 
+				model.images[i].image.data(), 
+				model.images[i].image.size()));
 		}
 
 		//Cameras
@@ -420,7 +484,9 @@ namespace SB
 	void Model::DrawNode(glm::mat4 trs_matrix, int node_index) {
 		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(trs_matrix));
 		if (m_nodes[node_index].m_mesh_index >= 0) {
-			m_meshes[m_nodes[node_index].m_mesh_index].OnDraw();
+			Mesh& mesh = m_meshes[m_nodes[node_index].m_mesh_index];
+			int texture = m_images[m_textures[m_materials[mesh.m_material].m_texture_index].m_source].m_texture;
+			mesh.OnDraw(texture);
 		}
 
 		for (const auto& child_node_index : m_nodes[node_index].m_children_nodes) {
