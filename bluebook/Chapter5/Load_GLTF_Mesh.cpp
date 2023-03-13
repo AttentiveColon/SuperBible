@@ -17,6 +17,8 @@ layout (location = 4) uniform mat4 u_viewproj;
 layout (location = 5) uniform float u_time;
 layout (location = 6) uniform vec2 u_resolution;
 
+
+
 out vec4 vs_normal;
 out vec2 vs_uv;
 
@@ -32,6 +34,8 @@ void main()
 static const GLchar* fragment_shader_source = R"(
 #version 450 core
 
+layout (location = 7) uniform vec4 u_base_color_factor;
+
 in vec4 vs_normal;
 in vec2 vs_uv;
 
@@ -41,9 +45,7 @@ out vec4 color;
 
 void main() 
 {
-	color = texture(u_texture, vs_uv);
-	//color = vec4(vs_uv.x, vs_uv.y, 0.0, 1.0);
-	//color = vec4(0.5 * (vs_normal.y * vs_normal.x + 0.1) + 0.1, 0.5 * (vs_normal.y * (vs_normal.z + 0.2)) + 0.1, 0.5 * (vs_normal.y * (vs_normal.x + 0.3)) + 0.1, 1.0);
+	color = texture(u_texture, vs_uv) * u_base_color_factor;
 }
 )";
 
@@ -82,7 +84,7 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
-		audio.PlayOneShot("./resources/startup.mp3");
+		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
 		m_model = SB::Model("./resources/ABeautifulGame.glb");
 

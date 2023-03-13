@@ -151,7 +151,7 @@ namespace SB
 
 		int m_material;
 
-		void OnDraw(GLuint texture);
+		void OnDraw();
 	};
 
 	Mesh::Mesh(const tinygltf::Model& model, int mesh_index)
@@ -254,9 +254,8 @@ namespace SB
 		glBindVertexArray(0);
 	}
 
-	void Mesh::OnDraw(GLuint texture) {
+	void Mesh::OnDraw() {
 		glBindVertexArray(m_vao);
-		glBindTexture(GL_TEXTURE_2D, texture);
 		glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
 	}
 
@@ -317,7 +316,7 @@ namespace SB
 		}
 	}
 
-	struct Material {
+	/*struct Material {
 		Material(string name, int texture_index) :m_name(name), m_texture_index(texture_index) {}
 		string m_name;
 		int m_texture_index;
@@ -333,9 +332,9 @@ namespace SB
 		Image(string name, int width, int height, int component, int bits, int pixel_type, unsigned char* data, size_t size);
 		string m_name;
 		GLuint m_texture;
-	};
+	};*/
 
-	Image::Image(string name, int width, int height, int component, int bits, int pixel_type, unsigned char* data, size_t size) 
+	/*Image::Image(string name, int width, int height, int component, int bits, int pixel_type, unsigned char* data, size_t size) 
 		:m_name(name), m_texture(0)
 	{
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_texture);
@@ -343,7 +342,60 @@ namespace SB
 		glBindTexture(GL_TEXTURE_2D, m_texture);
 		glTextureSubImage2D(m_texture, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
+	}*/
+
+	struct Images {
+		Images() = default;
+		void Init(vector<tinygltf::Image> images);
+		GLuint GetTexture(int index) { return m_textures[index]; }
+		vector<GLuint> m_textures;
+	};
+
+	void Images::Init(vector<tinygltf::Image> images) {
+		m_textures.resize(images.size(), 0);
+		glCreateTextures(GL_TEXTURE_2D, images.size(), m_textures.data());
+		for (size_t i = 0; i < images.size(); ++i) {
+			const auto& image = images[i];
+			glTextureStorage2D(m_textures[i], 1, GL_RGBA32F, image.width, image.height);
+			glBindTexture(GL_TEXTURE_2D, m_textures[i]);
+			glTextureSubImage2D(m_textures[i], 0, 0, 0, image.width, image.height, GL_RGBA, image.pixel_type, image.image.data());
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
+		//Create single white pixel texture
+		m_textures.push_back(0);
+		glCreateTextures(GL_TEXTURE_2D, 1, &m_textures[m_textures.size() - 1]);
+		glTextureStorage2D(m_textures[m_textures.size() - 1], 1, GL_RGBA32F, 1, 1);
+		glBindTexture(GL_TEXTURE_2D, m_textures[m_textures.size() - 1]);
+		int data = 0xFFFFFFFF;
+		glTextureSubImage2D(m_textures[m_textures.size() - 1], 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &data);
 	}
+
+	struct Material {
+		Material(GLuint base_texture, GLuint normal_texture, GLuint emissive_texture, const double* color_factor)
+			:m_base_color_texture(base_texture), 
+			m_normal_texture(normal_texture), 
+			m_emissive_texture(emissive_texture), 
+			m_color_factors{(float)color_factor[0], (float)color_factor[1], (float)color_factor[2], (float)color_factor[3]}
+		{}
+
+		int m_base_color_texture;
+		int m_normal_texture;
+		int m_emissive_texture;
+		float m_color_factors[4];
+
+		void BindMaterial();
+	};
+
+	void Material::BindMaterial() {
+		if (m_base_color_texture >= 0) {
+			glBindTexture(GL_TEXTURE_2D, m_base_color_texture);
+		}
+		glUniform4fv(7, 1, m_color_factors);
+	}
+
+	struct Materials {
+		vector<Material> m_materials;
+	};
 
 	struct Model {
 		Model();
@@ -357,9 +409,13 @@ namespace SB
 		vector<Node> m_nodes;
 		vector<Mesh> m_meshes;
 		vector<Camera> m_cameras;
-		vector<Material> m_materials;
+
+		Images m_image;
+		Materials m_material;
+
+		/*vector<Material> m_materials;
 		vector<Texture> m_textures;
-		vector<Image> m_images;
+		vector<Image> m_images;*/
 
 		void DrawNode(glm::mat4 trs_matrix, int node_index);
 		Camera GetCamera(int index);
@@ -426,31 +482,72 @@ namespace SB
 		for (size_t i = 0; i < model.meshes.size(); ++i) {
 			m_meshes.push_back(Mesh(model, i));
 		}
-		//Collect materials
+
+		//Create Image Buffers
+		m_image.Init(model.images);
+
 		for (size_t i = 0; i < model.materials.size(); ++i) {
-			if (model.materials[i].pbrMetallicRoughness.baseColorTexture.index >= 0)
-			{
-				m_materials.push_back(Material(model.materials[i].name, model.materials[i].pbrMetallicRoughness.baseColorTexture.index));
+			const auto& mat = model.materials[i];
+			const auto& tex = model.textures;
+
+			int base_texture_color = -1;
+			int normal_texture = -1;
+			int emissive_texture = -1;
+
+			if (mat.pbrMetallicRoughness.baseColorTexture.index >= 0) {
+				base_texture_color = tex[mat.pbrMetallicRoughness.baseColorTexture.index].source;
+				if (base_texture_color >= 0) {
+					base_texture_color = m_image.GetTexture(base_texture_color);
+				}
 			}
 			else {
-				m_materials.push_back(Material(model.materials[i].name, model.materials[i].normalTexture.index));
+				base_texture_color = m_image.GetTexture(m_image.m_textures.size() - 1);
 			}
+			if (mat.normalTexture.index >= 0) {
+				if (normal_texture >= 0) {
+					normal_texture = tex[mat.normalTexture.index].source;
+				}
+			}
+			if (mat.emissiveTexture.index >= 0) {
+				if (emissive_texture >= 0) {
+					emissive_texture = tex[mat.emissiveTexture.index].source;
+				}
+			}
+
+			Material material = Material(base_texture_color, 
+				normal_texture, 
+				emissive_texture,
+				mat.pbrMetallicRoughness.baseColorFactor.data()
+			);
+			m_material.m_materials.push_back(material);
 		}
-		//Collect Textures
-		for (size_t i = 0; i < model.textures.size(); ++i) {
-			m_textures.push_back(Texture(model.textures[i].sampler, model.textures[i].source));
-		}
-		//Collect Images
-		for (size_t i = 0; i < model.images.size(); ++i) {
-			m_images.push_back(Image(model.images[i].name, 
-				model.images[i].width, 
-				model.images[i].height, 
-				model.images[i].component, 
-				model.images[i].bits, 
-				model.images[i].pixel_type, 
-				model.images[i].image.data(), 
-				model.images[i].image.size()));
-		}
+
+
+		////Collect materials
+		//for (size_t i = 0; i < model.materials.size(); ++i) {
+		//	if (model.materials[i].pbrMetallicRoughness.baseColorTexture.index >= 0)
+		//	{
+		//		m_materials.push_back(Material(model.materials[i].name, model.materials[i].pbrMetallicRoughness.baseColorTexture.index));
+		//	}
+		//	else {
+		//		m_materials.push_back(Material(model.materials[i].name, model.materials[i].normalTexture.index));
+		//	}
+		//}
+		////Collect Textures
+		//for (size_t i = 0; i < model.textures.size(); ++i) {
+		//	m_textures.push_back(Texture(model.textures[i].sampler, model.textures[i].source));
+		//}
+		////Collect Images
+		//for (size_t i = 0; i < model.images.size(); ++i) {
+		//	m_images.push_back(Image(model.images[i].name, 
+		//		model.images[i].width, 
+		//		model.images[i].height, 
+		//		model.images[i].component, 
+		//		model.images[i].bits, 
+		//		model.images[i].pixel_type, 
+		//		model.images[i].image.data(), 
+		//		model.images[i].image.size()));
+		//}
 
 		//Cameras
 		for (size_t i = 0; i < model.nodes.size(); ++i) {
@@ -485,8 +582,9 @@ namespace SB
 		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(trs_matrix));
 		if (m_nodes[node_index].m_mesh_index >= 0) {
 			Mesh& mesh = m_meshes[m_nodes[node_index].m_mesh_index];
-			int texture = m_images[m_textures[m_materials[mesh.m_material].m_texture_index].m_source].m_texture;
-			mesh.OnDraw(texture);
+			//int texture = m_images[m_textures[m_materials[mesh.m_material].m_texture_index].m_source].m_texture;
+			m_material.m_materials[mesh.m_material].BindMaterial();
+			mesh.OnDraw();
 		}
 
 		for (const auto& child_node_index : m_nodes[node_index].m_children_nodes) {
