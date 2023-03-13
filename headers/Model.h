@@ -316,34 +316,6 @@ namespace SB
 		}
 	}
 
-	/*struct Material {
-		Material(string name, int texture_index) :m_name(name), m_texture_index(texture_index) {}
-		string m_name;
-		int m_texture_index;
-	};
-
-	struct Texture {
-		Texture(int sampler, int source) :m_sampler(sampler), m_source(source) {}
-		int m_sampler;
-		int m_source;
-	};
-
-	struct Image {
-		Image(string name, int width, int height, int component, int bits, int pixel_type, unsigned char* data, size_t size);
-		string m_name;
-		GLuint m_texture;
-	};*/
-
-	/*Image::Image(string name, int width, int height, int component, int bits, int pixel_type, unsigned char* data, size_t size) 
-		:m_name(name), m_texture(0)
-	{
-		glCreateTextures(GL_TEXTURE_2D, 1, &m_texture);
-		glTextureStorage2D(m_texture, 1, GL_RGBA32F, width, height);
-		glBindTexture(GL_TEXTURE_2D, m_texture);
-		glTextureSubImage2D(m_texture, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}*/
-
 	struct Images {
 		Images() = default;
 		void Init(vector<tinygltf::Image> images);
@@ -371,16 +343,18 @@ namespace SB
 	}
 
 	struct Material {
-		Material(GLuint base_texture, GLuint normal_texture, GLuint emissive_texture, const double* color_factor)
+		Material(GLuint base_texture, GLuint normal_texture, GLuint occlusion_texture, GLuint emissive_texture, const double* color_factor)
 			:m_base_color_texture(base_texture), 
-			m_normal_texture(normal_texture), 
+			m_normal_texture(normal_texture),
+			m_occlusion_texture(occlusion_texture),
 			m_emissive_texture(emissive_texture), 
 			m_color_factors{(float)color_factor[0], (float)color_factor[1], (float)color_factor[2], (float)color_factor[3]}
 		{}
 
-		int m_base_color_texture;
-		int m_normal_texture;
-		int m_emissive_texture;
+		GLuint m_base_color_texture;
+		GLuint m_normal_texture;
+		GLuint m_occlusion_texture;
+		GLuint m_emissive_texture;
 		float m_color_factors[4];
 
 		void BindMaterial();
@@ -395,6 +369,7 @@ namespace SB
 
 	struct Materials {
 		vector<Material> m_materials;
+		Material& GetMaterial(int index) { return m_materials[index]; }
 	};
 
 	struct Model {
@@ -412,10 +387,6 @@ namespace SB
 
 		Images m_image;
 		Materials m_material;
-
-		/*vector<Material> m_materials;
-		vector<Texture> m_textures;
-		vector<Image> m_images;*/
 
 		void DrawNode(glm::mat4 trs_matrix, int node_index);
 		Camera GetCamera(int index);
@@ -486,68 +457,55 @@ namespace SB
 		//Create Image Buffers
 		m_image.Init(model.images);
 
+		//Collect Materials
 		for (size_t i = 0; i < model.materials.size(); ++i) {
 			const auto& mat = model.materials[i];
 			const auto& tex = model.textures;
+			GLuint white_tex = m_image.GetTexture(m_image.m_textures.size() - 1);
 
 			int base_texture_color = -1;
 			int normal_texture = -1;
+			int occlusion_texture = -1;
 			int emissive_texture = -1;
 
-			if (mat.pbrMetallicRoughness.baseColorTexture.index >= 0) {
-				base_texture_color = tex[mat.pbrMetallicRoughness.baseColorTexture.index].source;
-				if (base_texture_color >= 0) {
-					base_texture_color = m_image.GetTexture(base_texture_color);
+			if (mat.pbrMetallicRoughness.baseColorTexture.index != -1) {
+				int tex_index = tex[mat.pbrMetallicRoughness.baseColorTexture.index].source;
+				if (tex_index != -1) {
+					base_texture_color = m_image.GetTexture(tex_index);
 				}
 			}
-			else {
-				base_texture_color = m_image.GetTexture(m_image.m_textures.size() - 1);
-			}
-			if (mat.normalTexture.index >= 0) {
-				if (normal_texture >= 0) {
-					normal_texture = tex[mat.normalTexture.index].source;
+			if (mat.normalTexture.index != -1) {
+				int tex_index = tex[mat.normalTexture.index].source;
+				if (tex_index != -1) {
+					normal_texture = m_image.GetTexture(tex_index);
 				}
 			}
-			if (mat.emissiveTexture.index >= 0) {
-				if (emissive_texture >= 0) {
-					emissive_texture = tex[mat.emissiveTexture.index].source;
+			if (mat.occlusionTexture.index != -1) {
+				int tex_index = tex[mat.occlusionTexture.index].source;
+				if (tex_index != -1) {
+					occlusion_texture = m_image.GetTexture(tex_index);
 				}
 			}
+			if (mat.emissiveTexture.index != -1) {
+				int tex_index = tex[mat.emissiveTexture.index].source;
+				if (tex_index != -1) {
+					emissive_texture = m_image.GetTexture(tex_index);
+				}
+			}
+
+			if (base_texture_color == -1) base_texture_color = white_tex;
+			if (normal_texture == -1) normal_texture = white_tex;
+			if (occlusion_texture == -1) occlusion_texture = white_tex;
+			if (emissive_texture == -1) emissive_texture = white_tex;
 
 			Material material = Material(base_texture_color, 
 				normal_texture, 
+				occlusion_texture,
 				emissive_texture,
 				mat.pbrMetallicRoughness.baseColorFactor.data()
 			);
 			m_material.m_materials.push_back(material);
 		}
-
-
-		////Collect materials
-		//for (size_t i = 0; i < model.materials.size(); ++i) {
-		//	if (model.materials[i].pbrMetallicRoughness.baseColorTexture.index >= 0)
-		//	{
-		//		m_materials.push_back(Material(model.materials[i].name, model.materials[i].pbrMetallicRoughness.baseColorTexture.index));
-		//	}
-		//	else {
-		//		m_materials.push_back(Material(model.materials[i].name, model.materials[i].normalTexture.index));
-		//	}
-		//}
-		////Collect Textures
-		//for (size_t i = 0; i < model.textures.size(); ++i) {
-		//	m_textures.push_back(Texture(model.textures[i].sampler, model.textures[i].source));
-		//}
-		////Collect Images
-		//for (size_t i = 0; i < model.images.size(); ++i) {
-		//	m_images.push_back(Image(model.images[i].name, 
-		//		model.images[i].width, 
-		//		model.images[i].height, 
-		//		model.images[i].component, 
-		//		model.images[i].bits, 
-		//		model.images[i].pixel_type, 
-		//		model.images[i].image.data(), 
-		//		model.images[i].image.size()));
-		//}
 
 		//Cameras
 		for (size_t i = 0; i < model.nodes.size(); ++i) {
@@ -582,8 +540,7 @@ namespace SB
 		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(trs_matrix));
 		if (m_nodes[node_index].m_mesh_index >= 0) {
 			Mesh& mesh = m_meshes[m_nodes[node_index].m_mesh_index];
-			//int texture = m_images[m_textures[m_materials[mesh.m_material].m_texture_index].m_source].m_texture;
-			m_material.m_materials[mesh.m_material].BindMaterial();
+			m_material.GetMaterial(mesh.m_material).BindMaterial();
 			mesh.OnDraw();
 		}
 

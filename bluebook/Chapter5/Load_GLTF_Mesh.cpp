@@ -86,7 +86,7 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		m_model = SB::Model("./resources/ABeautifulGame.glb");
+		m_model = SB::Model("./resources/ABeautifulGameLights.glb");
 
 		if (m_model.m_cameras.size()) {
 			m_camera = m_model.GetCamera(0);
