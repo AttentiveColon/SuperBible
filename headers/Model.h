@@ -573,35 +573,6 @@ namespace SB
 
 		//Collect cameras
 		m_camera.Init(model);
-
-
-		////Cameras
-		//for (size_t i = 0; i < model.nodes.size(); ++i) {
-		//	if (model.nodes[i].camera >= 0) {
-		//		tinygltf::Node& curr_node = model.nodes[i];
-		//		CameraDescriptor cam_desc;
-		//		cam_desc.name = curr_node.name;
-		//		cam_desc.translation = glm::vec3(curr_node.translation[0], curr_node.translation[1], curr_node.translation[2]);
-		//		cam_desc.rotation = glm::quat(curr_node.rotation[3], curr_node.rotation[0], curr_node.rotation[1], curr_node.rotation[2]);
-
-		//		tinygltf::Camera& curr_camera = model.cameras[curr_node.camera];
-		//		if (curr_camera.type == "perspective") {
-		//			cam_desc.type = CameraType::Perspective;
-		//			cam_desc.aspect_or_xmag = curr_camera.perspective.aspectRatio;
-		//			cam_desc.fovy_or_ymag = curr_camera.perspective.yfov;
-		//			cam_desc.znear = curr_camera.perspective.znear;
-		//			cam_desc.zfar = curr_camera.perspective.zfar;
-		//		}
-		//		else {
-		//			cam_desc.type = CameraType::Perspective;
-		//			cam_desc.aspect_or_xmag = curr_camera.orthographic.xmag;
-		//			cam_desc.fovy_or_ymag = curr_camera.orthographic.ymag;
-		//			cam_desc.znear = curr_camera.orthographic.znear;
-		//			cam_desc.zfar = curr_camera.orthographic.zfar;
-		//		}
-		//		m_cameras.push_back(Camera(cam_desc));
-		//	}
-		//}
 	}
 
 	void Model::DrawNode(glm::mat4 trs_matrix, int node_index) {
