@@ -140,6 +140,56 @@ namespace SB
 		}
 	}
 
+	struct Cameras {
+		int m_current_cam = 0;
+		void Init(tinygltf::Model& model);
+		Camera& GetCamera(int index) { return m_cameras[index]; }
+		Camera& GetNextCamera();
+		vector<Camera> m_cameras;
+	};
+
+	Camera& Cameras::GetNextCamera() {
+		if (m_cameras.size() != 0) {
+			++m_current_cam;
+			if (m_current_cam < m_cameras.size()) {
+				return GetCamera(m_current_cam);
+			}
+			else {
+				m_current_cam = 0;
+				return GetCamera(m_current_cam);
+			}
+		}
+	}
+
+	void Cameras::Init(tinygltf::Model& model) {
+		for (size_t i = 0; i < model.nodes.size(); ++i) {
+			if (model.nodes[i].camera >= 0) {
+				tinygltf::Node& curr_node = model.nodes[i];
+				CameraDescriptor cam_desc;
+				cam_desc.name = curr_node.name;
+				cam_desc.translation = glm::vec3(curr_node.translation[0], curr_node.translation[1], curr_node.translation[2]);
+				cam_desc.rotation = glm::quat(curr_node.rotation[3], curr_node.rotation[0], curr_node.rotation[1], curr_node.rotation[2]);
+
+				tinygltf::Camera& curr_camera = model.cameras[curr_node.camera];
+				if (curr_camera.type == "perspective") {
+					cam_desc.type = CameraType::Perspective;
+					cam_desc.aspect_or_xmag = curr_camera.perspective.aspectRatio;
+					cam_desc.fovy_or_ymag = curr_camera.perspective.yfov;
+					cam_desc.znear = curr_camera.perspective.znear;
+					cam_desc.zfar = curr_camera.perspective.zfar;
+				}
+				else {
+					cam_desc.type = CameraType::Perspective;
+					cam_desc.aspect_or_xmag = curr_camera.orthographic.xmag;
+					cam_desc.fovy_or_ymag = curr_camera.orthographic.ymag;
+					cam_desc.znear = curr_camera.orthographic.znear;
+					cam_desc.zfar = curr_camera.orthographic.zfar;
+				}
+				m_cameras.push_back(Camera(cam_desc));
+			}
+		}
+	}
+
 	struct Mesh {
 		Mesh(const tinygltf::Model& model, int mesh_index);
 		string m_name;
@@ -318,12 +368,12 @@ namespace SB
 
 	struct Images {
 		Images() = default;
-		void Init(vector<tinygltf::Image> images);
+		void Init(vector<tinygltf::Image>& images);
 		GLuint GetTexture(int index) { return m_textures[index]; }
 		vector<GLuint> m_textures;
 	};
 
-	void Images::Init(vector<tinygltf::Image> images) {
+	void Images::Init(vector<tinygltf::Image>& images) {
 		m_textures.resize(images.size(), 0);
 		glCreateTextures(GL_TEXTURE_2D, images.size(), m_textures.data());
 		for (size_t i = 0; i < images.size(); ++i) {
@@ -343,8 +393,9 @@ namespace SB
 	}
 
 	struct Material {
-		Material(GLuint base_texture, GLuint normal_texture, GLuint occlusion_texture, GLuint emissive_texture, const double* color_factor)
+		Material(GLuint base_texture, GLuint metallic_roughness_texture, GLuint normal_texture, GLuint occlusion_texture, GLuint emissive_texture, const double* color_factor)
 			:m_base_color_texture(base_texture), 
+			m_metallic_roughness_texture(metallic_roughness_texture),
 			m_normal_texture(normal_texture),
 			m_occlusion_texture(occlusion_texture),
 			m_emissive_texture(emissive_texture), 
@@ -352,6 +403,7 @@ namespace SB
 		{}
 
 		GLuint m_base_color_texture;
+		GLuint m_metallic_roughness_texture;
 		GLuint m_normal_texture;
 		GLuint m_occlusion_texture;
 		GLuint m_emissive_texture;
@@ -369,8 +421,69 @@ namespace SB
 
 	struct Materials {
 		vector<Material> m_materials;
+		void Init(tinygltf::Model& model, Images& images);
 		Material& GetMaterial(int index) { return m_materials[index]; }
 	};
+
+	void Materials::Init(tinygltf::Model& model, Images& images) {
+		for (size_t i = 0; i < model.materials.size(); ++i) {
+			const auto& mat = model.materials[i];
+			const auto& tex = model.textures;
+			GLuint white_tex = images.GetTexture(images.m_textures.size() - 1);
+
+			int base_texture_color = -1;
+			int metallic_roughness_texture = -1;
+			int normal_texture = -1;
+			int occlusion_texture = -1;
+			int emissive_texture = -1;
+
+			if (mat.pbrMetallicRoughness.baseColorTexture.index != -1) {
+				int tex_index = tex[mat.pbrMetallicRoughness.baseColorTexture.index].source;
+				if (tex_index != -1) {
+					base_texture_color = images.GetTexture(tex_index);
+				}
+			}
+			if (mat.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
+				int tex_index = tex[mat.pbrMetallicRoughness.metallicRoughnessTexture.index].source;
+				if (tex_index != -1) {
+					metallic_roughness_texture = images.GetTexture(tex_index);
+				}
+			}
+			if (mat.normalTexture.index != -1) {
+				int tex_index = tex[mat.normalTexture.index].source;
+				if (tex_index != -1) {
+					normal_texture = images.GetTexture(tex_index);
+				}
+			}
+			if (mat.occlusionTexture.index != -1) {
+				int tex_index = tex[mat.occlusionTexture.index].source;
+				if (tex_index != -1) {
+					occlusion_texture = images.GetTexture(tex_index);
+				}
+			}
+			if (mat.emissiveTexture.index != -1) {
+				int tex_index = tex[mat.emissiveTexture.index].source;
+				if (tex_index != -1) {
+					emissive_texture = images.GetTexture(tex_index);
+				}
+			}
+
+			if (base_texture_color == -1) base_texture_color = white_tex;
+			if (metallic_roughness_texture == -1) metallic_roughness_texture = white_tex;
+			if (normal_texture == -1) normal_texture = white_tex;
+			if (occlusion_texture == -1) occlusion_texture = white_tex;
+			if (emissive_texture == -1) emissive_texture = white_tex;
+
+			Material material = Material(base_texture_color,
+				metallic_roughness_texture,
+				normal_texture,
+				occlusion_texture,
+				emissive_texture,
+				mat.pbrMetallicRoughness.baseColorFactor.data()
+			);
+			m_materials.push_back(material);
+		}
+	}
 
 	struct Model {
 		Model();
@@ -383,14 +496,12 @@ namespace SB
 		vector<Scene> m_scenes;
 		vector<Node> m_nodes;
 		vector<Mesh> m_meshes;
-		vector<Camera> m_cameras;
 
 		Images m_image;
 		Materials m_material;
+		Cameras m_camera;
 
 		void DrawNode(glm::mat4 trs_matrix, int node_index);
-		Camera GetCamera(int index);
-		Camera GetNextCamera();
 
 		void OnUpdate(f64 dt);
 		void OnDraw();
@@ -458,82 +569,39 @@ namespace SB
 		m_image.Init(model.images);
 
 		//Collect Materials
-		for (size_t i = 0; i < model.materials.size(); ++i) {
-			const auto& mat = model.materials[i];
-			const auto& tex = model.textures;
-			GLuint white_tex = m_image.GetTexture(m_image.m_textures.size() - 1);
+		m_material.Init(model, m_image);
 
-			int base_texture_color = -1;
-			int normal_texture = -1;
-			int occlusion_texture = -1;
-			int emissive_texture = -1;
+		//Collect cameras
+		m_camera.Init(model);
 
-			if (mat.pbrMetallicRoughness.baseColorTexture.index != -1) {
-				int tex_index = tex[mat.pbrMetallicRoughness.baseColorTexture.index].source;
-				if (tex_index != -1) {
-					base_texture_color = m_image.GetTexture(tex_index);
-				}
-			}
-			if (mat.normalTexture.index != -1) {
-				int tex_index = tex[mat.normalTexture.index].source;
-				if (tex_index != -1) {
-					normal_texture = m_image.GetTexture(tex_index);
-				}
-			}
-			if (mat.occlusionTexture.index != -1) {
-				int tex_index = tex[mat.occlusionTexture.index].source;
-				if (tex_index != -1) {
-					occlusion_texture = m_image.GetTexture(tex_index);
-				}
-			}
-			if (mat.emissiveTexture.index != -1) {
-				int tex_index = tex[mat.emissiveTexture.index].source;
-				if (tex_index != -1) {
-					emissive_texture = m_image.GetTexture(tex_index);
-				}
-			}
 
-			if (base_texture_color == -1) base_texture_color = white_tex;
-			if (normal_texture == -1) normal_texture = white_tex;
-			if (occlusion_texture == -1) occlusion_texture = white_tex;
-			if (emissive_texture == -1) emissive_texture = white_tex;
+		////Cameras
+		//for (size_t i = 0; i < model.nodes.size(); ++i) {
+		//	if (model.nodes[i].camera >= 0) {
+		//		tinygltf::Node& curr_node = model.nodes[i];
+		//		CameraDescriptor cam_desc;
+		//		cam_desc.name = curr_node.name;
+		//		cam_desc.translation = glm::vec3(curr_node.translation[0], curr_node.translation[1], curr_node.translation[2]);
+		//		cam_desc.rotation = glm::quat(curr_node.rotation[3], curr_node.rotation[0], curr_node.rotation[1], curr_node.rotation[2]);
 
-			Material material = Material(base_texture_color, 
-				normal_texture, 
-				occlusion_texture,
-				emissive_texture,
-				mat.pbrMetallicRoughness.baseColorFactor.data()
-			);
-			m_material.m_materials.push_back(material);
-		}
-
-		//Cameras
-		for (size_t i = 0; i < model.nodes.size(); ++i) {
-			if (model.nodes[i].camera >= 0) {
-				tinygltf::Node& curr_node = model.nodes[i];
-				CameraDescriptor cam_desc;
-				cam_desc.name = curr_node.name;
-				cam_desc.translation = glm::vec3(curr_node.translation[0], curr_node.translation[1], curr_node.translation[2]);
-				cam_desc.rotation = glm::quat(curr_node.rotation[3], curr_node.rotation[0], curr_node.rotation[1], curr_node.rotation[2]);
-
-				tinygltf::Camera& curr_camera = model.cameras[curr_node.camera];
-				if (curr_camera.type == "perspective") {
-					cam_desc.type = CameraType::Perspective;
-					cam_desc.aspect_or_xmag = curr_camera.perspective.aspectRatio;
-					cam_desc.fovy_or_ymag = curr_camera.perspective.yfov;
-					cam_desc.znear = curr_camera.perspective.znear;
-					cam_desc.zfar = curr_camera.perspective.zfar;
-				}
-				else {
-					cam_desc.type = CameraType::Perspective;
-					cam_desc.aspect_or_xmag = curr_camera.orthographic.xmag;
-					cam_desc.fovy_or_ymag = curr_camera.orthographic.ymag;
-					cam_desc.znear = curr_camera.orthographic.znear;
-					cam_desc.zfar = curr_camera.orthographic.zfar;
-				}
-				m_cameras.push_back(Camera(cam_desc));
-			}
-		}
+		//		tinygltf::Camera& curr_camera = model.cameras[curr_node.camera];
+		//		if (curr_camera.type == "perspective") {
+		//			cam_desc.type = CameraType::Perspective;
+		//			cam_desc.aspect_or_xmag = curr_camera.perspective.aspectRatio;
+		//			cam_desc.fovy_or_ymag = curr_camera.perspective.yfov;
+		//			cam_desc.znear = curr_camera.perspective.znear;
+		//			cam_desc.zfar = curr_camera.perspective.zfar;
+		//		}
+		//		else {
+		//			cam_desc.type = CameraType::Perspective;
+		//			cam_desc.aspect_or_xmag = curr_camera.orthographic.xmag;
+		//			cam_desc.fovy_or_ymag = curr_camera.orthographic.ymag;
+		//			cam_desc.znear = curr_camera.orthographic.znear;
+		//			cam_desc.zfar = curr_camera.orthographic.zfar;
+		//		}
+		//		m_cameras.push_back(Camera(cam_desc));
+		//	}
+		//}
 	}
 
 	void Model::DrawNode(glm::mat4 trs_matrix, int node_index) {
@@ -548,18 +616,6 @@ namespace SB
 			glm::mat4 new_trs_matrix = trs_matrix * m_nodes[child_node_index].m_trs_matrix;
 			DrawNode(new_trs_matrix, child_node_index);
 		}
-	}
-
-	Camera Model::GetCamera(int index) {
-		return m_cameras[index];
-	}
-
-	Camera Model::GetNextCamera() {
-		++m_current_camera;
-		if (m_current_camera >= m_cameras.size()) {
-			m_current_camera = 0;
-		}
-		return GetCamera(m_current_camera);
 	}
 
 	void Model::OnUpdate(f64 dt) {

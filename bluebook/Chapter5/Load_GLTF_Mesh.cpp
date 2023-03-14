@@ -88,8 +88,8 @@ struct Application : public Program {
 		m_program = LoadShaders(shader_text);
 		m_model = SB::Model("./resources/ABeautifulGameLights.glb");
 
-		if (m_model.m_cameras.size()) {
-			m_camera = m_model.GetCamera(0);
+		if (m_model.m_camera.m_cameras.size()) {
+			m_camera = m_model.m_camera.GetCamera(0);
 		}
 		else {
 			m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.40, 0.1, 100.0);
@@ -102,7 +102,7 @@ struct Application : public Program {
 		m_time = window.GetTime();
 
 		if (input.Pressed(GLFW_KEY_SPACE)) {
-			m_camera = m_model.GetNextCamera();
+			m_camera = m_model.m_camera.GetNextCamera();
 		}
 
 		//Implement Camera Movement Functions
