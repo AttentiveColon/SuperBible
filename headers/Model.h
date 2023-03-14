@@ -159,6 +159,7 @@ namespace SB
 				return GetCamera(m_current_cam);
 			}
 		}
+		return GetCamera(m_current_cam);
 	}
 
 	void Cameras::Init(tinygltf::Model& model) {
@@ -414,7 +415,24 @@ namespace SB
 
 	void Material::BindMaterial() {
 		if (m_base_color_texture >= 0) {
+			glActiveTexture(GL_TEXTURE0 + 0);
 			glBindTexture(GL_TEXTURE_2D, m_base_color_texture);
+		}
+		if (m_metallic_roughness_texture >= 0) {
+			glActiveTexture(GL_TEXTURE0 + 1);
+			glBindTexture(GL_TEXTURE_2D, m_metallic_roughness_texture);
+		}
+		if (m_normal_texture >= 0) {
+			glActiveTexture(GL_TEXTURE0 + 2);
+			glBindTexture(GL_TEXTURE_2D, m_normal_texture);
+		}
+		if (m_occlusion_texture >= 0) {
+			glActiveTexture(GL_TEXTURE0 + 3);
+			glBindTexture(GL_TEXTURE_2D, m_occlusion_texture);
+		}
+		if (m_emissive_texture >= 0) {
+			glActiveTexture(GL_TEXTURE0 + 4);
+			glBindTexture(GL_TEXTURE_2D, m_emissive_texture);
 		}
 		glUniform4fv(7, 1, m_color_factors);
 	}

@@ -39,7 +39,11 @@ layout (location = 7) uniform vec4 u_base_color_factor;
 in vec4 vs_normal;
 in vec2 vs_uv;
 
-uniform sampler2D u_texture;
+layout (binding = 0) uniform sampler2D u_texture;
+layout (binding = 1) uniform sampler2D u_metallic;
+layout (binding = 2) uniform sampler2D u_normal_map;
+layout (binding = 3) uniform sampler2D u_occlusion_map;
+layout (binding = 4) uniform sampler2D u_emissive_map;
 
 out vec4 color;
 
