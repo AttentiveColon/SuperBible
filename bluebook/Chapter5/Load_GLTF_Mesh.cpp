@@ -17,8 +17,6 @@ layout (location = 4) uniform mat4 u_viewproj;
 layout (location = 5) uniform float u_time;
 layout (location = 6) uniform vec2 u_resolution;
 
-
-
 out vec4 vs_normal;
 out vec2 vs_uv;
 
@@ -81,6 +79,8 @@ struct Application : public Program {
 		m_cam_rotation(0.0f)
 	{}
 
+	//TODO: Pack uniforms and vertex data into blocks
+
 	//TODO: Look into and try to limit excessive loading on startup
 	// (might have to create script to create custom model format)
 
@@ -88,8 +88,7 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		m_model = SB::Model("./resources/ABeautifulGameLights.glb");
-		//m_model = SB::Model("../gltf_examples/2.0/2CylinderEngine/glTF-Binary/2CylinderEngine.glb");
+		m_model = SB::Model("./resources/ABeautifulGame.glb");
 
 		if (m_model.m_camera.m_cameras.size()) {
 			m_camera = m_model.m_camera.GetCamera(0);
@@ -153,4 +152,4 @@ SystemConf config = {
 };
 
 MAIN(config)
-#endif //TEST
+#endif //LOAD_GLTF_MESH

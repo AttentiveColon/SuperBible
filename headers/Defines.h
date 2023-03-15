@@ -1,4 +1,4 @@
-#pragma once
+//#pragma once
 //Deprecation Defines
 #define _CRT_SECURE_NO_WARNINGS
 
