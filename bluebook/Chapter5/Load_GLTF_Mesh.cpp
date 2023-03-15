@@ -83,14 +83,13 @@ struct Application : public Program {
 
 	//TODO: Look into and try to limit excessive loading on startup
 	// (might have to create script to create custom model format)
-	// 
-	//TODO: Texture Loading
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
 		m_model = SB::Model("./resources/ABeautifulGameLights.glb");
+		//m_model = SB::Model("../gltf_examples/2.0/2CylinderEngine/glTF-Binary/2CylinderEngine.glb");
 
 		if (m_model.m_camera.m_cameras.size()) {
 			m_camera = m_model.m_camera.GetCamera(0);

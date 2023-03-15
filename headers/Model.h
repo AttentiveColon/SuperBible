@@ -393,13 +393,46 @@ namespace SB
 		glTextureSubImage2D(m_textures[m_textures.size() - 1], 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &data);
 	}
 
+	struct Sampler {
+		void Init(vector<tinygltf::Sampler> samplers);
+		GLuint GetSampler(int index) { return m_samplers[index]; }
+		vector<GLuint> m_samplers;
+	};
+
+	void Sampler::Init(vector<tinygltf::Sampler> samplers) {
+		m_samplers.resize(samplers.size(), 0);
+		glCreateSamplers(samplers.size(), m_samplers.data());
+		for (size_t i = 0; i < samplers.size(); ++i) {
+			glSamplerParameteri(m_samplers[i], GL_TEXTURE_MAG_FILTER, samplers[i].magFilter);
+			glSamplerParameteri(m_samplers[i], GL_TEXTURE_MIN_FILTER, samplers[i].minFilter);
+			glSamplerParameteri(m_samplers[i], GL_TEXTURE_WRAP_S, samplers[i].wrapS);
+			glSamplerParameteri(m_samplers[i], GL_TEXTURE_WRAP_T, samplers[i].wrapT);
+		}
+	}
+
 	struct Material {
-		Material(GLuint base_texture, GLuint metallic_roughness_texture, GLuint normal_texture, GLuint occlusion_texture, GLuint emissive_texture, const double* color_factor)
+		Material(GLuint base_texture, 
+			GLuint metallic_roughness_texture, 
+			GLuint normal_texture, 
+			GLuint occlusion_texture, 
+			GLuint emissive_texture, 
+			GLuint base_sampler,
+			GLuint metallic_sampler,
+			GLuint normal_sampler,
+			GLuint occlusion_sampler,
+			GLuint emissive_sampler,
+			const double* color_factor
+		)
 			:m_base_color_texture(base_texture), 
 			m_metallic_roughness_texture(metallic_roughness_texture),
 			m_normal_texture(normal_texture),
 			m_occlusion_texture(occlusion_texture),
 			m_emissive_texture(emissive_texture), 
+			m_base_sampler(base_sampler),
+			m_metallic_sampler(metallic_sampler),
+			m_normal_sampler(normal_sampler),
+			m_occlusion_sampler(occlusion_sampler),
+			m_emissive_sampler(emissive_sampler),
 			m_color_factors{(float)color_factor[0], (float)color_factor[1], (float)color_factor[2], (float)color_factor[3]}
 		{}
 
@@ -408,6 +441,13 @@ namespace SB
 		GLuint m_normal_texture;
 		GLuint m_occlusion_texture;
 		GLuint m_emissive_texture;
+
+		GLuint m_base_sampler;
+		GLuint m_metallic_sampler;
+		GLuint m_normal_sampler;
+		GLuint m_occlusion_sampler;
+		GLuint m_emissive_sampler;
+
 		float m_color_factors[4];
 
 		void BindMaterial();
@@ -416,34 +456,44 @@ namespace SB
 	void Material::BindMaterial() {
 		if (m_base_color_texture >= 0) {
 			glActiveTexture(GL_TEXTURE0 + 0);
-			glBindTexture(GL_TEXTURE_2D, m_base_color_texture);
+			//glBindTexture(GL_TEXTURE_2D, m_base_color_texture);
+			glBindTextureUnit(0, m_base_color_texture);
+			glBindSampler(0, m_base_sampler);
 		}
 		if (m_metallic_roughness_texture >= 0) {
 			glActiveTexture(GL_TEXTURE0 + 1);
-			glBindTexture(GL_TEXTURE_2D, m_metallic_roughness_texture);
+			//glBindTexture(GL_TEXTURE_2D, m_metallic_roughness_texture);
+			glBindTextureUnit(1, m_metallic_roughness_texture);
+			glBindSampler(1, m_metallic_sampler);
 		}
 		if (m_normal_texture >= 0) {
 			glActiveTexture(GL_TEXTURE0 + 2);
-			glBindTexture(GL_TEXTURE_2D, m_normal_texture);
+			//glBindTexture(GL_TEXTURE_2D, m_normal_texture);
+			glBindTextureUnit(2, m_normal_texture);
+			glBindSampler(2, m_normal_sampler);
 		}
 		if (m_occlusion_texture >= 0) {
 			glActiveTexture(GL_TEXTURE0 + 3);
-			glBindTexture(GL_TEXTURE_2D, m_occlusion_texture);
+			//glBindTexture(GL_TEXTURE_2D, m_occlusion_texture);
+			glBindTextureUnit(3, m_occlusion_texture);
+			glBindSampler(3, m_occlusion_sampler);
 		}
 		if (m_emissive_texture >= 0) {
 			glActiveTexture(GL_TEXTURE0 + 4);
-			glBindTexture(GL_TEXTURE_2D, m_emissive_texture);
+			//glBindTexture(GL_TEXTURE_2D, m_emissive_texture);
+			glBindTextureUnit(4, m_emissive_texture);
+			glBindSampler(4, m_emissive_sampler);
 		}
 		glUniform4fv(7, 1, m_color_factors);
 	}
 
 	struct Materials {
 		vector<Material> m_materials;
-		void Init(tinygltf::Model& model, Images& images);
+		void Init(tinygltf::Model& model, Images& images, Sampler& sampler);
 		Material& GetMaterial(int index) { return m_materials[index]; }
 	};
 
-	void Materials::Init(tinygltf::Model& model, Images& images) {
+	void Materials::Init(tinygltf::Model& model, Images& images, Sampler& sampler) {
 		for (size_t i = 0; i < model.materials.size(); ++i) {
 			const auto& mat = model.materials[i];
 			const auto& tex = model.textures;
@@ -455,34 +505,45 @@ namespace SB
 			int occlusion_texture = -1;
 			int emissive_texture = -1;
 
+			int base_texture_sampler = 0;
+			int metallic_roughness_sampler = 0;
+			int normal_sampler = 0;
+			int occlusion_sampler = 0;
+			int emissive_sampler = 0;
+
 			if (mat.pbrMetallicRoughness.baseColorTexture.index != -1) {
 				int tex_index = tex[mat.pbrMetallicRoughness.baseColorTexture.index].source;
 				if (tex_index != -1) {
 					base_texture_color = images.GetTexture(tex_index);
+					base_texture_sampler = sampler.GetSampler(tex[mat.pbrMetallicRoughness.baseColorTexture.index].sampler);
 				}
 			}
 			if (mat.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
 				int tex_index = tex[mat.pbrMetallicRoughness.metallicRoughnessTexture.index].source;
 				if (tex_index != -1) {
 					metallic_roughness_texture = images.GetTexture(tex_index);
+					metallic_roughness_sampler = sampler.GetSampler(tex[mat.pbrMetallicRoughness.metallicRoughnessTexture.index].sampler);
 				}
 			}
 			if (mat.normalTexture.index != -1) {
 				int tex_index = tex[mat.normalTexture.index].source;
 				if (tex_index != -1) {
 					normal_texture = images.GetTexture(tex_index);
+					normal_sampler = sampler.GetSampler(tex[mat.normalTexture.index].sampler);
 				}
 			}
 			if (mat.occlusionTexture.index != -1) {
 				int tex_index = tex[mat.occlusionTexture.index].source;
 				if (tex_index != -1) {
 					occlusion_texture = images.GetTexture(tex_index);
+					occlusion_sampler = sampler.GetSampler(tex[mat.occlusionTexture.index].sampler);
 				}
 			}
 			if (mat.emissiveTexture.index != -1) {
 				int tex_index = tex[mat.emissiveTexture.index].source;
 				if (tex_index != -1) {
 					emissive_texture = images.GetTexture(tex_index);
+					emissive_sampler = sampler.GetSampler(tex[mat.emissiveTexture.index].sampler);
 				}
 			}
 
@@ -497,11 +558,18 @@ namespace SB
 				normal_texture,
 				occlusion_texture,
 				emissive_texture,
+				base_texture_sampler,
+				metallic_roughness_sampler,
+				normal_sampler,
+				occlusion_sampler,
+				emissive_sampler,
 				mat.pbrMetallicRoughness.baseColorFactor.data()
 			);
 			m_materials.push_back(material);
 		}
 	}
+
+	
 
 	struct Model {
 		Model();
@@ -518,6 +586,7 @@ namespace SB
 		Images m_image;
 		Materials m_material;
 		Cameras m_camera;
+		Sampler m_sampler;
 
 		void DrawNode(glm::mat4 trs_matrix, int node_index);
 
@@ -586,11 +655,17 @@ namespace SB
 		//Create Image Buffers
 		m_image.Init(model.images);
 
+		//Collect Samplers
+		m_sampler.Init(model.samplers);
+
 		//Collect Materials
-		m_material.Init(model, m_image);
+		m_material.Init(model, m_image, m_sampler);
+
+		
 
 		//Collect cameras
 		m_camera.Init(model);
+
 	}
 
 	void Model::DrawNode(glm::mat4 trs_matrix, int node_index) {
