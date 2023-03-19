@@ -11,10 +11,6 @@ static const GLfloat vertices[] = {
 	1.0f, 1.0f, 0.5f, 1.0f, 1.0f
 };
 
-static GLfloat resolution[] = {
-	1600.0, 900.0
-};
-
 static GLfloat size = 0.5f;
 
 static const GLchar* vertex_shader_source = R"(
@@ -23,6 +19,7 @@ static const GLchar* vertex_shader_source = R"(
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec2 uv;
 layout (location = 2) uniform float u_size;
+layout (location = 3) uniform float u_time;
  
 out vec2 vs_uv;
 
@@ -36,9 +33,9 @@ void main()
 static const GLchar* fragment_shader_source = R"(
 #version 450 core
 
+layout (location = 3) uniform float u_time;
 
-
-uniform sampler2D u_texture;
+uniform sampler2DArray u_texture;
 
 in vec2 vs_uv;
 
@@ -46,7 +43,7 @@ out vec4 color;
 
 void main() 
 {
-	color = texture(u_texture, vs_uv);
+	color = texture(u_texture, vec3(vs_uv, mod(u_time, 3)));
 }
 )";
 
@@ -93,18 +90,26 @@ struct Application : public Program {
 		glGenVertexArrays(1, &m_vao);
 		glGenBuffers(1, &m_vertex_buffer);
 
-		//Create texture buffer
-		glCreateTextures(GL_TEXTURE_2D, 1, &m_texture);
+		//Create texture array buffer
+		glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &m_texture);
 		//Specify storage size
-		glTextureStorage2D(m_texture, 1, GL_RGBA32F, 1600, 900);
+		//glTextureStorage2D(m_texture, 1, GL_RGBA32F, 1600, 900);
+		glTextureStorage3D(m_texture, 1, GL_RGBA32F, 1600, 900, 3);
 		//Bind the texture
-		glBindTexture(GL_TEXTURE_2D, m_texture);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture);
 
 		//Create the texture data
 		data = new float[1600 * 900 * 4];
 
-		GenerateTexture(data, 1600 * 900 * 4, 0x0000FFFF);
-		glTextureSubImage2D(m_texture, 0, 0, 0, 1600, 900, GL_RGBA, GL_FLOAT, data);
+		for (size_t i = 0; i < 3; ++i) {
+			int color = 0;
+			if (i == 0) color = 0xFF0000FF;
+			else if (i == 1) color = 0x00FF00FF;
+			else color = 0x0000FFFF;
+			GenerateTexture(data, 1600 * 900 * 4, color);
+			glTextureSubImage3D(m_texture, 0, 0, 0, i, 1600, 900, 1, GL_RGBA, GL_FLOAT, data);
+		}
+
 		delete[] data;
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
@@ -121,10 +126,10 @@ struct Application : public Program {
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		
 		glEnableVertexAttribArray(1);
 		//Bind size uniform
 		glUniform1f(2, size);
+		glUniform1f(3, (float)m_time);
 		glDrawArrays(GL_TRIANGLES, 0, 18);
 	}
 	void OnGui() {
