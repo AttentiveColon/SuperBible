@@ -11,4 +11,4 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 //Current Project
-#define LOAD_GLTF_MESH
+#define TEXTURE_ARRAY
