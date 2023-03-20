@@ -195,3 +195,74 @@ GLuint Load_KTX(const char* filename, GLuint texture) {
 
 	return tex;
 }
+
+unsigned char* Load_KTX_Raw(const char* filename) {
+	//Open filestream and check if successful
+	std::ifstream ifs(filename, std::ios_base::binary);
+	if (!ifs.is_open()) {
+		return 0;
+	}
+
+	//Get length of file
+	ifs.seekg(0, ifs.end);
+	usize length = ifs.tellg();
+	ifs.seekg(0, ifs.beg);
+
+	//If file isn't empty, move data into buffer
+	std::vector<char> buffer;
+	if (!(length > 0)) {
+		return 0;
+	}
+	buffer.resize(length);
+	ifs.read(&buffer[0], length);
+
+	//If filesize is larger than header size, load data into header struct
+	KTX_Header* header;
+	if (!(length > sizeof(KTX_Header))) {
+		return 0;
+	}
+	header = (KTX_Header*)&buffer[0];
+
+	//Check endianness and swap if neeeded
+	if (header->endianness == 0x04030201) {}
+	else if (header->endianness == 0x01020304)
+	{
+		SwapHeader(*header);
+	}
+	else { return 0; }
+
+	//Guess the approriate target type
+	GLenum target = GL_NONE;
+	if (header->pixelheight == 0) {
+		if (header->arrayelements == 0) target = GL_TEXTURE_1D;
+		else target = GL_TEXTURE_1D_ARRAY;
+	}
+	else if (header->pixeldepth == 0) {
+		if (header->arrayelements == 0) {
+			if (header->faces == 1) target = GL_TEXTURE_2D;
+			else target = GL_TEXTURE_CUBE_MAP;
+		}
+		else {
+			if (header->faces == 0) target = GL_TEXTURE_2D_ARRAY;
+			else target = GL_TEXTURE_CUBE_MAP_ARRAY;
+		}
+	}
+	else target = GL_TEXTURE_3D;
+
+	if (target == GL_NONE || header->pixelwidth == 0 || (header->pixelheight == 0 && header->pixeldepth == 0))
+	{
+		return 0;
+	}
+
+	//Get the data location and copy data into memory
+	usize data_start = sizeof(KTX_Header) + header->keypairbytes;
+	usize data_end = buffer.size();
+	unsigned char* data = new unsigned char[data_end - data_start];
+	memcpy(data, &buffer[data_start], data_end - data_start);
+
+	
+
+
+	//Remember to delete this data
+	return data;
+}
