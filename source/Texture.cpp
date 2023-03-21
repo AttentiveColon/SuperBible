@@ -231,46 +231,24 @@ KTX_Raw Get_KTX_Raw(const char* filename) {
 	}
 	else { return KTX_Raw(); }
 
-	//Guess the approriate target type
-	GLenum target = GL_NONE;
-	if (header->pixelheight == 0) {
-		if (header->arrayelements == 0) target = GL_TEXTURE_1D;
-		else target = GL_TEXTURE_1D_ARRAY;
-	}
-	else if (header->pixeldepth == 0) {
-		if (header->arrayelements == 0) {
-			if (header->faces == 1) target = GL_TEXTURE_2D;
-			else target = GL_TEXTURE_CUBE_MAP;
-		}
-		else {
-			if (header->faces == 0) target = GL_TEXTURE_2D_ARRAY;
-			else target = GL_TEXTURE_CUBE_MAP_ARRAY;
-		}
-	}
-	else target = GL_TEXTURE_3D;
-
-	if (target == GL_NONE || header->pixelwidth == 0 || (header->pixelheight == 0 && header->pixeldepth == 0))
-	{
-		return KTX_Raw();
-	}
-
 	//Get the data location and copy data into memory
 	usize data_start = sizeof(KTX_Header) + header->keypairbytes;
 	usize data_end = buffer.size();
 	unsigned char* data = new unsigned char[data_end - data_start];
 	memcpy(data, &buffer[data_start], data_end - data_start);
 
-	
+	if (header->miplevels == 0) {
+		header->miplevels = 1;
+	}
 
-	//Remember to delete this data
 	return KTX_Raw(
 		data, 
-		data_end - data_start, 
 		header->pixelwidth, 
 		header->pixelheight, 
 		header->glformat, 
 		header->glinternalformat, 
-		header->gltype
+		header->gltype,
+		header->miplevels
 	);
 }
 
@@ -278,15 +256,14 @@ GLuint CreateTextureArray(const char* filenames[], size_t length)
 {
 	KTX_Raw temp = Get_KTX_Raw(filenames[0]);
 
-	//Need to figure out why the image is duplicated in a 2x2 grid
-
 	GLuint tex;
 	glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &tex);
 	glTextureStorage3D(tex, 1, temp.m_glinternal_format, temp.m_width, temp.m_height, length);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, tex);
 
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	
+
+	int miplevels = temp.m_miplevels;
 
 	int width = -1;
 	int height = -1;
@@ -309,5 +286,14 @@ GLuint CreateTextureArray(const char* filenames[], size_t length)
 		glTextureSubImage3D(tex, 0, 0, 0, i, texture.m_width, texture.m_height, 1, texture.m_glformat, texture.m_gltype, texture.m_data);
 		
 	}
+	if (miplevels == 1) {
+		glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+	}
+
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 	return tex;
 }
