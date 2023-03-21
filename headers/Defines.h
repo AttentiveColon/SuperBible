@@ -11,4 +11,4 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 //Current Project
-#define IMAGE2D
+#define TEXTURE_ARRAY

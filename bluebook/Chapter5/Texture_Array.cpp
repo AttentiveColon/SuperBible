@@ -1,6 +1,7 @@
 #include "Defines.h"
 #ifdef TEXTURE_ARRAY
 #include "System.h"
+#include "Texture.h"
 
 static const GLfloat vertices[] = {
 	-1.0f, -1.0f, 0.5f, 0.0f, 0.0f,
@@ -41,7 +42,7 @@ out vec4 color;
 
 void main() 
 {
-	color = texture(u_texture, vec3(vs_uv, mod(floor(u_time), 3)));
+	color = texture(u_texture, vec3(vs_uv, mod(floor(u_time), 5)));
 }
 )";
 
@@ -88,27 +89,37 @@ struct Application : public Program {
 		glGenVertexArrays(1, &m_vao);
 		glGenBuffers(1, &m_vertex_buffer);
 
-		//Create texture array buffer
-		glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &m_texture);
-		//Specify storage size
-		//glTextureStorage2D(m_texture, 1, GL_RGBA32F, 1600, 900);
-		glTextureStorage3D(m_texture, 1, GL_RGBA32F, 1600, 900, 3);
-		//Bind the texture
-		glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture);
+		const char* filenames[] = {
+			"./resources/texture_array_2d/red.ktx",
+			"./resources/texture_array_2d/blue.ktx",
+			"./resources/texture_array_2d/green.ktx",
+			"./resources/texture_array_2d/yellow.ktx",
+			"./resources/texture_array_2d/purple.ktx"
+		};
 
-		//Create the texture data
-		data = new float[1600 * 900 * 4];
+		m_texture = CreateTextureArray(filenames, 5);
 
-		for (size_t i = 0; i < 3; ++i) {
-			int color = 0;
-			if (i == 0) color = 0xFF0000FF;
-			else if (i == 1) color = 0x00FF00FF;
-			else color = 0x0000FFFF;
-			GenerateTexture(data, 1600 * 900 * 4, color);
-			glTextureSubImage3D(m_texture, 0, 0, 0, i, 1600, 900, 1, GL_RGBA, GL_FLOAT, data);
-		}
+		////Create texture array buffer
+		//glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &m_texture);
+		////Specify storage size
+		////glTextureStorage2D(m_texture, 1, GL_RGBA32F, 1600, 900);
+		//glTextureStorage3D(m_texture, 1, GL_RGBA32F, 1600, 900, 3);
+		////Bind the texture
+		//glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture);
 
-		delete[] data;
+		////Create the texture data
+		//data = new float[1600 * 900 * 4];
+
+		//for (size_t i = 0; i < 3; ++i) {
+		//	int color = 0;
+		//	if (i == 0) color = 0xFF0000FF;
+		//	else if (i == 1) color = 0x00FF00FF;
+		//	else color = 0x0000FFFF;
+		//	GenerateTexture(data, 1600 * 900 * 4, color);
+		//	glTextureSubImage3D(m_texture, 0, 0, 0, i, 1600, 900, 1, GL_RGBA, GL_FLOAT, data);
+		//}
+
+		//delete[] data;
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();

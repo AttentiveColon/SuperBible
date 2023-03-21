@@ -175,17 +175,9 @@ struct Application : public Program {
 		
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glUseProgram(m_program2);
-		glBindVertexArray(m_vao);
-		glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(1);
 		//Bind size uniform
 		glUniform1f(2, size);
 		glUniform1f(3, (float)m_time);
-		glBindTexture(GL_TEXTURE_2D, m_image_out);
 		glDrawArrays(GL_TRIANGLES, 0, 18);
 
 	}

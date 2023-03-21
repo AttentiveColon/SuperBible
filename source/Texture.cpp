@@ -196,11 +196,11 @@ GLuint Load_KTX(const char* filename, GLuint texture) {
 	return tex;
 }
 
-unsigned char* Load_KTX_Raw(const char* filename) {
+KTX_Raw Get_KTX_Raw(const char* filename) {
 	//Open filestream and check if successful
 	std::ifstream ifs(filename, std::ios_base::binary);
 	if (!ifs.is_open()) {
-		return 0;
+		return KTX_Raw();
 	}
 
 	//Get length of file
@@ -211,7 +211,7 @@ unsigned char* Load_KTX_Raw(const char* filename) {
 	//If file isn't empty, move data into buffer
 	std::vector<char> buffer;
 	if (!(length > 0)) {
-		return 0;
+		return KTX_Raw();
 	}
 	buffer.resize(length);
 	ifs.read(&buffer[0], length);
@@ -219,7 +219,7 @@ unsigned char* Load_KTX_Raw(const char* filename) {
 	//If filesize is larger than header size, load data into header struct
 	KTX_Header* header;
 	if (!(length > sizeof(KTX_Header))) {
-		return 0;
+		return KTX_Raw();
 	}
 	header = (KTX_Header*)&buffer[0];
 
@@ -229,7 +229,7 @@ unsigned char* Load_KTX_Raw(const char* filename) {
 	{
 		SwapHeader(*header);
 	}
-	else { return 0; }
+	else { return KTX_Raw(); }
 
 	//Guess the approriate target type
 	GLenum target = GL_NONE;
@@ -251,7 +251,7 @@ unsigned char* Load_KTX_Raw(const char* filename) {
 
 	if (target == GL_NONE || header->pixelwidth == 0 || (header->pixelheight == 0 && header->pixeldepth == 0))
 	{
-		return 0;
+		return KTX_Raw();
 	}
 
 	//Get the data location and copy data into memory
@@ -262,7 +262,43 @@ unsigned char* Load_KTX_Raw(const char* filename) {
 
 	
 
-
 	//Remember to delete this data
-	return data;
+	return KTX_Raw(data, data_end - data_start, header->pixelwidth, header->pixelheight);
+}
+
+GLuint CreateTextureArray(const char* filenames[], size_t length)
+{
+	KTX_Raw temp = Get_KTX_Raw(filenames[0]);
+
+	//KTX_Raw needs to bundle internal format, type and format
+	//in this case the GL_SRGB8_ALPHA8, GL_RGBA and GL_UNSIGNED_BYTE values
+
+	//Need to figure out why the image is duplicated in a 2x2 grid
+
+	GLuint tex;
+	glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &tex);
+	glTextureStorage3D(tex, 1, GL_SRGB8_ALPHA8, temp.m_width, temp.m_height, length);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, tex);
+
+	int width = -1;
+	int height = -1;
+	for (size_t i = 0; i < length; ++i) {
+		KTX_Raw texture = Get_KTX_Raw(filenames[i]);
+		if (texture.m_data == nullptr) {
+			std::cerr << "Couldn't load " << filenames[i] << "\nNo texture data!" << std::endl;
+			return 0;
+		}
+		if (width == -1) { width = texture.m_width; }
+		else if (width != texture.m_width) {
+			std::cerr << "Couldn't create array! Not all files have same width dimensions" << std::endl;
+			return 0;
+		}
+		if (height == -1) { height = texture.m_height; }
+		else if (width != texture.m_height) {
+			std::cerr << "Couldn't create array! Not all files have same height dimensions" << std::endl;
+			return 0;
+		}
+		glTextureSubImage3D(tex, 0, 0, 0, i, texture.m_width, texture.m_height, 1, GL_RGBA, GL_UNSIGNED_BYTE, texture.m_data);
+	}
+	return tex;
 }
