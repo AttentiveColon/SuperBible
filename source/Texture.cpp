@@ -263,22 +263,30 @@ KTX_Raw Get_KTX_Raw(const char* filename) {
 	
 
 	//Remember to delete this data
-	return KTX_Raw(data, data_end - data_start, header->pixelwidth, header->pixelheight);
+	return KTX_Raw(
+		data, 
+		data_end - data_start, 
+		header->pixelwidth, 
+		header->pixelheight, 
+		header->glformat, 
+		header->glinternalformat, 
+		header->gltype
+	);
 }
 
 GLuint CreateTextureArray(const char* filenames[], size_t length)
 {
 	KTX_Raw temp = Get_KTX_Raw(filenames[0]);
 
-	//KTX_Raw needs to bundle internal format, type and format
-	//in this case the GL_SRGB8_ALPHA8, GL_RGBA and GL_UNSIGNED_BYTE values
-
 	//Need to figure out why the image is duplicated in a 2x2 grid
 
 	GLuint tex;
 	glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &tex);
-	glTextureStorage3D(tex, 1, GL_SRGB8_ALPHA8, temp.m_width, temp.m_height, length);
+	glTextureStorage3D(tex, 1, temp.m_glinternal_format, temp.m_width, temp.m_height, length);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, tex);
+
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	int width = -1;
 	int height = -1;
@@ -298,7 +306,8 @@ GLuint CreateTextureArray(const char* filenames[], size_t length)
 			std::cerr << "Couldn't create array! Not all files have same height dimensions" << std::endl;
 			return 0;
 		}
-		glTextureSubImage3D(tex, 0, 0, 0, i, texture.m_width, texture.m_height, 1, GL_RGBA, GL_UNSIGNED_BYTE, texture.m_data);
+		glTextureSubImage3D(tex, 0, 0, 0, i, texture.m_width, texture.m_height, 1, texture.m_glformat, texture.m_gltype, texture.m_data);
+		
 	}
 	return tex;
 }
