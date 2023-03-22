@@ -29,6 +29,7 @@ static const GLchar* fragment_shader_source = R"(
 layout (location = 3) uniform float u_time;
 layout (location = 4) uniform float u_index;
 uniform sampler2DArray u_texture;
+//uniform sampler2D u_texture;
 
 in vec2 vs_uv;
 
@@ -37,7 +38,7 @@ out vec4 color;
 void main() 
 {
 	color = texture(u_texture, vec3(vs_uv, u_index));
-	//color = vec4(vs_uv.x, vs_uv.y, 0.0, 1.0);
+	//color = texture(u_texture, vs_uv);
 }
 )";
 
@@ -117,6 +118,8 @@ struct Application : public Program {
 		};
 
 		m_texture = CreateTextureArray(filenames, 3);
+
+		//m_texture = Load_KTX("./resources/texture_array_2d/green.ktx");
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
@@ -147,7 +150,7 @@ struct Application : public Program {
 };
 
 SystemConf config = {
-		1600,					//width
+		900,					//width
 		900,					//height
 		300,					//Position x
 		200,					//Position y

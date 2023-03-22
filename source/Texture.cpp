@@ -123,7 +123,8 @@ GLuint Load_KTX(const char* filename, GLuint texture) {
 	usize data_start = sizeof(KTX_Header) + header->keypairbytes;
 	usize data_end = buffer.size();
 	unsigned char* data = new unsigned char[data_end - data_start];
-	memcpy(data, &buffer[data_start], data_end - data_start);
+	//+4 to get past the 4 bytes of data for buffer length
+	memcpy(data, &buffer[data_start + 4], data_end - data_start);
 
 	if (header->miplevels == 0) {
 		header->miplevels = 1;
@@ -235,7 +236,8 @@ KTX_Raw Get_KTX_Raw(const char* filename) {
 	usize data_start = sizeof(KTX_Header) + header->keypairbytes;
 	usize data_end = buffer.size();
 	unsigned char* data = new unsigned char[data_end - data_start];
-	memcpy(data, &buffer[data_start], data_end - data_start);
+	//+4 to get past the 4 bytes of data for buffer length
+	memcpy(data, &buffer[data_start + 4], data_end - data_start);
 
 	if (header->miplevels == 0) {
 		header->miplevels = 1;
