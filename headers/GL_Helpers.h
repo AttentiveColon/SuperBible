@@ -66,4 +66,5 @@ GLFWimage rgba_bmp_load(const char* filePath);
 void Debug_Callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* user_param);
 
 
-
+void GetShaderCompilationStatus(GLuint shader);
+void GetProgramLinkedStatus(GLuint program);

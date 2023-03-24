@@ -166,6 +166,7 @@
     <ClCompile Include="bluebook\Chapter5\Textures.cpp" />
     <ClCompile Include="bluebook\Chapter5\Texture_Coordinates.cpp" />
     <ClCompile Include="bluebook\Chapter5\Uniform_Buffer.cpp" />
+    <ClCompile Include="bluebook\Chapter6\Separate_Programs.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />
     <ClCompile Include="source\boilerplate_main.cpp" />
     <ClCompile Include="source\Mesh.cpp" />

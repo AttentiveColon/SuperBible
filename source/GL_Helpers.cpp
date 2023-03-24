@@ -322,3 +322,32 @@ void Debug_Callback(
 		namedType.c_str(), namedSeverity.c_str(), message);
 }
 
+void GetShaderCompilationStatus(GLuint shader) {
+	GLint compiled;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+	if (!compiled) {
+
+		GLsizei len;
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
+	
+		GLchar* log = new GLchar[len + 1];
+		glGetShaderInfoLog(shader, len, &len, log);
+		std::cerr << "Shader compilation failed: " << log << std::endl;
+		delete[] log;
+	}
+}
+
+void GetProgramLinkedStatus(GLuint program) {
+	GLint linked;
+	glGetProgramiv(program, GL_LINK_STATUS, &linked);
+	if (!linked) {
+
+		GLsizei len;
+		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
+
+		GLchar* log = new GLchar[len + 1];
+		glGetProgramInfoLog(program, len, &len, log);
+		std::cerr << "Shader linking failed: " << log << std::endl;
+		delete[] log;
+	}
+}
