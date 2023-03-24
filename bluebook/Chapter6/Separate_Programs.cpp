@@ -11,10 +11,9 @@ static GLfloat size = 0.5f;
 static const GLchar* vertex_shader_source = R"(
 #version 450 core
 
-
-
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec2 uv;
+layout (location = 2) uniform float u_size;
 
 out vec2 vs_uv;
 
@@ -25,7 +24,7 @@ out gl_PerVertex
 
 void main() 
 {
-	gl_Position = vec4(position, 1.0);
+	gl_Position = vec4(position * u_size, 1.0);
 	vs_uv = uv;
 }
 )";
@@ -100,22 +99,11 @@ struct Application : public Program {
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
-		//Turn our raw string shaders into c-style strings just for this example
-
-
-		//Create separable vertex and fragment shaders and then 
-		// create a pipeline for them
-
-		//Create pipeline to represent the collections of programs currently in use
-		glGenProgramPipelines(1, &m_program_pipeline);
-		
-
 		//Create vertex shader, attach source, compile, then check status
 		GLuint vs = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vs, 1, &vertex_shader_source, NULL);
 		glCompileShader(vs);
 		GetShaderCompilationStatus(vs);
-		
 
 		//create a program for our vertex stage to attach to
 		m_program_vertex = glCreateProgram();
@@ -138,43 +126,14 @@ struct Application : public Program {
 		glLinkProgram(m_program_fragment);
 		GetProgramLinkedStatus(m_program_fragment);
 
-		
+		//Create pipeline to represent the collections of programs currently in use
+		glGenProgramPipelines(1, &m_program_pipeline);
 
 		//Now bind the vertex and fragment programs to the pipeline
 		glUseProgramStages(m_program_pipeline, GL_VERTEX_SHADER_BIT, m_program_vertex);
 		glUseProgramStages(m_program_pipeline, GL_FRAGMENT_SHADER_BIT, m_program_fragment);
 
 		//Now rather than calling glUseProgram, call glBindProgramPipeline() 
-		
-
-		//Gather pipeline resource info
-		GLint outputs;
-		glGetProgramInterfaceiv(m_program_vertex, GL_PROGRAM_OUTPUT, GL_ACTIVE_RESOURCES, &outputs);
-		static const GLenum props[] = { GL_TYPE, GL_LOCATION };
-
-		GLint i;
-		GLint params[2];
-		GLchar name[64];
-		const char* type_name;
-
-		for (i = 0; i < outputs; i++) {
-			glGetProgramResourceName(m_program_vertex, GL_PROGRAM_OUTPUT, i, sizeof(name), NULL, name);
-			glGetProgramResourceiv(m_program_vertex, GL_PROGRAM_OUTPUT, i, 2, props, 2, NULL, params);
-			//type_name = "wait";
-			printf("Index %d: %d %s @ location %d.\n", i, params[0], name, params[1]);
-		}
-
-		
-		glGetProgramInterfaceiv(m_program_fragment, GL_PROGRAM_OUTPUT, GL_ACTIVE_RESOURCES, &outputs);
-
-		
-
-		for (i = 0; i < outputs; i++) {
-			glGetProgramResourceName(m_program_fragment, GL_PROGRAM_OUTPUT, i, sizeof(name), NULL, name);
-			glGetProgramResourceiv(m_program_fragment, GL_PROGRAM_OUTPUT, i, 2, props, 2, NULL, params);
-			//type_name = "wait";
-			printf("Index %d: %d %s @ location %d.\n", i, params[0], name, params[1]);
-		}
 
 		m_vao = GenerateQuad();
 
@@ -186,16 +145,11 @@ struct Application : public Program {
 	void OnDraw() {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 
-		//glUseProgram(m_program);
 		glUseProgram(0);
 		glBindProgramPipeline(m_program_pipeline);
 		glBindVertexArray(m_vao);
-		
-		//Bind size uniform
-		//glUniform1f(2, size);
-		//glProgramUniform1f(m_program_vertex, 2, size);
+		glProgramUniform1f(m_program_vertex, 2, size);
 		glDrawArrays(GL_TRIANGLES, 0, 18);
-
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
