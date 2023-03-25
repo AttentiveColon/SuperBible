@@ -35,9 +35,26 @@ static const GLchar* fragment_shader_source = R"(
 out vec4 color;
 in vec2 vs_uv;
 
+layout (location = 2) uniform float u_index;
+uniform sampler2DArray u_sampler;
+
 void main() 
 {
-	color = vec4(1.0, 0.0, 0.0, 1.0);
+	color = texture(u_sampler, vec3(vs_uv, u_index));
+}
+)";
+
+static const GLchar* fragment_shader_source2 = R"(
+#version 450 core
+
+out vec4 color;
+in vec2 vs_uv;
+
+layout (location = 2) uniform float u_index;
+
+void main() 
+{
+	color = vec4(vs_uv.x, vs_uv.y, 0.0, 1.0);
 }
 )";
 
@@ -88,7 +105,9 @@ struct Application : public Program {
 	GLuint m_program_pipeline;
 	GLuint m_program_vertex;
 	GLuint m_program_fragment;
+	GLuint m_program_fragment2;
 	GLuint m_vao;
+	GLuint m_texture;
 
 
 	Application()
@@ -119,12 +138,22 @@ struct Application : public Program {
 		glShaderSource(fs, 1, &fragment_shader_source, NULL);
 		glCompileShader(fs);
 		GetShaderCompilationStatus(fs);
-
 		m_program_fragment = glCreateProgram();
 		glAttachShader(m_program_fragment, fs);
 		glProgramParameteri(m_program_fragment, GL_PROGRAM_SEPARABLE, GL_TRUE);
 		glLinkProgram(m_program_fragment);
 		GetProgramLinkedStatus(m_program_fragment);
+
+		//Create second separable fragment shader
+		GLuint fs2 = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(fs2, 1, &fragment_shader_source2, NULL);
+		glCompileShader(fs2);
+		GetShaderCompilationStatus(fs2);
+		m_program_fragment2 = glCreateProgram();
+		glAttachShader(m_program_fragment2, fs2);
+		glProgramParameteri(m_program_fragment2, GL_PROGRAM_SEPARABLE, GL_TRUE);
+		glLinkProgram(m_program_fragment2);
+		GetProgramLinkedStatus(m_program_fragment2);
 
 		//Create pipeline to represent the collections of programs currently in use
 		glGenProgramPipelines(1, &m_program_pipeline);
@@ -137,18 +166,36 @@ struct Application : public Program {
 
 		m_vao = GenerateQuad();
 
+		const char* filenames[] = {
+			"./resources/texture_array_2d/test_grid.ktx",
+			"./resources/texture_array_2d/test_grid2.ktx",
+			"./resources/texture_array_2d/test_grid3.ktx"
+		};
+
+		m_texture = CreateTextureArray(filenames, 3);
+
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
+
+		
 	}
 	void OnDraw() {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 
 		glUseProgram(0);
-		glBindProgramPipeline(m_program_pipeline);
+		if (m_index > 4.0f) {
+			glUseProgramStages(m_program_pipeline, GL_FRAGMENT_SHADER_BIT, m_program_fragment2);
+			glBindProgramPipeline(m_program_pipeline);
+		}
+		else {
+			glUseProgramStages(m_program_pipeline, GL_FRAGMENT_SHADER_BIT, m_program_fragment);
+			glBindProgramPipeline(m_program_pipeline);
+		}
 		glBindVertexArray(m_vao);
 		glProgramUniform1f(m_program_vertex, 2, size);
+		glProgramUniform1f(m_program_fragment, 2, m_index);
 		glDrawArrays(GL_TRIANGLES, 0, 18);
 	}
 	void OnGui() {
@@ -157,7 +204,7 @@ struct Application : public Program {
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::SliderFloat("Size", &size, 0.1, 1.0);
-		ImGui::SliderFloat("Index", &m_index, 0.0, 4.0);
+		ImGui::SliderFloat("Index", &m_index, 0.0, 5.0);
 		ImGui::End();
 	}
 };
