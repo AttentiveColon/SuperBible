@@ -155,6 +155,7 @@
     <ClCompile Include="bluebook\Chapter4\GLM_Math_Equivelents.cpp" />
     <ClCompile Include="bluebook\Chapter4\Splines%28incomplete%29.cpp" />
     <ClCompile Include="bluebook\Chapter5\Image2D.cpp" />
+    <ClCompile Include="bluebook\Chapter5\Shader_Subroutines.cpp" />
     <ClCompile Include="bluebook\Chapter5\Texture_Array.cpp" />
     <ClCompile Include="bluebook\Chapter5\Atomic_Counter_Buffer.cpp" />
     <ClCompile Include="bluebook\Chapter5\Buffers.cpp" />
