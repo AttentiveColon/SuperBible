@@ -95,6 +95,13 @@ static GLuint GenerateQuad() {
 	return vao;
 }
 
+struct UBO {
+	float u_resolution_width;
+	float u_resolution_height;
+	float u_time;
+	float u_index;
+};
+
 struct Application : public Program {
 	float m_clear_color[4];
 	u64 m_fps;
@@ -145,9 +152,9 @@ struct Application : public Program {
 		m_time = (float)window.GetTime();
 		m_resolution = vec2(window.GetWindowDimensions().width, window.GetWindowDimensions().height);
 
-		memcpy(m_ubo_data + 0, &m_resolution, 8);
-		memcpy(m_ubo_data + 8, &m_time, 4);
-		memcpy(m_ubo_data + 12, &m_index, 4);
+		UBO ubo = { m_resolution.x, m_resolution.y, m_time, m_index };
+
+		memcpy(m_ubo_data, &ubo, sizeof(UBO));
 	}
 	void OnDraw() {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
