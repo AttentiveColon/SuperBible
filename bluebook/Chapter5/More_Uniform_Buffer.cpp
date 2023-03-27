@@ -1,6 +1,7 @@
 #include "Defines.h"
-#ifdef TEXTURE_ARRAY
+#ifdef MORE_UNIFORM_BUFFER
 #include "System.h"
+#include "Model.h"
 #include "Texture.h"
 
 static GLfloat size = 0.5f;
@@ -11,16 +12,21 @@ static const GLchar* vertex_shader_source = R"(
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec2 uv;
 
-layout (location = 2) uniform float u_size;
-layout (location = 3) uniform float u_time;
+layout (binding = 0)
+uniform Global
+{
+	vec2 u_resolution;
+	float u_time;
+	float u_index;
+};
 
 out vec2 vs_uv;
 
+
 void main() 
 {
-	vec3 pos = position + (vec3(0.2, 0.2, 0.0) * mod(u_time, 4.0));
-	gl_Position = vec4(pos * u_size, 1.0);
-	//gl_Position = vec4(position, 1.0);
+	vec3 pos = position + (vec3(0.2, 0.2, 0.0) * sin(u_time * 0.25));
+	gl_Position = vec4(pos, 1.0);
 	vs_uv = uv;
 }
 )";
@@ -28,10 +34,15 @@ void main()
 static const GLchar* fragment_shader_source = R"(
 #version 450 core
 
-layout (location = 3) uniform float u_time;
-layout (location = 4) uniform float u_index;
 uniform sampler2DArray u_texture;
-//uniform sampler2D u_texture;
+
+layout (binding = 0, std140)
+uniform Global
+{
+	vec2 u_resolution;
+	float u_time;
+	float u_index;
+};
 
 in vec2 vs_uv;
 
@@ -40,7 +51,10 @@ out vec4 color;
 void main() 
 {
 	color = texture(u_texture, vec3(vs_uv, u_index));
-	//color = texture(u_texture, vs_uv);
+	vec2 st = gl_FragCoord.xy / u_resolution;
+	float y = st.x * 0.8;
+	vec3 c = vec3(y);
+	color += vec4(c, 1.0);
 }
 )";
 
@@ -77,14 +91,15 @@ static GLuint GenerateQuad() {
 
 	glVertexArrayVertexBuffer(vao, 0, vertex_buffer, 0, sizeof(float) * 5);
 	glBindVertexArray(0);
-	
+
 	return vao;
 }
 
 struct Application : public Program {
 	float m_clear_color[4];
 	u64 m_fps;
-	f64 m_time;
+	float m_time;
+	vec2 m_resolution;
 
 	f32 m_index;
 
@@ -92,6 +107,9 @@ struct Application : public Program {
 	GLuint m_vao;
 	GLuint m_vertex_buffer;
 	GLuint m_texture;
+
+	GLuint m_ubo;
+	char* m_ubo_data;
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
@@ -105,13 +123,12 @@ struct Application : public Program {
 		m_program = LoadShaders(shader_text);
 		m_vao = GenerateQuad();
 
-		/*const char* filenames[] = {
-			"./resources/texture_array_2d/red.ktx",
-			"./resources/texture_array_2d/blue.ktx",
-			"./resources/texture_array_2d/green.ktx",
-			"./resources/texture_array_2d/yellow.ktx",
-			"./resources/texture_array_2d/purple.ktx"
-		};*/
+		//TODO: Give a function my shader program and automatically generate a UBO
+
+		glCreateBuffers(1, &m_ubo);
+		m_ubo_data = new char[48];
+
+
 
 		const char* filenames[] = {
 			"./resources/texture_array_2d/test_grid.ktx",
@@ -125,7 +142,12 @@ struct Application : public Program {
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
-		m_time = window.GetTime();
+		m_time = (float)window.GetTime();
+		m_resolution = vec2(window.GetWindowDimensions().width, window.GetWindowDimensions().height);
+
+		memcpy(m_ubo_data + 0, &m_resolution, 8);
+		memcpy(m_ubo_data + 8, &m_time, 4);
+		memcpy(m_ubo_data + 12, &m_index, 4);
 	}
 	void OnDraw() {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
@@ -133,12 +155,12 @@ struct Application : public Program {
 		glUseProgram(m_program);
 		glBindVertexArray(m_vao);
 
-		//Bind size uniform
-		glUniform1f(2, size);
-		glUniform1f(3, (float)m_time);
-		glUniform1f(4, m_index);
+		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
+		glBufferData(GL_UNIFORM_BUFFER, 32, m_ubo_data, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
+
 		glDrawArrays(GL_TRIANGLES, 0, 18);
-		
+
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");

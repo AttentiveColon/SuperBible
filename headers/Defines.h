@@ -11,5 +11,5 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 //Current Project
-#define SHADER_SUBROUTINES
+#define MORE_UNIFORM_BUFFER
 

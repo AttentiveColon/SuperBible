@@ -141,6 +141,9 @@
     <ClCompile Include="bluebook\Chapter5\Shader_Subroutines.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\Chapter5\More_Uniform_Buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">
