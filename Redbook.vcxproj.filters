@@ -138,10 +138,16 @@
     <ClCompile Include="bluebook\Chapter6\Separate_Programs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bluebook\Chapter5\Shader_Subroutines.cpp">
+    <ClCompile Include="bluebook\Chapter6\Shader_Subroutines.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bluebook\Chapter5\More_Uniform_Buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bluebook\Chapter7\Vertex_Shader_Inputs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bluebook\Chapter7\Variable_Point_Size.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

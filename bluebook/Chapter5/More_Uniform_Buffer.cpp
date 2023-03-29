@@ -130,8 +130,6 @@ struct Application : public Program {
 		m_program = LoadShaders(shader_text);
 		m_vao = GenerateQuad();
 
-		//TODO: Give a function my shader program and automatically generate a UBO
-
 		glCreateBuffers(1, &m_ubo);
 		m_ubo_data = new char[48];
 
