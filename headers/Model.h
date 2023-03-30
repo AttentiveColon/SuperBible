@@ -52,6 +52,7 @@ namespace SB
 		Camera(string name, glm::vec3 eye, glm::vec3 center, CameraType type, double aspect_or_xmag, double fovy_or_ymag, double znear, double zfar);
 
 		glm::mat4 ViewProj() { return m_viewproj; }
+		glm::vec3 Eye() { return glm::vec3(m_view[3][0], m_view[3][1], m_view[3][2]); }
 
 		string m_name;
 		glm::vec3 m_cam_position;
@@ -191,166 +192,6 @@ namespace SB
 		}
 	}
 
-	struct Mesh {
-		Mesh(const tinygltf::Model& model, int mesh_index);
-		string m_name;
-		int m_mesh_index;
-		GLuint m_vao = 0;
-		GLuint m_vertex_buffer = 0;
-		GLuint m_index_buffer = 0;
-		GLsizei m_count = 0;
-
-		int m_material;
-
-		void OnDraw();
-	};
-
-	Mesh::Mesh(const tinygltf::Model& model, int mesh_index)
-		:m_name(model.meshes[mesh_index].name),
-		m_mesh_index(mesh_index)
-	{
-		vector<float> positions;
-		vector<float> normals;
-		vector<float> texcoords;
-		vector<unsigned int> indices;
-
-		const auto& mesh = model.meshes[mesh_index];
-		//Extract the Position, Normal and TextureCoord data for current mesh
-		for (const auto& primitive : mesh.primitives) {
-			//Get Positions
-			const auto& positionAccessor = model.accessors[primitive.attributes.at("POSITION")];
-			const auto& positionView = model.bufferViews[positionAccessor.bufferView];
-			const float* positionData = reinterpret_cast<const float*>(model.buffers[positionView.buffer].data.data() + positionView.byteOffset + positionAccessor.byteOffset);
-			for (size_t i = 0; i < positionAccessor.count * 3; i++) {
-				positions.push_back(positionData[i]);
-			}
-
-			//Get Normals
-			if (primitive.attributes.count("NORMAL") > 0) {
-				const auto& normalAccessor = model.accessors[primitive.attributes.at("NORMAL")];
-				const auto& normalView = model.bufferViews[normalAccessor.bufferView];
-				const float* normalData = reinterpret_cast<const float*>(model.buffers[normalView.buffer].data.data() + normalView.byteOffset + normalAccessor.byteOffset);
-				for (size_t i = 0; i < normalAccessor.count * 3; i++) {
-					normals.push_back(normalData[i]);
-				}
-			}
-
-			//Get Texture Coords
-			if (primitive.attributes.count("TEXCOORD_0") > 0) {
-				const auto& texAccessor = model.accessors[primitive.attributes.at("TEXCOORD_0")];
-				const auto& texView = model.bufferViews[texAccessor.bufferView];
-				const float* texCoordData = reinterpret_cast<const float*>(model.buffers[texView.buffer].data.data() + texView.byteOffset + texAccessor.byteOffset);
-				for (size_t i = 0; i < texAccessor.count * 2; i++) {
-					texcoords.push_back(texCoordData[i]);
-				}
-			}
-
-			//Get Indices
-			const auto& indexAccessor = model.accessors[primitive.indices];
-			const auto& indexView = model.bufferViews[indexAccessor.bufferView];
-			if (indexAccessor.componentType == GL_UNSIGNED_INT) {
-				const unsigned int* indexData = reinterpret_cast<const unsigned int*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
-				for (size_t i = 0; i < indexAccessor.count; i++) {
-					indices.push_back(indexData[i]);
-				}
-			}
-			else {
-				const unsigned short* indexData = reinterpret_cast<const unsigned short*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
-				for (size_t i = 0; i < indexAccessor.count; i++) {
-					indices.push_back(indexData[i]);
-				}
-			}
-
-			//Set the associated material
-			m_material = primitive.material;
-		}
-		//Rearrange data into a vector<float> of vertex data
-		vector<float> vertex;
-		for (size_t i = 0; i < positions.size() / 3; ++i) {
-			vertex.push_back(positions[3 * i + 0]);
-			vertex.push_back(positions[3 * i + 1]);
-			vertex.push_back(positions[3 * i + 2]);
-			vertex.push_back(normals[3 * i + 0]);
-			vertex.push_back(normals[3 * i + 1]);
-			vertex.push_back(normals[3 * i + 2]);
-			vertex.push_back(texcoords[2 * i + 0]);
-			vertex.push_back(texcoords[2 * i + 1]);
-		}
-		m_count = indices.size();
-
-		//Bind all data to related VAO
-		glCreateVertexArrays(1, &m_vao);
-
-		glCreateBuffers(1, &m_vertex_buffer);
-		glNamedBufferStorage(m_vertex_buffer, vertex.size() * sizeof(float), &vertex[0], 0);
-
-		glCreateBuffers(1, &m_index_buffer);
-		glNamedBufferStorage(m_index_buffer, indices.size() * sizeof(unsigned int), &indices[0], 0);
-
-		glVertexArrayAttribBinding(m_vao, 0, 0);
-		glVertexArrayAttribFormat(m_vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
-		glEnableVertexArrayAttrib(m_vao, 0);
-
-		glVertexArrayAttribBinding(m_vao, 1, 0);
-		glVertexArrayAttribFormat(m_vao, 1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3);
-		glEnableVertexArrayAttrib(m_vao, 1);
-
-		glVertexArrayAttribBinding(m_vao, 2, 0);
-		glVertexArrayAttribFormat(m_vao, 2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 6);
-		glEnableVertexArrayAttrib(m_vao, 2);
-
-		glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(float) * 8);
-		glVertexArrayElementBuffer(m_vao, m_index_buffer);
-
-		glBindVertexArray(0);
-	}
-
-	void Mesh::OnDraw() {
-		glBindVertexArray(m_vao);
-		glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
-	}
-
-	struct Node {
-		Node(const tinygltf::Node& node, int current_node);
-		string m_name;
-		int m_node_index;
-		vec3 m_translation;
-		quat m_rotation;
-		vec3 m_scale;
-		mat4 m_trs_matrix;
-
-		int m_mesh_index;
-		vector<int> m_children_nodes;
-	};
-
-	Node::Node(const tinygltf::Node& node, int current_node)
-		:m_name(node.name),
-		m_node_index(current_node),
-		m_translation(vec3(0.0f)),
-		m_rotation(quat(0.0f, 0.0, 0.0, 0.0)),
-		m_scale(vec3(1.0f)),
-		m_mesh_index(node.mesh)
-	{
-		if (node.translation.size() != 0) {
-			m_translation = vec3((float)node.translation[0], node.translation[1], node.translation[2]);
-		}
-		if (node.rotation.size() != 0) {
-			m_rotation = quat((float)node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
-		}
-		if (node.scale.size() != 0) {
-			m_scale = vec3((float)node.scale[0], node.scale[1], node.scale[2]);
-		}
-
-		glm::mat4 translation_matrix = glm::translate(glm::mat4(1.0f), m_translation);
-		glm::mat4 rotation_matrix = glm::mat4_cast(m_rotation);
-		glm::mat4 scaling_matrix = glm::scale(glm::mat4(1.0f), m_scale);
-		m_trs_matrix = translation_matrix * rotation_matrix * scaling_matrix;
-
-		for (size_t i = 0; i < node.children.size(); ++i) {
-			m_children_nodes.push_back(node.children[i]);
-		}
-	}
-
 	struct Scene {
 		Scene(const tinygltf::Scene& scene, int current_scene);
 		string m_name;
@@ -411,11 +252,11 @@ namespace SB
 	}
 
 	struct Material {
-		Material(GLuint base_texture, 
-			GLuint metallic_roughness_texture, 
-			GLuint normal_texture, 
-			GLuint occlusion_texture, 
-			GLuint emissive_texture, 
+		Material(GLuint base_texture,
+			GLuint metallic_roughness_texture,
+			GLuint normal_texture,
+			GLuint occlusion_texture,
+			GLuint emissive_texture,
 			GLuint base_sampler,
 			GLuint metallic_sampler,
 			GLuint normal_sampler,
@@ -423,17 +264,17 @@ namespace SB
 			GLuint emissive_sampler,
 			const double* color_factor
 		)
-			:m_base_color_texture(base_texture), 
+			:m_base_color_texture(base_texture),
 			m_metallic_roughness_texture(metallic_roughness_texture),
 			m_normal_texture(normal_texture),
 			m_occlusion_texture(occlusion_texture),
-			m_emissive_texture(emissive_texture), 
+			m_emissive_texture(emissive_texture),
 			m_base_sampler(base_sampler),
 			m_metallic_sampler(metallic_sampler),
 			m_normal_sampler(normal_sampler),
 			m_occlusion_sampler(occlusion_sampler),
 			m_emissive_sampler(emissive_sampler),
-			m_color_factors{(float)color_factor[0], (float)color_factor[1], (float)color_factor[2], (float)color_factor[3]}
+			m_color_factors{ (float)color_factor[0], (float)color_factor[1], (float)color_factor[2], (float)color_factor[3] }
 		{}
 
 		GLuint m_base_color_texture;
@@ -569,6 +410,295 @@ namespace SB
 		}
 	}
 
+	struct Mesh {
+		Mesh(const tinygltf::Model& model, int mesh_index);
+		string m_name;
+		vector<GLuint> m_vao_array;
+		vector<GLsizei> m_count_array;
+		vector<int> m_material_array;
+
+		void OnDraw(SB::Materials& mat);
+	};
+
+	Mesh::Mesh(const tinygltf::Model& model, int mesh_index) 
+		:m_name(model.meshes[mesh_index].name)
+	{
+		const auto& mesh = model.meshes[mesh_index];
+		//Extract the Position, Normal and TextureCoord data for current mesh
+		for (const auto& primitive : mesh.primitives) {
+
+			GLuint m_vao, m_vertex_buffer, m_index_buffer;
+
+			vector<float> positions;
+			vector<float> normals;
+			vector<float> texcoords;
+			vector<unsigned int> indices;
+
+			//Get Positions
+			const auto& positionAccessor = model.accessors[primitive.attributes.at("POSITION")];
+			const auto& positionView = model.bufferViews[positionAccessor.bufferView];
+			const float* positionData = reinterpret_cast<const float*>(model.buffers[positionView.buffer].data.data() + positionView.byteOffset + positionAccessor.byteOffset);
+			for (size_t i = 0; i < positionAccessor.count * 3; i++) {
+				positions.push_back(positionData[i]);
+			}
+
+			//Get Normals
+			if (primitive.attributes.count("NORMAL") > 0) {
+				const auto& normalAccessor = model.accessors[primitive.attributes.at("NORMAL")];
+				const auto& normalView = model.bufferViews[normalAccessor.bufferView];
+				const float* normalData = reinterpret_cast<const float*>(model.buffers[normalView.buffer].data.data() + normalView.byteOffset + normalAccessor.byteOffset);
+				for (size_t i = 0; i < normalAccessor.count * 3; i++) {
+					normals.push_back(normalData[i]);
+				}
+			}
+
+			//Get Texture Coords
+			if (primitive.attributes.count("TEXCOORD_0") > 0) {
+				const auto& texAccessor = model.accessors[primitive.attributes.at("TEXCOORD_0")];
+				const auto& texView = model.bufferViews[texAccessor.bufferView];
+				const float* texCoordData = reinterpret_cast<const float*>(model.buffers[texView.buffer].data.data() + texView.byteOffset + texAccessor.byteOffset);
+				for (size_t i = 0; i < texAccessor.count * 2; i++) {
+					texcoords.push_back(texCoordData[i]);
+				}
+			}
+
+			//Get Indices
+			const auto& indexAccessor = model.accessors[primitive.indices];
+			const auto& indexView = model.bufferViews[indexAccessor.bufferView];
+			if (indexAccessor.componentType == GL_UNSIGNED_INT) {
+				const unsigned int* indexData = reinterpret_cast<const unsigned int*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
+				for (size_t i = 0; i < indexAccessor.count; i++) {
+					indices.push_back(indexData[i]);
+				}
+			}
+			else {
+				const unsigned short* indexData = reinterpret_cast<const unsigned short*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
+				for (size_t i = 0; i < indexAccessor.count; i++) {
+					indices.push_back(indexData[i]);
+				}
+			}
+
+			//Set the associated material
+			m_material_array.push_back(primitive.material);
+
+			//Rearrange data into a vector<float> of vertex data
+			vector<float> vertex;
+			for (size_t i = 0; i < positions.size() / 3; ++i) {
+				vertex.push_back(positions[3 * i + 0]);
+				vertex.push_back(positions[3 * i + 1]);
+				vertex.push_back(positions[3 * i + 2]);
+				vertex.push_back(normals[3 * i + 0]);
+				vertex.push_back(normals[3 * i + 1]);
+				vertex.push_back(normals[3 * i + 2]);
+				vertex.push_back(texcoords[2 * i + 0]);
+				vertex.push_back(texcoords[2 * i + 1]);
+			}
+			m_count_array.push_back(indices.size());
+
+			//Bind all data to related VAO
+			glCreateVertexArrays(1, &m_vao);
+
+			glCreateBuffers(1, &m_vertex_buffer);
+			glNamedBufferStorage(m_vertex_buffer, vertex.size() * sizeof(float), &vertex[0], 0);
+
+			glCreateBuffers(1, &m_index_buffer);
+			glNamedBufferStorage(m_index_buffer, indices.size() * sizeof(unsigned int), &indices[0], 0);
+
+			glVertexArrayAttribBinding(m_vao, 0, 0);
+			glVertexArrayAttribFormat(m_vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+			glEnableVertexArrayAttrib(m_vao, 0);
+
+			glVertexArrayAttribBinding(m_vao, 1, 0);
+			glVertexArrayAttribFormat(m_vao, 1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3);
+			glEnableVertexArrayAttrib(m_vao, 1);
+
+			glVertexArrayAttribBinding(m_vao, 2, 0);
+			glVertexArrayAttribFormat(m_vao, 2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 6);
+			glEnableVertexArrayAttrib(m_vao, 2);
+
+			glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(float) * 8);
+			glVertexArrayElementBuffer(m_vao, m_index_buffer);
+
+			glBindVertexArray(0);
+
+			//Add VAO to array
+			m_vao_array.push_back(m_vao);
+		}
+		
+	}
+
+	void Mesh::OnDraw(SB::Materials& mat) {
+		for (int i = 0; i < m_vao_array.size(); ++i) {
+			glBindVertexArray(m_vao_array[i]);
+			mat.GetMaterial(m_material_array[i]).BindMaterial();
+			glDrawElements(GL_TRIANGLES, m_count_array[i], GL_UNSIGNED_INT, (void*)0);
+		}
+	}
+
+	//struct Mesh {
+	//	Mesh(const tinygltf::Model& model, int mesh_index);
+	//	string m_name;
+	//	int m_mesh_index;
+	//	GLuint m_vao = 0;
+	//	GLuint m_vertex_buffer = 0;
+	//	GLuint m_index_buffer = 0;
+	//	GLsizei m_count = 0;
+
+	//	int m_material;
+
+	//	void OnDraw();
+	//};
+
+	//Mesh::Mesh(const tinygltf::Model& model, int mesh_index)
+	//	:m_name(model.meshes[mesh_index].name),
+	//	m_mesh_index(mesh_index)
+	//{
+	//	vector<float> positions;
+	//	vector<float> normals;
+	//	vector<float> texcoords;
+	//	vector<unsigned int> indices;
+
+	//	const auto& mesh = model.meshes[mesh_index];
+	//	//Extract the Position, Normal and TextureCoord data for current mesh
+	//	for (const auto& primitive : mesh.primitives) {
+	//		//Get Positions
+	//		const auto& positionAccessor = model.accessors[primitive.attributes.at("POSITION")];
+	//		const auto& positionView = model.bufferViews[positionAccessor.bufferView];
+	//		const float* positionData = reinterpret_cast<const float*>(model.buffers[positionView.buffer].data.data() + positionView.byteOffset + positionAccessor.byteOffset);
+	//		for (size_t i = 0; i < positionAccessor.count * 3; i++) {
+	//			positions.push_back(positionData[i]);
+	//		}
+
+	//		//Get Normals
+	//		if (primitive.attributes.count("NORMAL") > 0) {
+	//			const auto& normalAccessor = model.accessors[primitive.attributes.at("NORMAL")];
+	//			const auto& normalView = model.bufferViews[normalAccessor.bufferView];
+	//			const float* normalData = reinterpret_cast<const float*>(model.buffers[normalView.buffer].data.data() + normalView.byteOffset + normalAccessor.byteOffset);
+	//			for (size_t i = 0; i < normalAccessor.count * 3; i++) {
+	//				normals.push_back(normalData[i]);
+	//			}
+	//		}
+
+	//		//Get Texture Coords
+	//		if (primitive.attributes.count("TEXCOORD_0") > 0) {
+	//			const auto& texAccessor = model.accessors[primitive.attributes.at("TEXCOORD_0")];
+	//			const auto& texView = model.bufferViews[texAccessor.bufferView];
+	//			const float* texCoordData = reinterpret_cast<const float*>(model.buffers[texView.buffer].data.data() + texView.byteOffset + texAccessor.byteOffset);
+	//			for (size_t i = 0; i < texAccessor.count * 2; i++) {
+	//				texcoords.push_back(texCoordData[i]);
+	//			}
+	//		}
+
+	//		//Get Indices
+	//		const auto& indexAccessor = model.accessors[primitive.indices];
+	//		const auto& indexView = model.bufferViews[indexAccessor.bufferView];
+	//		if (indexAccessor.componentType == GL_UNSIGNED_INT) {
+	//			const unsigned int* indexData = reinterpret_cast<const unsigned int*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
+	//			for (size_t i = 0; i < indexAccessor.count; i++) {
+	//				indices.push_back(indexData[i]);
+	//			}
+	//		}
+	//		else {
+	//			const unsigned short* indexData = reinterpret_cast<const unsigned short*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
+	//			for (size_t i = 0; i < indexAccessor.count; i++) {
+	//				indices.push_back(indexData[i]);
+	//			}
+	//		}
+
+	//		//Set the associated material
+	//		m_material = primitive.material;
+	//	}
+	//	//Rearrange data into a vector<float> of vertex data
+	//	vector<float> vertex;
+	//	for (size_t i = 0; i < positions.size() / 3; ++i) {
+	//		vertex.push_back(positions[3 * i + 0]);
+	//		vertex.push_back(positions[3 * i + 1]);
+	//		vertex.push_back(positions[3 * i + 2]);
+	//		vertex.push_back(normals[3 * i + 0]);
+	//		vertex.push_back(normals[3 * i + 1]);
+	//		vertex.push_back(normals[3 * i + 2]);
+	//		vertex.push_back(texcoords[2 * i + 0]);
+	//		vertex.push_back(texcoords[2 * i + 1]);
+	//	}
+	//	m_count = indices.size();
+
+	//	//Bind all data to related VAO
+	//	glCreateVertexArrays(1, &m_vao);
+
+	//	glCreateBuffers(1, &m_vertex_buffer);
+	//	glNamedBufferStorage(m_vertex_buffer, vertex.size() * sizeof(float), &vertex[0], 0);
+
+	//	glCreateBuffers(1, &m_index_buffer);
+	//	glNamedBufferStorage(m_index_buffer, indices.size() * sizeof(unsigned int), &indices[0], 0);
+
+	//	glVertexArrayAttribBinding(m_vao, 0, 0);
+	//	glVertexArrayAttribFormat(m_vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+	//	glEnableVertexArrayAttrib(m_vao, 0);
+
+	//	glVertexArrayAttribBinding(m_vao, 1, 0);
+	//	glVertexArrayAttribFormat(m_vao, 1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3);
+	//	glEnableVertexArrayAttrib(m_vao, 1);
+
+	//	glVertexArrayAttribBinding(m_vao, 2, 0);
+	//	glVertexArrayAttribFormat(m_vao, 2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 6);
+	//	glEnableVertexArrayAttrib(m_vao, 2);
+
+	//	glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(float) * 8);
+	//	glVertexArrayElementBuffer(m_vao, m_index_buffer);
+
+	//	glBindVertexArray(0);
+	//}
+
+	//void Mesh::OnDraw() {
+	//	glBindVertexArray(m_vao);
+	//	glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
+	//}
+
+	struct Node {
+		Node(const tinygltf::Node& node, int current_node);
+		string m_name;
+		int m_node_index;
+		vec3 m_translation;
+		quat m_rotation;
+		vec3 m_scale;
+		mat4 m_trs_matrix;
+
+		int m_mesh_index;
+		vector<int> m_children_nodes;
+	};
+
+	Node::Node(const tinygltf::Node& node, int current_node)
+		:m_name(node.name),
+		m_node_index(current_node),
+		m_translation(vec3(0.0f)),
+		m_rotation(quat(0.0f, 0.0, 0.0, 0.0)),
+		m_scale(vec3(1.0f)),
+		m_mesh_index(node.mesh)
+	{
+		if (node.translation.size() != 0) {
+			m_translation = vec3((float)node.translation[0], node.translation[1], node.translation[2]);
+		}
+		if (node.rotation.size() != 0) {
+			m_rotation = quat((float)node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+		}
+		if (node.scale.size() != 0) {
+			m_scale = vec3((float)node.scale[0], node.scale[1], node.scale[2]);
+		}
+
+		glm::mat4 translation_matrix = glm::translate(glm::mat4(1.0f), m_translation);
+		glm::mat4 rotation_matrix = glm::mat4_cast(m_rotation);
+		glm::mat4 scaling_matrix = glm::scale(glm::mat4(1.0f), m_scale);
+		m_trs_matrix = translation_matrix * rotation_matrix * scaling_matrix;
+
+		for (size_t i = 0; i < node.children.size(); ++i) {
+			m_children_nodes.push_back(node.children[i]);
+		}
+	}
+
+	
+
+	
+
 	
 
 	struct Model {
@@ -672,8 +802,8 @@ namespace SB
 		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(trs_matrix));
 		if (m_nodes[node_index].m_mesh_index >= 0) {
 			Mesh& mesh = m_meshes[m_nodes[node_index].m_mesh_index];
-			m_material.GetMaterial(mesh.m_material).BindMaterial();
-			mesh.OnDraw();
+			//m_material.GetMaterial(mesh.m_material).BindMaterial();
+			mesh.OnDraw(m_material);
 		}
 
 		for (const auto& child_node_index : m_nodes[node_index].m_children_nodes) {

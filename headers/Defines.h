@@ -11,5 +11,5 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 //Current Project
-#define VARIABLE_POINT_SIZE
+#define MODEL_BASE
 

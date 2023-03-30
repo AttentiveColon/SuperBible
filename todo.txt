@@ -8,3 +8,25 @@ Updates to framework:
 	ability to resize window and a OnResize function
 
 	camera look system
+
+TODO:
+	Handling for multiple 
+	primitives in 
+	sponza scene
+
+	Blinn-Phong lighting model
+
+	SSAO
+
+Multiple primitive handling:
+	I need to move all resources
+	into mesh loop
+
+	I dont need to preserve the data
+	just the named buffer storage
+
+	so mesh should maintain an
+	array of Vertex Array Objects
+	then to draw I will iterate
+	over the list of VAOs, bind them
+	and call draw
