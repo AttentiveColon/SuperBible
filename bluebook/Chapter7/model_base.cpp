@@ -82,6 +82,7 @@ struct Application : public Program {
 	float m_clear_color[4];
 	u64 m_fps;
 	f64 m_time;
+	f64 m_dt;
 
 	GLuint m_program;
 	SB::Model m_model;
@@ -102,7 +103,10 @@ struct Application : public Program {
 		m_cam_rotation(0.0f)
 	{}
 
-	//TODO: Pack uniforms and vertex data into blocks
+	//TODO: fix Mesh::OnDraw so it doesn't need to be passed the material array
+	// --- also make sure it works when passed no material
+	//TODO: Figure out where information about blend state is stored in gltf structure
+	
 
 	//TODO: Look into and try to limit excessive loading on startup
 	// (might have to create script to create custom model format)
@@ -111,9 +115,10 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		//m_model = SB::Model("./resources/ABeautifulGame.glb");
-		m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
+		m_model = SB::Model("./resources/sponza.glb");
+		//m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
 
+		input.SetRawMouseMode(window.GetHandle(), true);
 		if (m_model.m_camera.m_cameras.size()) {
 			m_camera = m_model.m_camera.GetCamera(0);
 		}
@@ -127,6 +132,7 @@ struct Application : public Program {
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
+		m_dt = dt;
 
 		if (input.Pressed(GLFW_KEY_SPACE)) {
 			m_camera = m_model.m_camera.GetNextCamera();
@@ -165,6 +171,7 @@ struct Application : public Program {
 		ImGui::Begin("User Defined Settings");
 		ImGui::Text("FPS: %d", (int)m_fps);
 		ImGui::Text("Time: %f", (double)m_time);
+		ImGui::Text("Frame Time: %f", (double)m_dt);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::LabelText("Current Camera", "{%d}", m_model.m_current_camera);
 		ImGui::End();
@@ -179,7 +186,7 @@ SystemConf config = {
 		"Application",			//window title
 		false,					//windowed fullscreen
 		false,					//vsync
-		144,					//framelimit
+		30,						//framelimit
 		"resources/Icon.bmp"	//icon path
 };
 

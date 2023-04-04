@@ -416,6 +416,7 @@ namespace SB
 		vector<GLuint> m_vao_array;
 		vector<GLsizei> m_count_array;
 		vector<int> m_material_array;
+		vector<int> m_topology;
 
 		void OnDraw(SB::Materials& mat);
 	};
@@ -480,6 +481,8 @@ namespace SB
 
 			//Set the associated material
 			m_material_array.push_back(primitive.material);
+			//Set the topology of the primitive
+			m_topology.push_back(primitive.mode);
 
 			//Rearrange data into a vector<float> of vertex data
 			vector<float> vertex;
@@ -530,8 +533,10 @@ namespace SB
 	void Mesh::OnDraw(SB::Materials& mat) {
 		for (int i = 0; i < m_vao_array.size(); ++i) {
 			glBindVertexArray(m_vao_array[i]);
-			mat.GetMaterial(m_material_array[i]).BindMaterial();
-			glDrawElements(GL_TRIANGLES, m_count_array[i], GL_UNSIGNED_INT, (void*)0);
+			if (i < mat.m_materials.size()) {
+				mat.GetMaterial(m_material_array[i]).BindMaterial();
+			}
+			glDrawElements(m_topology[i], m_count_array[i], GL_UNSIGNED_INT, (void*)0);
 		}
 	}
 
