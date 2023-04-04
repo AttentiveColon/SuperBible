@@ -83,6 +83,7 @@ struct Application : public Program {
 	u64 m_fps;
 	f64 m_time;
 	f64 m_dt;
+	bool m_input_mode_active;
 
 	GLuint m_program;
 	SB::Model m_model;
@@ -105,8 +106,10 @@ struct Application : public Program {
 
 	//TODO: fix Mesh::OnDraw so it doesn't need to be passed the material array
 	// --- also make sure it works when passed no material
+	// 
 	//TODO: Figure out where information about blend state is stored in gltf structure
-	
+	// 
+	//TODO: Clamp camera vertical and limit max camera speed
 
 	//TODO: Look into and try to limit excessive loading on startup
 	// (might have to create script to create custom model format)
@@ -115,7 +118,7 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		m_model = SB::Model("./resources/sponza.glb");
+		m_model = SB::Model("./resources/ABeautifulGame.glb");
 		//m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
 
 		input.SetRawMouseMode(window.GetHandle(), true);
@@ -139,13 +142,15 @@ struct Application : public Program {
 		}
 
 		//Implement Camera Movement Functions
-		if (input.Held(GLFW_KEY_LEFT_CONTROL)) {
-			input.SetRawMouseMode(window.GetHandle(), false);
+		if (input.Pressed(GLFW_KEY_LEFT_CONTROL)) {
+			m_input_mode_active = !m_input_mode_active;
+			input.SetRawMouseMode(window.GetHandle(), m_input_mode_active);
 		}
-		else {
-			input.SetRawMouseMode(window.GetHandle(), true);
+		
+		if (m_input_mode_active) {
 			m_camera.OnUpdate(input, 3.0f, 2.5f, dt);
 		}
+		
 
 
 		DefaultUniformBlock ubo;
