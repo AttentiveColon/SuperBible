@@ -104,9 +104,7 @@ struct Application : public Program {
 		m_cam_rotation(0.0f)
 	{}
 
-	//DONE: fix Mesh::OnDraw so it doesn't need to be passed the material array
-	// --- TODO: also make sure it works when passed no material
-	// 
+	
 	//TODO: Figure out where information about blend state is stored in gltf structure
 	// 
 	//TODO: Clamp camera vertical and limit max camera speed
@@ -119,8 +117,8 @@ struct Application : public Program {
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
 		//m_model = SB::Model("./resources/ABeautifulGame.glb");
-		//m_model = SB::Model("./resources/sponza.glb");
-		m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
+		m_model = SB::Model("./resources/sponza.glb");
+		//m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
 
 		input.SetRawMouseMode(window.GetHandle(), true);
 		if (m_model.m_camera.m_cameras.size()) {

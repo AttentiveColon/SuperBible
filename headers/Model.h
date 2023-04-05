@@ -213,7 +213,26 @@ namespace SB
 		void Init(vector<tinygltf::Image>& images);
 		GLuint GetTexture(int index) { return m_textures[index]; }
 		vector<GLuint> m_textures;
+		GLuint m_white_texture;
+		GLuint m_default_texture;
 	};
+
+	int* DefaultTexture() {
+		const int grey = 0x5c737c;
+		const int dark_grey = 0x32414d;
+		int* data = new int[32 * 32];
+
+		for (int i = 0; i < 32; ++i)
+			for (int j = 0; j < 32; ++j) {
+				int index = i * 32 + j;
+				if (i < 16 && j < 16) data[index] = grey;
+				else if (i >= 16 && j < 16) data[index] = dark_grey;
+				else if (i < 16 && j >= 16) data[index] = dark_grey;
+				else data[index] = grey;
+			}
+
+		return data;
+	}
 
 	void Images::Init(vector<tinygltf::Image>& images) {
 		m_textures.resize(images.size(), 0);
@@ -225,13 +244,21 @@ namespace SB
 			glTextureSubImage2D(m_textures[i], 0, 0, 0, image.width, image.height, GL_RGBA, image.pixel_type, image.image.data());
 			glGenerateMipmap(GL_TEXTURE_2D);
 		}
-		//Create single white pixel texture
-		m_textures.push_back(0);
-		glCreateTextures(GL_TEXTURE_2D, 1, &m_textures[m_textures.size() - 1]);
-		glTextureStorage2D(m_textures[m_textures.size() - 1], 1, GL_RGBA32F, 1, 1);
-		glBindTexture(GL_TEXTURE_2D, m_textures[m_textures.size() - 1]);
+
+		//Create single white pixel
+		glCreateTextures(GL_TEXTURE_2D, 1, &m_white_texture);
+		glTextureStorage2D(m_white_texture, 1, GL_RGBA32F, 1, 1);
+		glBindTexture(GL_TEXTURE_2D, m_white_texture);
 		int data = 0xFFFFFFFF;
-		glTextureSubImage2D(m_textures[m_textures.size() - 1], 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &data);
+		glTextureSubImage2D(m_white_texture, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &data);
+
+		//Create default texture
+		glCreateTextures(GL_TEXTURE_2D, 1, &m_default_texture);
+		glTextureStorage2D(m_default_texture, 1, GL_RGBA32F, 32, 32);
+		glBindTexture(GL_TEXTURE_2D, m_default_texture);
+		const int* default_data = DefaultTexture();
+		glTextureSubImage2D(m_default_texture, 0, 0, 0, 32, 32, GL_RGBA, GL_UNSIGNED_BYTE, default_data);
+		delete[] default_data;
 	}
 
 	struct Sampler {
@@ -338,7 +365,7 @@ namespace SB
 		for (size_t i = 0; i < model.materials.size(); ++i) {
 			const auto& mat = model.materials[i];
 			const auto& tex = model.textures;
-			GLuint white_tex = images.GetTexture(images.m_textures.size() - 1);
+			GLuint white_tex = images.m_white_texture;
 
 			int base_texture_color = -1;
 			int metallic_roughness_texture = -1;
@@ -680,7 +707,8 @@ namespace SB
 					// --- Needs lighting or a default texture other than white pixel to be visible
 					const float color[] = { 0.5f, 0.5f, 0.5f, 0.5f };
 					glActiveTexture(GL_TEXTURE0 + 0);
-					glBindTextureUnit(0, m_image.GetTexture(m_image.m_textures.size() - 1));
+					//glBindTextureUnit(0, m_image.GetTexture(m_image.m_textures.size() - 1));
+					glBindTextureUnit(0, m_image.m_default_texture);
 					glUniform4fv(7, 1, color);
 				}
 				glDrawElements(mesh.m_meshes[i].m_topology, mesh.m_meshes[i].m_count, GL_UNSIGNED_INT, (void*)0);
