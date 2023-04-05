@@ -61,7 +61,7 @@ out vec4 color;
 
 void main() 
 {
-	color = texture(u_texture, vs_uv) * u_base_color_factor * vs_normal;
+	color = texture(u_texture, vs_uv) * u_base_color_factor;
 }
 )";
 
@@ -83,7 +83,7 @@ struct Application : public Program {
 	u64 m_fps;
 	f64 m_time;
 	f64 m_dt;
-	bool m_input_mode_active;
+	bool m_input_mode_active = true;
 
 	GLuint m_program;
 	SB::Model m_model;
@@ -119,8 +119,8 @@ struct Application : public Program {
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
 		//m_model = SB::Model("./resources/ABeautifulGame.glb");
-		m_model = SB::Model("./resources/sponza.glb");
-		//m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
+		//m_model = SB::Model("./resources/sponza.glb");
+		m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
 
 		input.SetRawMouseMode(window.GetHandle(), true);
 		if (m_model.m_camera.m_cameras.size()) {

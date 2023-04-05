@@ -672,7 +672,7 @@ namespace SB
 			Mesh& mesh = m_meshes[m_nodes[node_index].m_mesh_index];
 			for (int i = 0; i < mesh.m_meshes.size(); ++i) {
 				glBindVertexArray(mesh.m_meshes[i].m_vao);
-				if (i < m_material.m_materials.size()) {
+				if (mesh.m_meshes[i].m_material < m_material.m_materials.size()) {
 					m_material.GetMaterial(mesh.m_meshes[i].m_material).BindMaterial();
 				}
 				else {
