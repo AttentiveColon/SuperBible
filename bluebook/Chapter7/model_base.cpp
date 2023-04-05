@@ -61,7 +61,7 @@ out vec4 color;
 
 void main() 
 {
-	color = texture(u_texture, vs_uv) * u_base_color_factor;
+	color = texture(u_texture, vs_uv) * u_base_color_factor * vs_normal;
 }
 )";
 
@@ -104,8 +104,8 @@ struct Application : public Program {
 		m_cam_rotation(0.0f)
 	{}
 
-	//TODO: fix Mesh::OnDraw so it doesn't need to be passed the material array
-	// --- also make sure it works when passed no material
+	//DONE: fix Mesh::OnDraw so it doesn't need to be passed the material array
+	// --- TODO: also make sure it works when passed no material
 	// 
 	//TODO: Figure out where information about blend state is stored in gltf structure
 	// 
@@ -118,7 +118,8 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		m_model = SB::Model("./resources/ABeautifulGame.glb");
+		//m_model = SB::Model("./resources/ABeautifulGame.glb");
+		m_model = SB::Model("./resources/sponza.glb");
 		//m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
 
 		input.SetRawMouseMode(window.GetHandle(), true);
