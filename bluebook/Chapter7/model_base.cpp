@@ -51,6 +51,7 @@ uniform DefaultUniform
 };
 
 layout (location = 7) uniform vec4 u_base_color_factor;
+layout (location = 8) uniform float u_alpha_cutoff;
 
 in vec4 vs_normal;
 in vec2 vs_uv;
@@ -62,6 +63,9 @@ out vec4 color;
 void main() 
 {
 	color = texture(u_texture, vs_uv) * u_base_color_factor;
+	if (color.a < u_alpha_cutoff) {
+		discard;
+	}
 }
 )";
 
@@ -104,12 +108,9 @@ struct Application : public Program {
 		m_cam_rotation(0.0f)
 	{}
 
-	
-	//TODO: (IN PROGRESS) Figure out where information about blend state is stored in gltf structure
-	// Added blend state info to materials, need to figure out how to get the blend mode test to render correctly
-	// 
-	// 
-	//TODO: Clamp camera vertical and limit max camera speed
+	//TODO: Fix camera switching crash when no cameras in scene
+
+	//TODO: Clamp camera vertical and limit max camera speed (use GPT example as ref)
 
 	//TODO: Look into and try to limit excessive loading on startup
 	// (might have to create script to create custom model format)
@@ -120,8 +121,8 @@ struct Application : public Program {
 		m_program = LoadShaders(shader_text);
 		//m_model = SB::Model("./resources/ABeautifulGame.glb");
 		//m_model = SB::Model("./resources/sponza.glb");
-		//m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
-		m_model = SB::Model("../gltf_examples/2.0/AlphaBlendModeTest/glTF-Binary/AlphaBlendModeTest.glb");
+		m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
+		//m_model = SB::Model("./resources/alpha_test.glb");
 
 		input.SetRawMouseMode(window.GetHandle(), true);
 		if (m_model.m_camera.m_cameras.size()) {

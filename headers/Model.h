@@ -297,7 +297,8 @@ namespace SB
 			GLuint emissive_sampler,
 			const double* color_factor,
 			AlphaMode alpha_mode,
-			float alpha_cutoff
+			float alpha_cutoff,
+			bool double_sided
 		)
 			:m_base_color_texture(base_texture),
 			m_metallic_roughness_texture(metallic_roughness_texture),
@@ -311,7 +312,8 @@ namespace SB
 			m_emissive_sampler(emissive_sampler),
 			m_color_factors{ (float)color_factor[0], (float)color_factor[1], (float)color_factor[2], (float)color_factor[3] },
 			m_alpha_mode(alpha_mode),
-			m_alpha_cutoff(alpha_cutoff)
+			m_alpha_cutoff(alpha_cutoff),
+			m_double_sided(double_sided)
 		{}
 
 		GLuint m_base_color_texture;
@@ -329,11 +331,33 @@ namespace SB
 		float m_color_factors[4];
 		AlphaMode m_alpha_mode;
 		float m_alpha_cutoff;
+		bool m_double_sided;
 
 		void BindMaterial();
 	};
 
 	void Material::BindMaterial() {
+		switch (m_alpha_mode) {
+		case AlphaMode::Opaque:
+			glDisable(GL_BLEND);
+			glUniform1f(8, 0.0f);
+			break;
+		case AlphaMode::Mask:
+			glDisable(GL_BLEND);
+			glUniform1f(8, m_alpha_cutoff);
+			break;
+		case AlphaMode::Blend:
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glUniform1f(8, 0.0f);
+			break;
+		default:
+			break;
+		}
+
+		if (m_double_sided) glDisable(GL_CULL_FACE);
+		else glEnable(GL_CULL_FACE);
+
 		if (m_base_color_texture >= 0) {
 			glActiveTexture(GL_TEXTURE0 + 0);
 			//glBindTexture(GL_TEXTURE_2D, m_base_color_texture);
@@ -450,7 +474,8 @@ namespace SB
 				emissive_sampler,
 				mat.pbrMetallicRoughness.baseColorFactor.data(),
 				alpha_mode,
-				mat.alphaCutoff
+				mat.alphaCutoff,
+				mat.doubleSided
 			);
 			m_materials.push_back(material);
 		}
