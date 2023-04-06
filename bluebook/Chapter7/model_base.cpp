@@ -105,7 +105,9 @@ struct Application : public Program {
 	{}
 
 	
-	//TODO: Figure out where information about blend state is stored in gltf structure
+	//TODO: (IN PROGRESS) Figure out where information about blend state is stored in gltf structure
+	// Added blend state info to materials, need to figure out how to get the blend mode test to render correctly
+	// 
 	// 
 	//TODO: Clamp camera vertical and limit max camera speed
 
@@ -126,8 +128,7 @@ struct Application : public Program {
 			m_camera = m_model.m_camera.GetCamera(0);
 		}
 		else {
-			//m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.40, 0.1, 100.0);
-			m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f), SB::CameraType::Orthographic, 1.0 / 1.0, 1.0, 0.0001, 1000.0);
+			m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.40, 0.1, 100.0);
 		}
 
 		glCreateBuffers(1, &m_ubo);
