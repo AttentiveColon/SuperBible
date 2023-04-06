@@ -117,15 +117,17 @@ struct Application : public Program {
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
 		//m_model = SB::Model("./resources/ABeautifulGame.glb");
-		m_model = SB::Model("./resources/sponza.glb");
+		//m_model = SB::Model("./resources/sponza.glb");
 		//m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
+		m_model = SB::Model("../gltf_examples/2.0/AlphaBlendModeTest/glTF-Binary/AlphaBlendModeTest.glb");
 
 		input.SetRawMouseMode(window.GetHandle(), true);
 		if (m_model.m_camera.m_cameras.size()) {
 			m_camera = m_model.m_camera.GetCamera(0);
 		}
 		else {
-			m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.40, 0.1, 100.0);
+			//m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.40, 0.1, 100.0);
+			m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f), SB::CameraType::Orthographic, 1.0 / 1.0, 1.0, 0.0001, 1000.0);
 		}
 
 		glCreateBuffers(1, &m_ubo);

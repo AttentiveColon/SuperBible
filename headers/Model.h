@@ -271,12 +271,18 @@ namespace SB
 		m_samplers.resize(samplers.size(), 0);
 		glCreateSamplers(samplers.size(), m_samplers.data());
 		for (size_t i = 0; i < samplers.size(); ++i) {
-			glSamplerParameteri(m_samplers[i], GL_TEXTURE_MAG_FILTER, samplers[i].magFilter);
-			glSamplerParameteri(m_samplers[i], GL_TEXTURE_MIN_FILTER, samplers[i].minFilter);
-			glSamplerParameteri(m_samplers[i], GL_TEXTURE_WRAP_S, samplers[i].wrapS);
-			glSamplerParameteri(m_samplers[i], GL_TEXTURE_WRAP_T, samplers[i].wrapT);
+			if (samplers[i].magFilter != -1) glSamplerParameteri(m_samplers[i], GL_TEXTURE_MAG_FILTER, samplers[i].magFilter);
+			if (samplers[i].minFilter != -1) glSamplerParameteri(m_samplers[i], GL_TEXTURE_MIN_FILTER, samplers[i].minFilter);
+			if (samplers[i].wrapS != -1) glSamplerParameteri(m_samplers[i], GL_TEXTURE_WRAP_S, samplers[i].wrapS);
+			if (samplers[i].wrapT != -1) glSamplerParameteri(m_samplers[i], GL_TEXTURE_WRAP_T, samplers[i].wrapT);
 		}
 	}
+
+	enum struct AlphaMode {
+		Opaque,
+		Mask,
+		Blend
+	};
 
 	struct Material {
 		Material(GLuint base_texture,
@@ -289,7 +295,9 @@ namespace SB
 			GLuint normal_sampler,
 			GLuint occlusion_sampler,
 			GLuint emissive_sampler,
-			const double* color_factor
+			const double* color_factor,
+			AlphaMode alpha_mode,
+			float alpha_cutoff
 		)
 			:m_base_color_texture(base_texture),
 			m_metallic_roughness_texture(metallic_roughness_texture),
@@ -301,7 +309,9 @@ namespace SB
 			m_normal_sampler(normal_sampler),
 			m_occlusion_sampler(occlusion_sampler),
 			m_emissive_sampler(emissive_sampler),
-			m_color_factors{ (float)color_factor[0], (float)color_factor[1], (float)color_factor[2], (float)color_factor[3] }
+			m_color_factors{ (float)color_factor[0], (float)color_factor[1], (float)color_factor[2], (float)color_factor[3] },
+			m_alpha_mode(alpha_mode),
+			m_alpha_cutoff(alpha_cutoff)
 		{}
 
 		GLuint m_base_color_texture;
@@ -317,6 +327,8 @@ namespace SB
 		GLuint m_emissive_sampler;
 
 		float m_color_factors[4];
+		AlphaMode m_alpha_mode;
+		float m_alpha_cutoff;
 
 		void BindMaterial();
 	};
@@ -421,6 +433,11 @@ namespace SB
 			if (occlusion_texture == -1) occlusion_texture = white_tex;
 			if (emissive_texture == -1) emissive_texture = white_tex;
 
+			AlphaMode alpha_mode = AlphaMode::Opaque;
+			if (mat.alphaMode == "MASK") alpha_mode = AlphaMode::Mask;
+			else if (mat.alphaMode == "BLEND") alpha_mode = AlphaMode::Blend;
+
+
 			Material material = Material(base_texture_color,
 				metallic_roughness_texture,
 				normal_texture,
@@ -431,7 +448,9 @@ namespace SB
 				normal_sampler,
 				occlusion_sampler,
 				emissive_sampler,
-				mat.pbrMetallicRoughness.baseColorFactor.data()
+				mat.pbrMetallicRoughness.baseColorFactor.data(),
+				alpha_mode,
+				mat.alphaCutoff
 			);
 			m_materials.push_back(material);
 		}
