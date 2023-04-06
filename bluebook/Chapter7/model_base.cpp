@@ -16,6 +16,10 @@ layout (location = 2)
 in vec2 uv;
 layout (location = 3)
 uniform mat4 u_model;
+layout (location = 4)
+uniform mat3 u_normal_matrix;
+layout (location = 5)
+uniform vec3 u_view_pos;
 
 layout (binding = 0, std140)
 uniform DefaultUniform
@@ -26,7 +30,7 @@ uniform DefaultUniform
 	float u_time;
 };
 
-out vec4 vs_normal;
+out vec3 vs_normal;
 out vec2 vs_uv;
 out vec4 vs_frag_pos;
 
@@ -34,7 +38,7 @@ void main()
 {
 	mat4 viewProj = u_projection * u_view;
 	gl_Position = viewProj * u_model * vec4(position, 1.0);
-	vs_normal = vec4(normal, 1.0);
+	vs_normal = u_normal_matrix * normal;
 	vs_uv = uv;
 	vs_frag_pos = vec4(u_model[3][0], u_model[3][1], u_model[3][2], 1.0) * vec4(position, 1.0);
 }
@@ -52,10 +56,11 @@ uniform DefaultUniform
 	float u_time;
 };
 
+layout (location = 5) uniform vec3 u_view_pos;
 layout (location = 7) uniform vec4 u_base_color_factor;
 layout (location = 8) uniform float u_alpha_cutoff;
 
-in vec4 vs_normal;
+in vec3 vs_normal;
 in vec2 vs_uv;
 in vec4 vs_frag_pos;
 
@@ -67,19 +72,27 @@ void main()
 {
 	const vec3 lightColor = vec3(1.0, 1.0, 1.0);
 	const float ambientStrength = 0.3f;
-	const vec3 lightPos = vec3(50.0, 20.0, 0.0);
+	const float specularStrength = 0.5;
+
+	vec3 lightPos = vec3(sin(u_time) * 20.0, 20.0, cos(u_time) * 20.0);
 
 	vec3 ambient = lightColor * ambientStrength;
 
-	vec4 norm = normalize(vs_normal);
+	vec4 norm = normalize(vec4(vs_normal, 1.0));
 	vec4 lightDir = normalize(vec4(lightPos, 1.0) - vs_frag_pos);
 
 	float diff = max(dot(norm, lightDir), 0.0);
 	vec4 diffuse = diff * vec4(lightColor, 1.0);
+
+	vec4 viewDir = normalize(vec4(u_view_pos, 1.0) - vs_frag_pos);
+	vec4 reflectDir = reflect(-lightDir, norm);
+
+	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+	vec3 specular = specularStrength * spec * lightColor;
 	
 
 	color = texture(u_texture, vs_uv) * u_base_color_factor;
-	color = color * (vec4(ambient, 1.0) + diffuse);
+	color = color * (vec4(ambient, 1.0) + diffuse + vec4(specular, 1.0));
 	if (color.a < u_alpha_cutoff) {
 		discard;
 	}
@@ -192,6 +205,7 @@ struct Application : public Program {
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
 
 		glUseProgram(m_program);
+		glUniform3fv(5, 1, glm::value_ptr(m_camera.Eye()));
 		m_model.OnDraw();
 	}
 	void OnGui() {
@@ -206,14 +220,14 @@ struct Application : public Program {
 };
 
 SystemConf config = {
-		1920,					//width
-		1080,					//height
+		1280,					//width
+		720,					//height
 		300,					//Position x
 		200,					//Position y
 		"Application",			//window title
 		false,					//windowed fullscreen
 		false,					//vsync
-		1000,						//framelimit
+		30,						//framelimit
 		"resources/Icon.bmp"	//icon path
 };
 

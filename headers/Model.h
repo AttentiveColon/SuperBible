@@ -757,6 +757,8 @@ namespace SB
 
 	void Model::DrawNode(glm::mat4 trs_matrix, int node_index) {
 		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(trs_matrix));
+		glm::mat3 normal_matrix = glm::mat3(glm::transpose(glm::inverse(trs_matrix)));
+		glUniformMatrix3fv(4, 1, GL_FALSE, glm::value_ptr(normal_matrix));
 		if (m_nodes[node_index].m_mesh_index >= 0) {
 			Mesh& mesh = m_meshes[m_nodes[node_index].m_mesh_index];
 			for (int i = 0; i < mesh.m_meshes.size(); ++i) {
