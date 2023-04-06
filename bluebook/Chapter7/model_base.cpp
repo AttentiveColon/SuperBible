@@ -110,7 +110,7 @@ struct Application : public Program {
 
 	//TODO: Fix camera switching crash when no cameras in scene
 
-	//TODO: Clamp camera vertical and limit max camera speed (use GPT example as ref)
+	//TODO: When transitioning to a new camera the yaw and pitch need to be updated to match the cameras starting rotation
 
 	//TODO: Look into and try to limit excessive loading on startup
 	// (might have to create script to create custom model format)
@@ -119,9 +119,9 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		//m_model = SB::Model("./resources/ABeautifulGame.glb");
+		m_model = SB::Model("./resources/ABeautifulGame.glb");
 		//m_model = SB::Model("./resources/sponza.glb");
-		m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
+		//m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
 		//m_model = SB::Model("./resources/alpha_test.glb");
 
 		input.SetRawMouseMode(window.GetHandle(), true);
@@ -129,7 +129,7 @@ struct Application : public Program {
 			m_camera = m_model.m_camera.GetCamera(0);
 		}
 		else {
-			m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.40, 0.1, 100.0);
+			m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.1, 100.0);
 		}
 
 		glCreateBuffers(1, &m_ubo);
@@ -151,7 +151,7 @@ struct Application : public Program {
 		}
 		
 		if (m_input_mode_active) {
-			m_camera.OnUpdate(input, 3.0f, 2.5f, dt);
+			m_camera.OnUpdate(input, 3.0f, 0.2f, dt);
 		}
 		
 
@@ -187,14 +187,14 @@ struct Application : public Program {
 };
 
 SystemConf config = {
-		1600,					//width
-		900,					//height
+		1920,					//width
+		1080,					//height
 		300,					//Position x
 		200,					//Position y
 		"Application",			//window title
 		false,					//windowed fullscreen
 		false,					//vsync
-		30,						//framelimit
+		1000,						//framelimit
 		"resources/Icon.bmp"	//icon path
 };
 

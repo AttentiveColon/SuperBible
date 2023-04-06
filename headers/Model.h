@@ -59,6 +59,9 @@ namespace SB
 		glm::vec3 m_forward_vector;
 		glm::quat m_rotation;
 
+		float m_yaw = 0.0f;
+		float m_pitch = 0.0f; 
+
 		glm::mat4 m_proj;
 		glm::mat4 m_view;
 		glm::mat4 m_viewproj;
@@ -68,6 +71,7 @@ namespace SB
 	private:
 		void Rotate(Input& input, float speed, double dt);
 		void Translate(Input& input, float speed, double dt);
+		void CalculateFront();
 	};
 
 	Camera::Camera() {
@@ -107,17 +111,23 @@ namespace SB
 	}
 
 	void Camera::OnUpdate(Input& input, float translation_speed, float rotation_speed, double dt) {
+		float move_speed = translation_speed;
+		if (input.Held(GLFW_KEY_LEFT_SHIFT)) {
+			move_speed *= 3.0f;
+		}
 		this->Rotate(input, rotation_speed, dt);
-		this->Translate(input, translation_speed, dt);
-
+		this->Translate(input, move_speed, dt);
+		this->CalculateFront();
+		
 		m_view = glm::lookAt(m_cam_position, m_cam_position + m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f));
 		m_viewproj = m_proj * m_view;
 	}
 
 	void Camera::Rotate(Input& input, float speed, double dt) {
 		MousePos mouse_delta = input.GetMouseRaw();
-		m_forward_vector = glm::rotate(m_forward_vector, glm::radians((-(float)mouse_delta.x * (float)dt * speed)), glm::vec3(0.0f, 1.0f, 0.0f));
-		m_forward_vector = glm::rotate(m_forward_vector, glm::radians((-(float)mouse_delta.y * (float)dt * speed)), glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f)));
+		m_yaw += mouse_delta.x * speed;
+		m_pitch -= mouse_delta.y * speed;
+		m_pitch = glm::clamp(m_pitch, -60.0f, 60.0f);
 	}
 
 	void Camera::Translate(Input& input, float speed, double dt) {
@@ -134,11 +144,19 @@ namespace SB
 			m_cam_position += glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f)) * (float)dt * speed;
 		}
 		if (input.Held(GLFW_KEY_Q)) {
-			m_cam_position += glm::cross(m_forward_vector, glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f))) * (float)dt * speed;
+			m_cam_position -= glm::vec3(0.0f, 1.0f, 0.0f) * (float)dt * speed;
 		}
 		if (input.Held(GLFW_KEY_E)) {
-			m_cam_position -= glm::cross(m_forward_vector, glm::cross(m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f))) * (float)dt * speed;
+			m_cam_position += glm::vec3(0.0f, 1.0f, 0.0f) * (float)dt * speed;
 		}
+	}
+
+	void Camera::CalculateFront() {
+		glm::vec3 front;
+		front.x = glm::cos(glm::radians(m_yaw)) * glm::cos(glm::radians(m_pitch));
+		front.y = glm::sin(glm::radians(m_pitch));
+		front.z = glm::sin(glm::radians(m_yaw)) * glm::cos(glm::radians(m_pitch));
+		m_forward_vector = glm::normalize(front);
 	}
 
 	struct Cameras {
