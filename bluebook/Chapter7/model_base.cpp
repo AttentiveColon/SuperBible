@@ -28,13 +28,15 @@ uniform DefaultUniform
 
 out vec4 vs_normal;
 out vec2 vs_uv;
+out vec4 vs_frag_pos;
 
 void main() 
 {
 	mat4 viewProj = u_projection * u_view;
 	gl_Position = viewProj * u_model * vec4(position, 1.0);
-	vs_normal = viewProj * vec4(normal, 1.0);
+	vs_normal = vec4(normal, 1.0);
 	vs_uv = uv;
+	vs_frag_pos = vec4(u_model[3][0], u_model[3][1], u_model[3][2], 1.0) * vec4(position, 1.0);
 }
 )";
 
@@ -55,6 +57,7 @@ layout (location = 8) uniform float u_alpha_cutoff;
 
 in vec4 vs_normal;
 in vec2 vs_uv;
+in vec4 vs_frag_pos;
 
 uniform sampler2D u_texture;
 
@@ -62,7 +65,21 @@ out vec4 color;
 
 void main() 
 {
+	const vec3 lightColor = vec3(1.0, 1.0, 1.0);
+	const float ambientStrength = 0.3f;
+	const vec3 lightPos = vec3(50.0, 20.0, 0.0);
+
+	vec3 ambient = lightColor * ambientStrength;
+
+	vec4 norm = normalize(vs_normal);
+	vec4 lightDir = normalize(vec4(lightPos, 1.0) - vs_frag_pos);
+
+	float diff = max(dot(norm, lightDir), 0.0);
+	vec4 diffuse = diff * vec4(lightColor, 1.0);
+	
+
 	color = texture(u_texture, vs_uv) * u_base_color_factor;
+	color = color * (vec4(ambient, 1.0) + diffuse);
 	if (color.a < u_alpha_cutoff) {
 		discard;
 	}
@@ -108,6 +125,8 @@ struct Application : public Program {
 		m_cam_rotation(0.0f)
 	{}
 
+	//TODO: Functions to set and update light position, ambient level and light color uniforms
+
 	//TODO: Fix camera switching crash when no cameras in scene
 
 	//TODO: When transitioning to a new camera the yaw and pitch need to be updated to match the cameras starting rotation
@@ -119,9 +138,9 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		m_model = SB::Model("./resources/ABeautifulGame.glb");
+		//m_model = SB::Model("./resources/ABeautifulGame.glb");
 		//m_model = SB::Model("./resources/sponza.glb");
-		//m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
+		m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
 		//m_model = SB::Model("./resources/alpha_test.glb");
 
 		input.SetRawMouseMode(window.GetHandle(), true);
