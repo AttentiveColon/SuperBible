@@ -77,7 +77,7 @@ void main()
 	//Light parameters
 	const vec3 lightColor = vec3(1.0, 1.0, 1.0);
 	const float ambientStrength = 0.3f;
-	const float specularStrength = 0.5;
+	const float specularStrength = 0.2;
 	vec3 lightPos = vec3(sin(u_time) * 20.0, 20.0, cos(u_time) * 20.0);
 	vec3 ambient = lightColor * ambientStrength;
 
@@ -160,9 +160,9 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
-		//m_model = SB::Model("./resources/ABeautifulGame.glb");
+		m_model = SB::Model("./resources/ABeautifulGame.glb");
 		//m_model = SB::Model("./resources/sponza.glb");
-		m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
+		//m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
 		//m_model = SB::Model("./resources/alpha_test.glb");
 
 		input.SetRawMouseMode(window.GetHandle(), true);
