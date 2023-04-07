@@ -30,6 +30,15 @@ uniform DefaultUniform
 	float u_time;
 };
 
+layout (binding = 1, std140)
+uniform LightUniform
+{
+	vec3 u_light_pos;
+	float u_ambient_strength;
+	vec3 u_light_color;
+	float u_specular_strength;
+};
+
 out vec3 vs_normal;
 out vec2 vs_uv;
 out vec4 vs_frag_pos;
@@ -56,6 +65,15 @@ uniform DefaultUniform
 	float u_time;
 };
 
+layout (binding = 1, std140)
+uniform LightUniform
+{
+	vec3 u_light_pos;
+	float u_ambient_strength;
+	vec3 u_light_color;
+	float u_specular_strength;
+};
+
 layout (location = 5) uniform vec3 u_view_pos;
 layout (location = 7) uniform vec4 u_base_color_factor;
 layout (location = 8) uniform float u_alpha_cutoff;
@@ -74,20 +92,13 @@ out vec4 color;
 
 void main() 
 {
-	//Light parameters
-	const vec3 lightColor = vec3(1.0, 1.0, 1.0);
-	const float ambientStrength = 0.3f;
-	const float specularStrength = 0.2;
-	vec3 lightPos = vec3(sin(u_time) * 20.0, 20.0, cos(u_time) * 20.0);
-	vec3 ambient = lightColor * ambientStrength;
-
 	//Calculate perturbed normal map
 	vec3 normalMapColor = texture(u_normal_texture, vs_uv).rgb;
 	normalMapColor = normalMapColor * 2.0 - 1.0;
 	vec3 perturbedNormal = normalize(vs_normal + normalMapColor);
 
 	//Calculate the diffuse lighting
-	vec3 lightDirection = normalize(lightPos - vs_frag_pos.xyz);
+	vec3 lightDirection = normalize(u_light_pos - vs_frag_pos.xyz);
 	float diffuse = max(0.0, dot(perturbedNormal, lightDirection));
 
 	//Calculate Specular
@@ -96,10 +107,11 @@ void main()
 	float specular = pow(max(0.0, dot(perturbedNormal, halfwayDirection)), 16.0);
 
 	vec4 diffuseColor = texture(u_texture, vs_uv) * u_base_color_factor;
-	vec3 ambientColor = ambient * diffuseColor.rgb * ambientStrength;
-	vec3 diffuseLight = lightColor * diffuseColor.rgb * diffuse;
-	vec3 specularLight = lightColor * specular * specularStrength;
-	vec3 finalColor = ambientColor + diffuseLight + specularLight;
+
+	vec3 ambientLight = u_light_color * diffuseColor.rgb * u_ambient_strength;
+	vec3 diffuseLight = u_light_color * diffuseColor.rgb * diffuse;
+	vec3 specularLight = u_light_color * specular * u_specular_strength;
+	vec3 finalColor = ambientLight + diffuseLight + specularLight;
 
 	color = vec4(finalColor, diffuseColor.a);
 	if (color.a < u_alpha_cutoff) {
@@ -121,6 +133,13 @@ struct DefaultUniformBlock {		//std140
 	GLfloat u_time;					//offset 34
 };
 
+struct LightUniformBlock {			//std140
+	glm::vec3 u_light_pos;			//offset 0	
+	GLfloat u_ambient_strength;		//offset 12
+	glm::vec3 u_light_color;		//offset 16
+	GLfloat u_specular_strength;	//offset 28
+};
+
 struct Application : public Program {
 	float m_clear_color[4];
 	u64 m_fps;
@@ -138,20 +157,26 @@ struct Application : public Program {
 	GLuint m_ubo;
 	GLbyte* m_ubo_data;
 
+	GLuint m_light_ubo;
+	GLbyte* m_light_ubo_data;
+
+	glm::vec3 m_light_pos;
+
 
 	Application()
 		:m_clear_color{ 0.0f, 0.0f, 0.0f, 1.0f },
 		m_fps(0),
 		m_time(0),
 		m_cam_pos(glm::vec3(0.0f, 10.0, 12.0)),
-		m_cam_rotation(0.0f)
+		m_cam_rotation(0.0f),
+		m_light_pos(glm::vec3(0.0f, 1.0f, 0.0f))
 	{}
 
 	//TODO: Functions to set and update light position, ambient level and light color uniforms
 
 	//TODO: Fix camera switching crash when no cameras in scene
 
-	//TODO: When transitioning to a new camera the yaw and pitch need to be updated to match the cameras starting rotation
+	//TODO: Fix input jumping on first mouse movement
 
 	//TODO: Look into and try to limit excessive loading on startup
 	// (might have to create script to create custom model format)
@@ -176,6 +201,9 @@ struct Application : public Program {
 
 		glCreateBuffers(1, &m_ubo);
 		m_ubo_data = new GLbyte[sizeof(DefaultUniformBlock)];
+
+		glCreateBuffers(1, &m_light_ubo);
+		m_light_ubo_data = new GLbyte[sizeof(LightUniformBlock)];
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
@@ -196,13 +224,22 @@ struct Application : public Program {
 			input.SetRawMouseMode(window.GetHandle(), m_input_mode_active);
 		}
 
+		//update light position
+		m_light_pos.x = glm::sin(m_time) * 0.6f;
+
 		DefaultUniformBlock ubo;
 		ubo.u_view = m_camera.m_view;
 		ubo.u_proj = m_camera.m_proj;
 		ubo.u_resolution = glm::vec2((float)window.GetWindowDimensions().width, (float)window.GetWindowDimensions().height);
 		ubo.u_time = (float)m_time;
-
 		memcpy(m_ubo_data, &ubo, sizeof(DefaultUniformBlock));
+
+		LightUniformBlock light_ubo;
+		light_ubo.u_light_pos = m_light_pos;
+		light_ubo.u_ambient_strength = 0.3f;
+		light_ubo.u_light_color = glm::vec3(1.0f, 1.0f, 1.0f);
+		light_ubo.u_specular_strength = 0.2f;
+		memcpy(m_light_ubo_data, &light_ubo, sizeof(LightUniformBlock));
 	}
 	void OnDraw() {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
@@ -211,6 +248,10 @@ struct Application : public Program {
 		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(DefaultUniformBlock), m_ubo_data, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
+
+		glBindBuffer(GL_UNIFORM_BUFFER, m_light_ubo);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(LightUniformBlock), m_light_ubo_data, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_light_ubo);
 
 		glUseProgram(m_program);
 		glUniform3fv(5, 1, glm::value_ptr(m_camera.Eye()));
