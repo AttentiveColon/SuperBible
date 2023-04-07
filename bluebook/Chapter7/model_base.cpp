@@ -165,13 +165,14 @@ struct Application : public Program {
 		//m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
 		//m_model = SB::Model("./resources/alpha_test.glb");
 
-		input.SetRawMouseMode(window.GetHandle(), true);
 		if (m_model.m_camera.m_cameras.size()) {
 			m_camera = m_model.m_camera.GetCamera(0);
 		}
 		else {
 			m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.1, 100.0);
 		}
+		
+		input.SetRawMouseMode(window.GetHandle(), true);
 
 		glCreateBuffers(1, &m_ubo);
 		m_ubo_data = new GLbyte[sizeof(DefaultUniformBlock)];
@@ -185,17 +186,15 @@ struct Application : public Program {
 			m_camera = m_model.m_camera.GetNextCamera();
 		}
 
+		if (m_input_mode_active) {
+			m_camera.OnUpdate(input, 3.0f, 0.2f, dt);
+		}
+
 		//Implement Camera Movement Functions
 		if (input.Pressed(GLFW_KEY_LEFT_CONTROL)) {
 			m_input_mode_active = !m_input_mode_active;
 			input.SetRawMouseMode(window.GetHandle(), m_input_mode_active);
 		}
-		
-		if (m_input_mode_active) {
-			m_camera.OnUpdate(input, 3.0f, 0.2f, dt);
-		}
-		
-
 
 		DefaultUniformBlock ubo;
 		ubo.u_view = m_camera.m_view;
@@ -224,6 +223,9 @@ struct Application : public Program {
 		ImGui::Text("Frame Time: %f", (double)m_dt);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::LabelText("Current Camera", "{%d}", m_model.m_current_camera);
+		ImGui::LabelText("Camera Yaw", "%f", m_camera.m_yaw);
+		ImGui::LabelText("Camera Pitch", "%f", m_camera.m_pitch);
+		ImGui::LabelText("Forward Vector", "x: %f y: %f z: %f", m_camera.m_forward_vector.x, m_camera.m_forward_vector.y, m_camera.m_forward_vector.z);
 		ImGui::End();
 	}
 };

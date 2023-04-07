@@ -83,7 +83,10 @@ namespace SB
 		m_cam_position(camera.translation),
 		m_rotation(camera.rotation)
 	{
-		m_forward_vector = -glm::rotate(m_rotation, glm::vec3(0.0f, 0.0f, 1.0f));
+		m_forward_vector = glm::normalize(-glm::rotate(m_rotation, glm::vec3(0.0f, 0.0f, 1.0f)));
+		m_yaw = glm::degrees(glm::atan(m_forward_vector.z, m_forward_vector.x));
+		m_pitch = glm::degrees(glm::asin(m_forward_vector.y));
+
 		m_view = glm::lookAt(m_cam_position, m_cam_position + m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0f));
 		if (camera.type == CameraType::Perspective) {
 			m_proj = glm::perspective(camera.fovy_or_ymag, camera.aspect_or_xmag, camera.znear, camera.zfar);
@@ -101,6 +104,11 @@ namespace SB
 		m_forward_vector = glm::normalize(center - eye);
 		m_view = glm::lookAt(eye, m_forward_vector, glm::vec3(0.0f, 1.0f, 0.0));
 		m_rotation = glm::conjugate(glm::toQuat(m_view));
+		m_yaw = glm::degrees(glm::atan(m_forward_vector.z, m_forward_vector.x));
+		m_pitch = glm::degrees(glm::asin(m_forward_vector.y));
+
+		std::cout << "m_yaw: " << m_yaw << "\nm_pitch: " << m_pitch << std::endl;
+
 		if (type == CameraType::Perspective) {
 			m_proj = glm::perspective(fovy_or_ymag, aspect_or_xmag, znear, zfar);
 		}
