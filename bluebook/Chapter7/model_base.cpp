@@ -64,35 +64,44 @@ in vec3 vs_normal;
 in vec2 vs_uv;
 in vec4 vs_frag_pos;
 
+layout (binding = 0)
 uniform sampler2D u_texture;
+
+layout (binding = 2)
+uniform sampler2D u_normal_texture;
 
 out vec4 color;
 
 void main() 
 {
+	//Light parameters
 	const vec3 lightColor = vec3(1.0, 1.0, 1.0);
 	const float ambientStrength = 0.3f;
 	const float specularStrength = 0.5;
-
 	vec3 lightPos = vec3(sin(u_time) * 20.0, 20.0, cos(u_time) * 20.0);
-
 	vec3 ambient = lightColor * ambientStrength;
 
-	vec4 norm = normalize(vec4(vs_normal, 1.0));
-	vec4 lightDir = normalize(vec4(lightPos, 1.0) - vs_frag_pos);
+	//Calculate perturbed normal map
+	vec3 normalMapColor = texture(u_normal_texture, vs_uv).rgb;
+	normalMapColor = normalMapColor * 2.0 - 1.0;
+	vec3 perturbedNormal = normalize(vs_normal + normalMapColor);
 
-	float diff = max(dot(norm, lightDir), 0.0);
-	vec4 diffuse = diff * vec4(lightColor, 1.0);
+	//Calculate the diffuse lighting
+	vec3 lightDirection = normalize(lightPos - vs_frag_pos.xyz);
+	float diffuse = max(0.0, dot(perturbedNormal, lightDirection));
 
-	vec4 viewDir = normalize(vec4(u_view_pos, 1.0) - vs_frag_pos);
-	vec4 reflectDir = reflect(-lightDir, norm);
+	//Calculate Specular
+	vec3 viewDirection = normalize(-vs_frag_pos.xyz);
+	vec3 halfwayDirection = normalize(lightDirection + viewDirection);
+	float specular = pow(max(0.0, dot(perturbedNormal, halfwayDirection)), 16.0);
 
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-	vec3 specular = specularStrength * spec * lightColor;
-	
+	vec4 diffuseColor = texture(u_texture, vs_uv) * u_base_color_factor;
+	vec3 ambientColor = ambient * diffuseColor.rgb * ambientStrength;
+	vec3 diffuseLight = lightColor * diffuseColor.rgb * diffuse;
+	vec3 specularLight = lightColor * specular * specularStrength;
+	vec3 finalColor = ambientColor + diffuseLight + specularLight;
 
-	color = texture(u_texture, vs_uv) * u_base_color_factor;
-	color = color * (vec4(ambient, 1.0) + diffuse + vec4(specular, 1.0));
+	color = vec4(finalColor, diffuseColor.a);
 	if (color.a < u_alpha_cutoff) {
 		discard;
 	}
