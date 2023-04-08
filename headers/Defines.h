@@ -11,5 +11,5 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 //Current Project
-#define MODEL_BASE
+#define INDEXED_DRAWING_COMMANDS
 

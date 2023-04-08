@@ -169,6 +169,7 @@
     <ClCompile Include="bluebook\Chapter5\Texture_Coordinates.cpp" />
     <ClCompile Include="bluebook\Chapter5\Uniform_Buffer.cpp" />
     <ClCompile Include="bluebook\Chapter6\Separate_Programs.cpp" />
+    <ClCompile Include="bluebook\Chapter7\Indexed_Drawing_Commands.cpp" />
     <ClCompile Include="bluebook\Chapter7\model_base.cpp" />
     <ClCompile Include="bluebook\Chapter7\Variable_Point_Size.cpp" />
     <ClCompile Include="bluebook\Chapter7\Vertex_Shader_Inputs.cpp" />
