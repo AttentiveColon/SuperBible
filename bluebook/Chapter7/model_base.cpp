@@ -92,22 +92,23 @@ out vec4 color;
 
 void main() 
 {
-	//Calculate perturbed normal map
-	vec3 normalMapColor = texture(u_normal_texture, vs_uv).rgb;
-	normalMapColor = normalMapColor * 2.0 - 1.0;
-	vec3 perturbedNormal = normalize(vs_normal + normalMapColor);
+	//Get diffuse color
+	vec4 diffuseColor = texture(u_texture, vs_uv) * u_base_color_factor;
+
+	//Get normal map color
+	vec3 perturbedNormal = normalize(texture2D(u_normal_texture, vs_uv).rgb * 2.0 - 1.0);
+	vec3 surfaceNormal = normalize(perturbedNormal + vs_normal);
 
 	//Calculate the diffuse lighting
 	vec3 lightDirection = normalize(u_light_pos - vs_frag_pos.xyz);
-	float diffuse = max(0.0, dot(perturbedNormal, lightDirection));
+	float diffuse = max(0.0, dot(surfaceNormal, lightDirection));
 
 	//Calculate Specular
 	vec3 viewDirection = normalize(-vs_frag_pos.xyz);
 	vec3 halfwayDirection = normalize(lightDirection + viewDirection);
-	float specular = pow(max(0.0, dot(perturbedNormal, halfwayDirection)), 16.0);
+	float specular = pow(max(0.0, dot(surfaceNormal, halfwayDirection)), 16.0);
 
-	vec4 diffuseColor = texture(u_texture, vs_uv) * u_base_color_factor;
-
+	//Get final fragment color
 	vec3 ambientLight = u_light_color * diffuseColor.rgb * u_ambient_strength;
 	vec3 diffuseLight = u_light_color * diffuseColor.rgb * diffuse;
 	vec3 specularLight = u_light_color * specular * u_specular_strength;
@@ -224,9 +225,6 @@ struct Application : public Program {
 			input.SetRawMouseMode(window.GetHandle(), m_input_mode_active);
 		}
 
-		//update light position
-		m_light_pos.x = glm::sin(m_time) * 0.6f;
-
 		DefaultUniformBlock ubo;
 		ubo.u_view = m_camera.m_view;
 		ubo.u_proj = m_camera.m_proj;
@@ -264,9 +262,11 @@ struct Application : public Program {
 		ImGui::Text("Frame Time: %f", (double)m_dt);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::LabelText("Current Camera", "{%d}", m_model.m_current_camera);
+		ImGui::LabelText("Cam Position", "x: %f y: %f z: %f", m_camera.Eye().x, m_camera.Eye().y, m_camera.Eye().z);
 		ImGui::LabelText("Camera Yaw", "%f", m_camera.m_yaw);
 		ImGui::LabelText("Camera Pitch", "%f", m_camera.m_pitch);
 		ImGui::LabelText("Forward Vector", "x: %f y: %f z: %f", m_camera.m_forward_vector.x, m_camera.m_forward_vector.y, m_camera.m_forward_vector.z);
+		ImGui::DragFloat3("Light Position", glm::value_ptr(m_light_pos), 0.1f, -2.0f, 2.0f);
 		ImGui::End();
 	}
 };
