@@ -97,7 +97,7 @@ void main()
 
 	//Get normal map color
 	vec3 perturbedNormal = normalize(texture2D(u_normal_texture, vs_uv).rgb * 2.0 - 1.0);
-	vec3 surfaceNormal = normalize(perturbedNormal + vs_normal);
+	vec3 surfaceNormal = normalize(mix(vec3(perturbedNormal.xy, 0.0), vs_normal, 0.5));
 
 	//Calculate the diffuse lighting
 	vec3 lightDirection = normalize(u_light_pos - vs_frag_pos.xyz);
@@ -141,6 +141,96 @@ struct LightUniformBlock {			//std140
 	GLfloat u_specular_strength;	//offset 28
 };
 
+static const GLchar* light_vertex_shader_source = R"(
+#version 450 core
+
+layout (location = 0) 
+in vec3 position;
+layout (location = 1) 
+in vec3 normal;
+layout (location = 2) 
+in vec2 uv;
+layout (location = 3)
+uniform mat4 u_model;
+layout (location = 4)
+uniform mat3 u_normal_matrix;
+layout (location = 5)
+uniform vec3 u_view_pos;
+
+layout (binding = 0, std140)
+uniform DefaultUniform
+{
+	mat4 u_view;
+	mat4 u_projection;
+	vec2 u_resolution;
+	float u_time;
+};
+
+layout (binding = 1, std140)
+uniform LightUniform
+{
+	vec3 u_light_pos;
+	float u_ambient_strength;
+	vec3 u_light_color;
+	float u_specular_strength;
+};
+
+void main() 
+{
+	mat4 viewProj = u_projection * u_view;
+	gl_Position = viewProj * u_model * vec4(position, 1.0);
+}
+)";
+
+static const GLchar* light_fragment_shader_source = R"(
+#version 450 core
+
+layout (binding = 0, std140)
+uniform DefaultUniform
+{
+	mat4 u_view;
+	mat4 u_projection;
+	vec2 u_resolution;
+	float u_time;
+};
+
+layout (binding = 1, std140)
+uniform LightUniform
+{
+	vec3 u_light_pos;
+	float u_ambient_strength;
+	vec3 u_light_color;
+	float u_specular_strength;
+};
+
+layout (location = 5) uniform vec3 u_view_pos;
+layout (location = 7) uniform vec4 u_base_color_factor;
+layout (location = 8) uniform float u_alpha_cutoff;
+
+in vec3 vs_normal;
+in vec2 vs_uv;
+in vec4 vs_frag_pos;
+
+layout (binding = 0)
+uniform sampler2D u_texture;
+
+layout (binding = 2)
+uniform sampler2D u_normal_texture;
+
+out vec4 color;
+
+void main() 
+{
+	color = vec4(1.0, 1.0, 1.0, 1.0);
+}
+)";
+
+static ShaderText light_shader_text[] = {
+	{GL_VERTEX_SHADER, light_vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, light_fragment_shader_source, NULL},
+	{GL_NONE, NULL, NULL}
+};
+
 struct Application : public Program {
 	float m_clear_color[4];
 	u64 m_fps;
@@ -150,6 +240,7 @@ struct Application : public Program {
 
 	GLuint m_program;
 	SB::Model m_model;
+	SB::Model m_light_model;
 	glm::vec3 m_cam_pos;
 	float m_cam_rotation;
 
@@ -162,6 +253,7 @@ struct Application : public Program {
 	GLbyte* m_light_ubo_data;
 
 	glm::vec3 m_light_pos;
+	GLuint m_light_program;
 
 
 	Application()
@@ -170,7 +262,7 @@ struct Application : public Program {
 		m_time(0),
 		m_cam_pos(glm::vec3(0.0f, 10.0, 12.0)),
 		m_cam_rotation(0.0f),
-		m_light_pos(glm::vec3(0.0f, 1.0f, 0.0f))
+		m_light_pos(glm::vec3(0.0f, 0.2f, 0.0f))
 	{}
 
 	//TODO: Functions to set and update light position, ambient level and light color uniforms
@@ -186,7 +278,9 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		//audio.PlayOneShot("./resources/startup.mp3");
 		m_program = LoadShaders(shader_text);
+		m_light_program = LoadShaders(light_shader_text);
 		m_model = SB::Model("./resources/ABeautifulGame.glb");
+		m_light_model = SB::Model("./resources/sphere_light.glb");
 		//m_model = SB::Model("./resources/sponza.glb");
 		//m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
 		//m_model = SB::Model("./resources/alpha_test.glb");
@@ -224,6 +318,12 @@ struct Application : public Program {
 			m_input_mode_active = !m_input_mode_active;
 			input.SetRawMouseMode(window.GetHandle(), m_input_mode_active);
 		}
+		m_light_pos.x = glm::sin(m_time) * 0.4f;
+		m_light_pos.z = glm::cos(m_time) * 0.4f;
+		m_light_pos.y = (glm::cos(m_time * 0.5f) * 0.5f) + 0.3f;
+
+		m_light_model.m_position = m_light_pos;
+		m_light_model.m_scale = glm::vec3(0.02f, 0.02f, 0.02f);
 
 		DefaultUniformBlock ubo;
 		ubo.u_view = m_camera.m_view;
@@ -247,9 +347,18 @@ struct Application : public Program {
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(DefaultUniformBlock), m_ubo_data, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
 
+		glUseProgram(m_light_program);
+		m_light_model.OnDraw();
+
+		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(DefaultUniformBlock), m_ubo_data, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
+
 		glBindBuffer(GL_UNIFORM_BUFFER, m_light_ubo);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(LightUniformBlock), m_light_ubo_data, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_light_ubo);
+
+		
 
 		glUseProgram(m_program);
 		glUniform3fv(5, 1, glm::value_ptr(m_camera.Eye()));
@@ -272,8 +381,8 @@ struct Application : public Program {
 };
 
 SystemConf config = {
-		1280,					//width
-		720,					//height
+		1600,					//width
+		900,					//height
 		300,					//Position x
 		200,					//Position y
 		"Application",			//window title

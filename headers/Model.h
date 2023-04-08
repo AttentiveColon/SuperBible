@@ -686,6 +686,9 @@ namespace SB
 		Cameras m_camera;
 		Sampler m_sampler;
 
+		glm::vec3 m_position;
+		glm::vec3 m_scale;
+
 		void DrawNode(glm::mat4 trs_matrix, int node_index);
 
 		void OnUpdate(f64 dt);
@@ -703,7 +706,9 @@ namespace SB
 		:m_filename(filename),
 		m_default_scene(0),
 		m_current_scene(0),
-		m_current_camera(0)
+		m_current_camera(0),
+		m_position(glm::vec3(0.0f, 0.0f, 0.0f)),
+		m_scale(glm::vec3(1.0f, 1.0f, 1.0f))
 	{
 		tinygltf::Model model;
 		tinygltf::TinyGLTF loader;
@@ -799,7 +804,9 @@ namespace SB
 
 	void Model::OnDraw() {
 		for (const auto& node_index : m_scenes[m_current_scene].m_node_indices) {
-			DrawNode(m_nodes[node_index].m_trs_matrix, node_index);
+			glm::mat4 trs_matrix = glm::translate(m_nodes[node_index].m_trs_matrix, m_position);
+			trs_matrix = glm::scale(trs_matrix, m_scale);
+			DrawNode(trs_matrix, node_index);
 		}
 	}
 }
