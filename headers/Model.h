@@ -107,8 +107,6 @@ namespace SB
 		m_yaw = glm::degrees(glm::atan(m_forward_vector.z, m_forward_vector.x));
 		m_pitch = glm::degrees(glm::asin(m_forward_vector.y));
 
-		std::cout << "m_yaw: " << m_yaw << "\nm_pitch: " << m_pitch << std::endl;
-
 		if (type == CameraType::Perspective) {
 			m_proj = glm::perspective(fovy_or_ymag, aspect_or_xmag, znear, zfar);
 		}

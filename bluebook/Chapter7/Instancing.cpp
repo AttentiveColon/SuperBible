@@ -28,11 +28,19 @@ uniform DefaultUniform
 out vec3 vs_normal;
 out vec2 vs_uv;
 
+float random(int seed) {
+	vec2 st = vec2(seed, 0.0);
+	return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
 void main() 
 {
 	int x = gl_InstanceID & 0xFF;
 	int z = (gl_InstanceID & 0xFF00) >> 8;
 	vec4 instance_pos = vec4(float(x), 0.0, float(z), 1.0);
+
+	instance_pos.x = instance_pos.x + random(gl_InstanceID);
+	instance_pos.z = instance_pos.z + random(gl_InstanceID + 5);
 
 	mat4 translation = mat4(1.0);
 	translation[3] = vec4(instance_pos);
@@ -191,7 +199,7 @@ struct Application : public Program {
 		memcpy(m_ubo_data, &ubo, sizeof(DefaultUniformBlock));
 	}
 	void OnDraw() {
-		static const glm::mat4 rotation_scale = glm::rotate(glm::radians(-90.0f), vec3(0.0f, 0.0f, 1.0f)) * glm::scale(vec3(0.2f, 0.2f, 0.2f));
+		static const glm::mat4 rotation_scale = glm::rotate(glm::radians(-90.0f), vec3(0.0f, 0.0f, 1.0f)) * glm::scale(vec3(0.3f, 0.3f, 0.3f));
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
