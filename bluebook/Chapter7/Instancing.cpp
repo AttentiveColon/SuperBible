@@ -13,6 +13,9 @@ in vec3 normal;
 layout (location = 2) 
 in vec2 uv;
 
+layout (location = 3)
+uniform mat4 u_rotation_scale;
+
 layout (binding = 0, std140)
 uniform DefaultUniform
 {
@@ -27,7 +30,14 @@ out vec2 vs_uv;
 
 void main() 
 {
-	gl_Position = u_projection * u_view * vec4(position, 1.0);
+	int x = gl_InstanceID & 0xFF;
+	int z = (gl_InstanceID & 0xFF00) >> 8;
+	vec4 instance_pos = vec4(float(x), 0.0, float(z), 1.0);
+
+	mat4 translation = mat4(1.0);
+	translation[3] = vec4(instance_pos);
+
+	gl_Position = u_projection * u_view * translation * u_rotation_scale * vec4(position, 1.0);
 	vs_uv = uv;
 	vs_normal = normal;
 }
@@ -53,7 +63,7 @@ out vec4 color;
 void main() 
 {
 	//color = vec4(vs_uv.x, vs_uv.y, 0.0, 1.0);
-	color = vec4(1.0, 1.0, 1.0, 1.0);
+	color = vec4(0.2, 0.8 * (1.0 - vs_uv.x), 0.1, 1.0);
 }
 )";
 
@@ -181,7 +191,7 @@ struct Application : public Program {
 		memcpy(m_ubo_data, &ubo, sizeof(DefaultUniformBlock));
 	}
 	void OnDraw() {
-		static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		static const glm::mat4 rotation_scale = glm::rotate(glm::radians(-90.0f), vec3(0.0f, 0.0f, 1.0f)) * glm::scale(vec3(0.2f, 0.2f, 0.2f));
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -197,8 +207,9 @@ struct Application : public Program {
 		//Draw using the gl_InstanceID to position instances of model
 		//
 		glBindVertexArray(m_grass_vao);
-		glPointSize(15.0f);
-		glDrawElements(GL_TRIANGLES, 21, GL_UNSIGNED_INT, (void*)0);
+		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(rotation_scale));
+		//glDrawElements(GL_TRIANGLES, 21, GL_UNSIGNED_INT, (void*)0);
+		glDrawElementsInstanced(GL_TRIANGLES, 21, GL_UNSIGNED_INT, (void*)0, 0xFFFF);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
