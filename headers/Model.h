@@ -809,6 +809,131 @@ namespace SB
 			DrawNode(trs_matrix, node_index);
 		}
 	}
+
+	struct ModelDump {
+		ModelDump(const char* filename);
+		string m_filename;
+		vector<string> m_primitive_buffers;
+
+		void DumpFiles(const char* directory);
+	};
+
+	ModelDump::ModelDump(const char* filename)
+		:m_filename(filename)
+	{
+		tinygltf::Model model;
+		tinygltf::TinyGLTF loader;
+		std::string err;
+		std::string warn;
+		bool ret;
+
+		path filepath = filename;
+
+		if (filepath.extension() == ".glb") { ret = loader.LoadBinaryFromFile(&model, &err, &warn, filename); }
+		else ret = loader.LoadASCIIFromFile(&model, &err, &warn, filename);
+
+		if (!warn.empty()) printf("Warn: %s\n", warn.c_str());
+		if (!err.empty()) printf("Err: %s\n", err.c_str());
+		if (!ret) {
+			printf("Failed to parse glTF\n");
+			assert(false);
+		}
+
+		//Collect meshes
+		for (size_t i = 0; i < model.meshes.size(); ++i) {
+			const auto& mesh = model.meshes[i];
+			size_t current_primitive_num = 0;
+			//Extract the Position, Normal and TextureCoord data for current mesh
+			for (const auto& primitive : mesh.primitives) {
+				vector<float> positions;
+				vector<float> normals;
+				vector<float> texcoords;
+				vector<unsigned int> indices;
+
+				//Get Positions
+				const auto& positionAccessor = model.accessors[primitive.attributes.at("POSITION")];
+				const auto& positionView = model.bufferViews[positionAccessor.bufferView];
+				const float* positionData = reinterpret_cast<const float*>(model.buffers[positionView.buffer].data.data() + positionView.byteOffset + positionAccessor.byteOffset);
+				for (size_t i = 0; i < positionAccessor.count * 3; i++) {
+					positions.push_back(positionData[i]);
+				}
+
+				//Get Normals
+				if (primitive.attributes.count("NORMAL") > 0) {
+					const auto& normalAccessor = model.accessors[primitive.attributes.at("NORMAL")];
+					const auto& normalView = model.bufferViews[normalAccessor.bufferView];
+					const float* normalData = reinterpret_cast<const float*>(model.buffers[normalView.buffer].data.data() + normalView.byteOffset + normalAccessor.byteOffset);
+					for (size_t i = 0; i < normalAccessor.count * 3; i++) {
+						normals.push_back(normalData[i]);
+					}
+				}
+
+				//Get Texture Coords
+				if (primitive.attributes.count("TEXCOORD_0") > 0) {
+					const auto& texAccessor = model.accessors[primitive.attributes.at("TEXCOORD_0")];
+					const auto& texView = model.bufferViews[texAccessor.bufferView];
+					const float* texCoordData = reinterpret_cast<const float*>(model.buffers[texView.buffer].data.data() + texView.byteOffset + texAccessor.byteOffset);
+					for (size_t i = 0; i < texAccessor.count * 2; i++) {
+						texcoords.push_back(texCoordData[i]);
+					}
+				}
+
+				//Get Indices
+				const auto& indexAccessor = model.accessors[primitive.indices];
+				const auto& indexView = model.bufferViews[indexAccessor.bufferView];
+				if (indexAccessor.componentType == GL_UNSIGNED_INT) {
+					const unsigned int* indexData = reinterpret_cast<const unsigned int*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
+					for (size_t i = 0; i < indexAccessor.count; i++) {
+						indices.push_back(indexData[i]);
+					}
+				}
+				else {
+					const unsigned short* indexData = reinterpret_cast<const unsigned short*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
+					for (size_t i = 0; i < indexAccessor.count; i++) {
+						indices.push_back(indexData[i]);
+					}
+				}
+
+				//Rearrange data into a vector<float> of vertex data
+				vector<float> vertex;
+				for (size_t i = 0; i < positions.size() / 3; ++i) {
+					vertex.push_back(positions[3 * i + 0]);
+					vertex.push_back(positions[3 * i + 1]);
+					vertex.push_back(positions[3 * i + 2]);
+					vertex.push_back(normals[3 * i + 0]);
+					vertex.push_back(normals[3 * i + 1]);
+					vertex.push_back(normals[3 * i + 2]);
+					vertex.push_back(texcoords[2 * i + 0]);
+					vertex.push_back(texcoords[2 * i + 1]);
+				}
+
+				string mesh_name = "mesh" + std::to_string(i);
+				string primitive_name = "_primitive" + std::to_string(current_primitive_num);
+				string array_name = mesh_name + primitive_name;
+				string vertex_buffer = "static const GLfloat " + array_name + "_vertex[] = {\n\t";
+				/*for (size_t k = 0; k < vertex.size(); ++k) {
+					if (k % 8 == 0 && k != 0) vertex_buffer += ",\n\t";
+					else if (k != 0) vertex_buffer += ", ";
+					vertex_buffer += std::to_string(vertex[k]);
+				}*/
+				vertex_buffer += "\n};\n";
+
+				std::cout << vertex_buffer << std::endl;
+
+				string indices_buffer = "static const GLint " + array_name + "_indices[] = {\n\t";
+				/*for (size_t k = 0; k < indices.size(); ++k) {
+					if (k % 3 == 0 && k != 0) indices_buffer += ",\n\t";
+					else if (k != 0) indices_buffer += ", ";
+					indices_buffer += std::to_string(indices[k]);
+				}*/
+				indices_buffer += "\n};\n";
+
+				std::cout << indices_buffer << std::endl;
+
+				current_primitive_num += 1;
+			}
+		}
+	}
 }
 
 
