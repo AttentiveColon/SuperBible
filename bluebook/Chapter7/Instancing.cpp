@@ -12,12 +12,6 @@ layout (location = 1)
 in vec3 normal;
 layout (location = 2) 
 in vec2 uv;
-layout (location = 3)
-uniform mat4 u_model;
-layout (location = 4)
-uniform mat3 u_normal_matrix;
-layout (location = 5)
-uniform vec3 u_view_pos;
 
 layout (binding = 0, std140)
 uniform DefaultUniform
@@ -28,23 +22,14 @@ uniform DefaultUniform
 	float u_time;
 };
 
-layout (binding = 1, std140)
-uniform LightUniform
-{
-	vec3 u_light_pos;
-	float u_ambient_strength;
-	vec3 u_light_color;
-	float u_specular_strength;
-};
-
 out vec3 vs_normal;
 out vec2 vs_uv;
-out vec4 vs_frag_pos;
 
 void main() 
 {
-	gl_Position = u_projection * u_view * u_model * vec4(position, 1.0);
+	gl_Position = u_projection * u_view * vec4(position, 1.0);
 	vs_uv = uv;
+	vs_normal = normal;
 }
 )";
 
@@ -60,34 +45,15 @@ uniform DefaultUniform
 	float u_time;
 };
 
-layout (binding = 1, std140)
-uniform LightUniform
-{
-	vec3 u_light_pos;
-	float u_ambient_strength;
-	vec3 u_light_color;
-	float u_specular_strength;
-};
-
-layout (location = 5) uniform vec3 u_view_pos;
-layout (location = 7) uniform vec4 u_base_color_factor;
-layout (location = 8) uniform float u_alpha_cutoff;
-
 in vec3 vs_normal;
 in vec2 vs_uv;
-in vec4 vs_frag_pos;
-
-layout (binding = 0)
-uniform sampler2D u_texture;
-
-layout (binding = 2)
-uniform sampler2D u_normal_texture;
 
 out vec4 color;
 
 void main() 
 {
-	color = vec4(vs_uv.x, vs_uv.y, 0.0, 1.0);
+	//color = vec4(vs_uv.x, vs_uv.y, 0.0, 1.0);
+	color = vec4(1.0, 1.0, 1.0, 1.0);
 }
 )";
 
@@ -104,7 +70,7 @@ struct DefaultUniformBlock {		//std140
 	GLfloat u_time;					//offset 34
 };
 
-static const GLfloat mesh0_primitive0_vertex[] = {
+static const GLfloat grass_verticies[] = {
 		0.000000, -0.000000, 1.000000, 0.000000, 1.000000, -0.000000, 1.000000, 1.000000,
 		0.000000, -0.000000, -1.000000, 0.000000, 1.000000, -0.000000, 1.000000, 0.000000,
 		-0.177790, -0.000000, 1.000000, 0.000000, 1.000000, -0.000000, 0.911105, 1.000000,
@@ -116,7 +82,7 @@ static const GLfloat mesh0_primitive0_vertex[] = {
 		-1.807969, -0.000000, -0.446449, 0.000000, 1.000000, -0.000000, 0.096016, 0.276776
 };
 
-static const GLint mesh0_primitive0indices[] = {
+static const GLuint grass_indicies[] = {
 		1, 3, 8,
 		7, 6, 5,
 		1, 8, 7,
@@ -132,7 +98,7 @@ struct Application : public Program {
 	f64 m_time;
 
 	GLuint m_program;
-	SB::Model m_model;
+	GLuint m_grass_vao;
 
 	SB::Camera m_camera;
 
@@ -142,10 +108,13 @@ struct Application : public Program {
 	bool m_input_mode_active = true;
 
 	Application()
-		:m_clear_color{ 0.0f, 0.0f, 0.0f, 1.0f },
+		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
 		m_fps(0),
 		m_time(0)
 	{}
+
+	//TODO: create trs matrix and pass to shader to correct model orientation
+	// then move onto instancing
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
@@ -153,11 +122,39 @@ struct Application : public Program {
 
 
 		m_program = LoadShaders(shader_text);
-		m_model = SB::Model("./resources/grass.glb");
 		//SB::ModelDump model = SB::ModelDump("./resources/grass.glb");
-		m_model.m_scale = glm::vec3(0.2f);
-		m_camera = SB::Camera(std::string("Camera"), glm::vec3(-5.0f, 2.0f, 0.0f), m_model.m_position, SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+		m_camera = SB::Camera(std::string("Camera"), glm::vec3(-5.0f, 2.0f, 0.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
 
+		//Create VAO, Describe and bind all related vertex and index buffers
+		//
+
+		//Create vertex array object and vertex/index buffers
+		glCreateVertexArrays(1, &m_grass_vao);
+		glBindVertexArray(m_grass_vao);
+		GLuint vertex_buffer, index_buffer;
+		glCreateBuffers(1, &vertex_buffer);
+		glCreateBuffers(1, &index_buffer);
+		glNamedBufferStorage(vertex_buffer, sizeof(grass_verticies), grass_verticies, 0);
+		glNamedBufferStorage(index_buffer, sizeof(grass_indicies), grass_indicies, 0);
+
+		//Describe layout
+		//Positions
+		glVertexArrayAttribBinding(m_grass_vao, 0, 0);
+		glVertexArrayAttribFormat(m_grass_vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+		glEnableVertexArrayAttrib(m_grass_vao, 0);
+		//Normals
+		glVertexArrayAttribBinding(m_grass_vao, 1, 0);
+		glVertexArrayAttribFormat(m_grass_vao, 1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3);
+		glEnableVertexArrayAttrib(m_grass_vao, 1);
+		//UVs
+		glVertexArrayAttribBinding(m_grass_vao, 2, 0);
+		glVertexArrayAttribFormat(m_grass_vao, 2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 6);
+		glEnableVertexArrayAttrib(m_grass_vao, 2);
+
+		//Pass buffers to VAO
+		glVertexArrayVertexBuffer(m_grass_vao, 0, vertex_buffer, 0, sizeof(float) * 8);
+		glVertexArrayElementBuffer(m_grass_vao, index_buffer);
+		glBindVertexArray(0);
 
 		glCreateBuffers(1, &m_ubo);
 		m_ubo_data = new GLbyte[sizeof(DefaultUniformBlock)];
@@ -188,13 +185,20 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
+		
+
+		glUseProgram(m_program);
+
+		//bind uniform buffer
 		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(DefaultUniformBlock), m_ubo_data, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
-
-		glUseProgram(m_program);
-		glUniformMatrix3fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.Eye()));
-		m_model.OnDraw();
+		
+		//Draw using the gl_InstanceID to position instances of model
+		//
+		glBindVertexArray(m_grass_vao);
+		glPointSize(15.0f);
+		glDrawElements(GL_TRIANGLES, 21, GL_UNSIGNED_INT, (void*)0);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");

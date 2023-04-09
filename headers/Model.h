@@ -911,21 +911,21 @@ namespace SB
 				string primitive_name = "_primitive" + std::to_string(current_primitive_num);
 				string array_name = mesh_name + primitive_name;
 				string vertex_buffer = "static const GLfloat " + array_name + "_vertex[] = {\n\t";
-				/*for (size_t k = 0; k < vertex.size(); ++k) {
+				for (size_t k = 0; k < vertex.size(); ++k) {
 					if (k % 8 == 0 && k != 0) vertex_buffer += ",\n\t";
 					else if (k != 0) vertex_buffer += ", ";
 					vertex_buffer += std::to_string(vertex[k]);
-				}*/
+				}
 				vertex_buffer += "\n};\n";
 
 				std::cout << vertex_buffer << std::endl;
 
 				string indices_buffer = "static const GLint " + array_name + "_indices[] = {\n\t";
-				/*for (size_t k = 0; k < indices.size(); ++k) {
+				for (size_t k = 0; k < indices.size(); ++k) {
 					if (k % 3 == 0 && k != 0) indices_buffer += ",\n\t";
 					else if (k != 0) indices_buffer += ", ";
 					indices_buffer += std::to_string(indices[k]);
-				}*/
+				}
 				indices_buffer += "\n};\n";
 
 				std::cout << indices_buffer << std::endl;
