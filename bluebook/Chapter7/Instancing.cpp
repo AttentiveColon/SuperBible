@@ -2,6 +2,7 @@
 #ifdef INSTANCING
 #include "System.h"
 #include "Model.h"
+#include "Texture.h"
 
 static const GLchar* vertex_shader_source = R"(
 #version 450 core
@@ -25,12 +26,27 @@ uniform DefaultUniform
 	float u_time;
 };
 
+layout (binding = 0)
+uniform sampler2D u_control_texture;
+
 out vec3 vs_normal;
 out vec2 vs_uv;
+out vec2 vs_random;
 
 float random(int seed) {
-	vec2 st = vec2(seed, 0.0);
+	vec2 st = vec2(seed, seed + 23);
 	return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+mat4 yRotationMatrix(float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    return mat4(
+        vec4(c, 0.0, s, 0.0),
+        vec4(0.0, 1.0, 0.0, 0.0),
+        vec4(-s, 0.0, c, 0.0),
+        vec4(0.0, 0.0, 0.0, 1.0)
+    );
 }
 
 void main() 
@@ -45,9 +61,20 @@ void main()
 	mat4 translation = mat4(1.0);
 	translation[3] = vec4(instance_pos);
 
-	gl_Position = u_projection * u_view * translation * u_rotation_scale * vec4(position, 1.0);
+	float texture_increment = 1.0 / 254.0;
+
+	vec4 texture_color = texture(u_control_texture, vec2(texture_increment * float(x), texture_increment * float(z)));
+
+	mat4 scaling = mat4(1.0);
+	scaling[1][1] = texture_color.r * 8.0;
+
+	float rotation_increment = 3.14;
+	mat4 rotation = yRotationMatrix(rotation_increment * texture_color.b);
+
+	gl_Position = u_projection * u_view * translation * rotation * scaling * u_rotation_scale * vec4(position, 1.0);
 	vs_uv = uv;
 	vs_normal = normal;
+	vs_random = vec2(random(gl_InstanceID + 7), random(gl_InstanceID + 23));
 }
 )";
 
@@ -65,13 +92,13 @@ uniform DefaultUniform
 
 in vec3 vs_normal;
 in vec2 vs_uv;
+in vec2 vs_random;
 
 out vec4 color;
 
 void main() 
 {
-	//color = vec4(vs_uv.x, vs_uv.y, 0.0, 1.0);
-	color = vec4(0.2, 0.8 * (1.0 - vs_uv.x), 0.1, 1.0);
+	color = vec4(0.1 * vs_random.x, 0.8 * (1.0 - vs_uv.x) * vs_random.y, 0.1, 1.0);
 }
 )";
 
@@ -117,6 +144,7 @@ struct Application : public Program {
 
 	GLuint m_program;
 	GLuint m_grass_vao;
+	GLuint m_grass_control_texture;
 
 	SB::Camera m_camera;
 
@@ -137,11 +165,14 @@ struct Application : public Program {
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
 		input.SetRawMouseMode(window.GetHandle(), true);
-
+		
 
 		m_program = LoadShaders(shader_text);
 		//SB::ModelDump model = SB::ModelDump("./resources/grass.glb");
 		m_camera = SB::Camera(std::string("Camera"), glm::vec3(-5.0f, 2.0f, 0.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+
+		//m_grass_control_texture = Load_KTX("./resources/instance_texture.ktx");
+		m_grass_control_texture = Load_KTX("./resources/face1.ktx");
 
 		//Create VAO, Describe and bind all related vertex and index buffers
 		//
@@ -203,7 +234,8 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
-		
+		glActiveTexture(GL_TEXTURE0 + 0);
+		glBindTextureUnit(0, m_grass_control_texture);
 
 		glUseProgram(m_program);
 
