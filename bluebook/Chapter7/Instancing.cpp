@@ -178,9 +178,6 @@ struct Application : public Program {
 		m_time(0)
 	{}
 
-	//TODO: create trs matrix and pass to shader to correct model orientation
-	// then move onto instancing
-
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
 		input.SetRawMouseMode(window.GetHandle(), true);
