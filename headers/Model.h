@@ -119,7 +119,7 @@ namespace SB
 	void Camera::OnUpdate(Input& input, float translation_speed, float rotation_speed, double dt) {
 		float move_speed = translation_speed;
 		if (input.Held(GLFW_KEY_LEFT_SHIFT)) {
-			move_speed *= 3.0f;
+			move_speed *= 20.0f;
 		}
 		this->Rotate(input, rotation_speed, dt);
 		this->Translate(input, move_speed, dt);

@@ -32,6 +32,7 @@ uniform sampler2D u_control_texture;
 out vec3 vs_normal;
 out vec2 vs_uv;
 out vec2 vs_random;
+out vec2 vs_tex_color;
 
 float random(int seed) {
 	vec2 st = vec2(seed, seed + 23);
@@ -45,6 +46,17 @@ mat4 yRotationMatrix(float angle) {
         vec4(c, 0.0, s, 0.0),
         vec4(0.0, 1.0, 0.0, 0.0),
         vec4(-s, 0.0, c, 0.0),
+        vec4(0.0, 0.0, 0.0, 1.0)
+    );
+}
+
+mat4 xRotationMatrix(float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    return mat4(
+        vec4(c, s, 0.0, 0.0),
+        vec4(-s, c, 0.0, 0.0),
+        vec4(0.0, 0.0, 1.0, 0.0),
         vec4(0.0, 0.0, 0.0, 1.0)
     );
 }
@@ -71,10 +83,13 @@ void main()
 	float rotation_increment = 3.14;
 	mat4 rotation = yRotationMatrix(rotation_increment * texture_color.b);
 
-	gl_Position = u_projection * u_view * translation * rotation * scaling * u_rotation_scale * vec4(position, 1.0);
+	mat4 rotation2 = xRotationMatrix(((rotation_increment / 2.0) * texture_color.g) * (sin(u_time) * 0.5));
+
+	gl_Position = u_projection * u_view * translation * rotation * rotation2 * scaling * u_rotation_scale * vec4(position, 1.0);
 	vs_uv = uv;
 	vs_normal = normal;
 	vs_random = vec2(random(gl_InstanceID + 7), random(gl_InstanceID + 23));
+	vs_tex_color = vec2(texture_color.r, texture_color.b);
 }
 )";
 
@@ -90,15 +105,19 @@ uniform DefaultUniform
 	float u_time;
 };
 
+
 in vec3 vs_normal;
 in vec2 vs_uv;
 in vec2 vs_random;
+in vec2 vs_tex_color;
 
 out vec4 color;
 
 void main() 
 {
-	color = vec4(0.1 * vs_random.x, 0.8 * (1.0 - vs_uv.x) * vs_random.y, 0.1, 1.0);
+	
+	color = vec4(clamp(vs_tex_color.x, 0.0, 0.5), clamp(vs_tex_color.x, 0.2, 0.5), clamp(vs_tex_color.y, 0.0, 0.5), 1.0);
+	//color = vec4(0.1 * vs_random.x, 0.8 * (1.0 - vs_uv.x) * vs_random.y, 0.1, 1.0);
 }
 )";
 
