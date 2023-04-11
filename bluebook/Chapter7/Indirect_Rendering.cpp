@@ -14,34 +14,28 @@ in vec3 normal;
 layout (location = 2)
 in vec2 uv;
 
-out Fragment
-{
-	vec4 color;
-} fragment;
-
 layout (location = 3)
 uniform mat4 mvp;
 
+out vec2 vs_uv;
+
 void main() 
 {
-	gl_Position = mvp * (position + instance_position);
-	fragment.color = instance_color;
+	gl_Position = mvp * vec4(position, 1.0);
+	vs_uv = uv;
 }
 )";
 
 static const GLchar* fragment_shader_source = R"(
 #version 450 core
 
-in Fragment
-{
-	vec4 color;
-} fragment;
+in vec2 vs_uv;
 
 out vec4 color;
 
 void main() 
 {
-	color = fragment.color;
+	color = vec4(vs_uv.x, vs_uv.y, 0.0, 1.0);
 }
 )";
 
@@ -58,18 +52,18 @@ static const GLfloat square_vertices[] = {
 		0.500000, -0.500000, -0.000000, 0.000000, 0.000000, -1.000000, 1.000000, 0.000000
 };
 
-static const GLint square_indices[] = {
+static const GLuint square_indices[] = {
 		0, 1, 3,
 		0, 3, 2
 };
 
 static const GLfloat triangle_vertices[] = {
-		-0.500000, -0.500000, -0.000000, 0.000000, 0.000000, 1.000000, 0.000000, 1.000000,
-		0.500000, -0.500000, -0.000000, 0.000000, 0.000000, 1.000000, 0.000000, 1.000000,
-		0.000000, 0.500000, -0.000000, 0.000000, 0.000000, 1.000000, 0.000000, 1.000000
+		-0.500000, -0.500000, -0.000000, 0.000000, 0.000000, -1.000000, 0.000000, 1.000000,
+		0.500000, -0.500000, -0.000000, 0.000000, 0.000000, -1.000000, 0.000000, 0.000000,
+		0.000000, 0.500000, -0.000000, 0.000000, 0.000000, -1.000000, 1.000000, 1.000000
 };
 
-static const GLint triangle_indices[] = {
+static const GLuint triangle_indices[] = {
 		1, 2, 0
 };
 
@@ -80,7 +74,7 @@ static const GLfloat diamond_vertices[] = {
 		0.250000, 0.000000, -0.000000, 0.000000, 0.000000, -1.000000, 1.000000, 0.000000
 };
 
-static const GLint diamond_indices[] = {
+static const GLuint diamond_indices[] = {
 		0, 1, 3,
 		0, 3, 2
 };
@@ -92,9 +86,15 @@ static const GLfloat trapezoid_vertices[] = {
 		0.500000, 0.500000, -0.000000, 0.000000, 0.000000, 1.000000, 1.000000, 0.000000
 };
 
-static const GLint trapezoid_indices[] = {
+static const GLuint trapezoid_indices[] = {
 		0, 1, 3,
 		0, 3, 2
+};
+
+struct Vertex {
+	glm::vec3 position;
+	glm::vec3 normal;
+	glm::vec2 uv;
 };
 
 
@@ -104,8 +104,9 @@ struct Application : public Program {
 	f64 m_time;
 
 	GLuint m_program;
-	GLuint m_square_vao;
-	GLuint m_square_vbo;
+	GLuint m_vao;
+	GLuint m_vbo;
+	GLuint m_ibo;
 
 	SB::Camera m_camera;
 
@@ -119,54 +120,76 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
-		input.SetRawMouseMode(window.GetHandle(), true);
+		//input.SetRawMouseMode(window.GetHandle(), true);
 
 
 		m_program = LoadShaders(shader_text);
 		//SB::ModelDump model = SB::ModelDump("./resources/indirect_render_model.glb");
-		m_camera = SB::Camera(std::string("Camera"), glm::vec3(0.0f, 2.0f, -5.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+		m_camera = SB::Camera(std::string("Camera"), glm::vec3(0.0f, 2.0f, 5.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
 
 
 		//Create buffers and bind VAO
-		glGenVertexArrays(1, &m_square_vao);
-		glGenBuffers(1, &m_square_vbo);
-		glBindVertexArray(m_square_vao);
+		glCreateVertexArrays(1, &m_vao);
+		glCreateBuffers(1, &m_vbo);
 
 
-		//Create buffer large enough to store all three arrays
-		GLuint offset = 0;
-		glBindBuffer(GL_ARRAY_BUFFER, m_square_vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(square_vertices) + sizeof(instance_colors) + sizeof(instance_positions), NULL, GL_STATIC_DRAW);
+		//Create buffer large enough to store all vertex data
+		size_t buffer_size = sizeof(square_vertices) + sizeof(triangle_vertices) + sizeof(diamond_vertices) + sizeof(trapezoid_vertices);
+		glNamedBufferData(m_vbo, buffer_size, NULL, GL_STATIC_DRAW);
 
 		//Place data into buffers at appropriate offsets
-		glBufferSubData(GL_ARRAY_BUFFER, offset, sizeof(square_vertices), square_vertices);
+		GLuint offset = 0;
+		glNamedBufferSubData(m_vbo, offset, sizeof(square_vertices), square_vertices);
 		offset += sizeof(square_vertices);
-		glBufferSubData(GL_ARRAY_BUFFER, offset, sizeof(instance_colors), instance_colors);
-		offset += sizeof(instance_colors);
-		glBufferSubData(GL_ARRAY_BUFFER, offset, sizeof(instance_positions), instance_positions);
-		//offset += sizeof(instance_positions);
+		glNamedBufferSubData(m_vbo, offset, sizeof(triangle_vertices), triangle_vertices);
+		offset += sizeof(triangle_vertices);
+		glNamedBufferSubData(m_vbo, offset, sizeof(diamond_vertices), diamond_vertices);
+		offset += sizeof(diamond_vertices);
+		glNamedBufferSubData(m_vbo, offset, sizeof(trapezoid_vertices), trapezoid_vertices);
 
 		//Describe the locations of each array in the buffer
-		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid*)sizeof(square_vertices));
-		glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid*)(sizeof(square_vertices) + sizeof(instance_colors)));
-
+		glVertexArrayAttribBinding(m_vao, 0, 0);
+		glVertexArrayAttribFormat(m_vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+		glVertexArrayAttribBinding(m_vao, 1, 0);
+		glVertexArrayAttribFormat(m_vao, 1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3);
+		glVertexArrayAttribBinding(m_vao, 2, 0);
+		glVertexArrayAttribFormat(m_vao, 2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 6);
+		
 		//Enable those attributes
-		glEnableVertexAttribArray(0);
-		glEnableVertexAttribArray(1);
-		glEnableVertexAttribArray(2);
+		glEnableVertexArrayAttrib(m_vao, 0);
+		glEnableVertexArrayAttrib(m_vao, 1);
+		glEnableVertexArrayAttrib(m_vao, 2);
 
-		//Turn attribute 1 and 2 into per-instance values
-		glVertexAttribDivisor(1, 1);
-		glVertexAttribDivisor(2, 1);
+		//Bind buffer to VAO
+		glVertexArrayVertexBuffer(m_vao, 0, m_vbo, 0, sizeof(float) * 8);
+		
+		//Create buffer to store all indices data
+		glCreateBuffers(1, &m_ibo);
+		buffer_size = sizeof(square_indices) + sizeof(triangle_indices) + sizeof(diamond_indices) + sizeof(trapezoid_indices);
+		glNamedBufferData(m_ibo, buffer_size, NULL, GL_STATIC_DRAW);
 
+		//Place indice data
+		offset = 0;
+		glNamedBufferSubData(m_ibo, offset, sizeof(square_indices), square_indices);
+		offset += sizeof(square_indices);
+		glNamedBufferSubData(m_ibo, offset, sizeof(triangle_indices), triangle_indices);
+		offset += sizeof(triangle_indices);
+		glNamedBufferSubData(m_ibo, offset, sizeof(diamond_indices), diamond_indices);
+		offset += sizeof(diamond_indices);
+		glNamedBufferSubData(m_ibo, offset, sizeof(trapezoid_indices), trapezoid_indices);
+
+		//Bind index buffer to VAO
+		glVertexArrayElementBuffer(m_vao, m_ibo);
+
+		//Unbind buffers
+		glBindVertexArray(0);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 
 		if (m_input_mode_active) {
-			m_camera.OnUpdate(input, 3.0f, 0.2f, dt);
+			//m_camera.OnUpdate(input, 3.0f, 0.2f, dt);
 		}
 
 		//Implement Camera Movement Functions
@@ -178,16 +201,23 @@ struct Application : public Program {
 
 	}
 	void OnDraw() {
-
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
-
 		glUseProgram(m_program);
-		glBindVertexArray(m_square_vao);
+		glBindVertexArray(m_vao);
 		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(m_camera.m_viewproj));
-		glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 4);
 
+		int time = (int)m_time;
+
+		//draw square
+		if (time % 4 == 0) glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(sizeof(GLuint) * 0), 0);
+		//draw triangle
+		else if (time % 4 == 1) glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(sizeof(GLuint) * 6), 4);
+		//draw diamond
+		else if (time % 4 == 2) glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(sizeof(GLuint) * 9), 7);
+		//draw trapezoid
+		else glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(sizeof(GLuint) * 15), 11);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
