@@ -27,10 +27,13 @@ uniform float time;
 
 void main() 
 {
+	//testing
+	//vec3 offset = vec3(float(draw_id), 0.0, 0.0);	
+
 	mat4 m1;
 	mat4 m2;
 	mat4 m;
-	float t = time;
+	float t = time * 0.1;
 	float f = float(draw_id) / 30.0;
 
 	float st = sin(t * 0.5 + f * 5.0);
@@ -73,7 +76,7 @@ void main()
 	m1[2] = vec4(0.0, -st, ct, 0.0);
 	m1[3] = vec4(0.0, 0.0, 0.0, 1.0);
 
-	//m = m * m1;
+	m = m * m1;
 
 	//non uniform scale
 	float f1 = 0.65 + cos(f * 1.1) * 0.2;
@@ -85,9 +88,15 @@ void main()
 	m1[2] = vec4(0.0, 0.0, f3, 0.0);
 	m1[3] = vec4(0.0, 0.0, 0.0, 1.0);
 
-	//m = m * m1;
+	m = m * m1;
+
+	mat4 scale;
+	scale[0] = vec4(4.0, 0.0, 0.0, 0.0);
+	scale[1] = vec4(0.0, 4.0, 0.0, 0.0);
+	scale[2] = vec4(0.0, 0.0, 4.0, 0.0);
+	scale[3] = vec4(0.0, 0.0, 0.0, 1.0);
 	
-	gl_Position = mvp * m * vec4(position, 1.0);
+	gl_Position = mvp * m * scale * vec4(position, 1.0);
 	vs_uv = uv;
 }
 )";
@@ -189,7 +198,7 @@ struct DrawElementsIndirectCommand {
 
 
 
-#define NUM_DRAWS 3000
+#define NUM_DRAWS 30000
 
 struct Application : public Program {
 	float m_clear_color[4];
@@ -220,11 +229,12 @@ struct Application : public Program {
 
 		m_program = LoadShaders(shader_text);
 		//SB::ModelDump model = SB::ModelDump("./resources/indirect_render_model.glb");
-		m_camera = SB::Camera(std::string("Camera"), glm::vec3(0.0f, 2.0f, 5.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+		m_camera = SB::Camera(std::string("Camera"), glm::vec3(0.0f, 2.0f, 5.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 10000.0);
 
 
 		//Create buffers and bind VAO
 		glCreateVertexArrays(1, &m_vao);
+		glBindVertexArray(m_vao);
 		glCreateBuffers(1, &m_vbo);
 
 
@@ -276,33 +286,15 @@ struct Application : public Program {
 		//Bind index buffer to VAO
 		glVertexArrayElementBuffer(m_vao, m_ibo);
 
-		//Create draw_id buffer
-		glCreateBuffers(1, &m_draw_index_buffer);
-		glNamedBufferData(m_draw_index_buffer, NUM_DRAWS * sizeof(GLuint), NULL, GL_STATIC_DRAW);
-
-		GLuint* draw_index = (GLuint*)glMapNamedBufferRange(m_draw_index_buffer, 0, NUM_DRAWS * sizeof(GLuint), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-		for (int i = 0; i < NUM_DRAWS; ++i) {
-			draw_index[i] = i;
-		}
-		glUnmapNamedBuffer(m_draw_index_buffer);
-
-		glVertexArrayAttribBinding(m_vao, 10, 0);
-		glVertexArrayBindingDivisor(m_vao, 10, 1);
-		glEnableVertexArrayAttrib(m_vao, 10);
-
-
-		//Unbind buffers
-		glBindVertexArray(0);
-
 		//Create Indirect Buffer Data
 		glCreateBuffers(1, &m_indirect_buffer);
 		glNamedBufferData(m_indirect_buffer, NUM_DRAWS * sizeof(DrawElementsIndirectCommand), NULL, GL_STATIC_DRAW);
 
-		DrawElementsIndirectCommand* cmd = 
+		DrawElementsIndirectCommand* cmd =
 			(DrawElementsIndirectCommand*)glMapNamedBufferRange(
-				m_indirect_buffer, 
-				0, 
-				NUM_DRAWS * sizeof(DrawElementsIndirectCommand), 
+				m_indirect_buffer,
+				0,
+				NUM_DRAWS * sizeof(DrawElementsIndirectCommand),
 				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT
 			);
 
@@ -331,6 +323,36 @@ struct Application : public Program {
 			cmd[i].baseInstance = i;
 		}
 		glUnmapNamedBuffer(m_indirect_buffer);
+
+		//Create draw_id buffer
+		glGenBuffers(1, &m_draw_index_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, m_draw_index_buffer);
+		glBufferData(GL_ARRAY_BUFFER, NUM_DRAWS * sizeof(GLuint), NULL, GL_STATIC_DRAW);
+
+		GLuint* draw_index = (GLuint*)glMapNamedBufferRange(m_draw_index_buffer, 0, NUM_DRAWS * sizeof(GLuint), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+		for (int i = 0; i < NUM_DRAWS; ++i) {
+			draw_index[i] = i;
+		}
+		glUnmapNamedBuffer(m_draw_index_buffer);
+
+		
+
+		glVertexAttribIPointer(10, 1, GL_UNSIGNED_INT, 0, NULL);
+		glVertexAttribDivisor(10, 1);
+		glEnableVertexAttribArray(10);
+
+		//glVertexArrayAttribBinding(m_vao, 10, 0);
+		//glVertexArrayBindingDivisor(m_vao, 10, 1);
+		//glEnableVertexArrayAttrib(m_vao, 10);
+
+		////bind the draw_id buffer
+		//glVertexArrayVertexBuffer(m_vao, 0, m_draw_index_buffer, 0, sizeof(GLuint));
+
+
+		//Unbind buffers
+		glBindVertexArray(0);
+
+		
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
