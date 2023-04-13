@@ -91,9 +91,9 @@ void main()
 	m = m * m1;
 
 	mat4 scale;
-	scale[0] = vec4(4.0, 0.0, 0.0, 0.0);
-	scale[1] = vec4(0.0, 4.0, 0.0, 0.0);
-	scale[2] = vec4(0.0, 0.0, 4.0, 0.0);
+	scale[0] = vec4(2.0, 0.0, 0.0, 0.0);
+	scale[1] = vec4(0.0, 2.0, 0.0, 0.0);
+	scale[2] = vec4(0.0, 0.0, 2.0, 0.0);
 	scale[3] = vec4(0.0, 0.0, 0.0, 1.0);
 	
 	gl_Position = mvp * m * scale * vec4(position, 1.0);
