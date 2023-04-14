@@ -9,23 +9,28 @@ static const GLchar* vertex_shader_source = R"(
 layout (location = 0)
 in vec3 position;
 
+layout (location = 4)
+uniform mat4 model;
+
 layout (location = 5)
 uniform mat4 mvp;
 
 layout (location = 6)
 uniform vec3 eye;
 
+
+uniform vec4 clip_plane = vec4(0.0, 0.0, 0.1, 0.1);
+
 out vec4 vs_frag_pos;
 
-uniform vec4 clip_plane = vec4(0.0, -0.5, 0.5, 1.0);
+
 
 void main() 
 {
-	gl_ClipDistance[0] = dot(vec4(position-eye, 1.0), clip_plane);
-	
-	
-	gl_Position = mvp * vec4(position, 1.0);
-	vs_frag_pos = mvp * vec4(position, 1.0);
+	vec4 world_position = model * vec4(position, 1.0);
+	gl_Position = mvp * model * vec4(position, 1.0);
+	gl_ClipDistance[0] = dot(world_position, clip_plane);
+	vs_frag_pos = world_position;
 }
 )";
 
@@ -37,11 +42,14 @@ in vec4 vs_frag_pos;
 layout (location = 6)
 uniform vec3 eye;
 
+
+
 out vec4 color;
 
 void main() 
 {
-	color = vec4(vs_frag_pos.xy, 1.0, 1.0);
+	float fade_factor = clamp(gl_ClipDistance[0] / 0.5, 0.0, 1.0);
+	color = vec4(vs_frag_pos.xy, 1.0, 1.0 * fade_factor);
 }
 )";
 
@@ -64,16 +72,16 @@ static const GLfloat object[] = {
 
 static const GLuint object_elements[] = {
 	0, 1, 2,
-	2, 1, 3,
+	1, 3, 2,
 	0, 6, 4,
-	0, 6, 2,
-	1, 7, 5,
+	0, 2, 6,
+	1, 5, 7,
 	1, 7, 3,
-	4, 5, 6,
-	6, 5, 7,
+	4, 6, 5,
+	5, 6, 7,
 	2, 7, 6,
-	2, 7, 3,
-	0, 5, 4,
+	2, 3, 7,
+	0, 4, 5,
 	0, 5, 1,
 };
 
@@ -96,6 +104,9 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_CULL_FACE);
 		m_program = LoadShaders(shader_text);
 		glCreateVertexArrays(1, &m_vao);
 		glBindVertexArray(m_vao);
@@ -114,7 +125,7 @@ struct Application : public Program {
 		glBindVertexArray(0);
 
 
-		m_camera = SB::Camera("camera", glm::vec3(5.5f, 3.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+		m_camera = SB::Camera("camera", glm::vec3(-4.0f, 1.0f, 7.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
@@ -133,7 +144,8 @@ struct Application : public Program {
 		glClear(GL_DEPTH_BUFFER_BIT);
 		glUseProgram(m_program);
 		glBindVertexArray(m_vao);
-		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj() * glm::scale(glm::vec3(1.0, 1.0, 10.0))));
+		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::vec3(1.0, 1.0, 10.0))));
+		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
 		glUniform3fv(6, 1, glm::value_ptr(m_camera.Eye()));
 		glDrawElements(GL_TRIANGLES, sizeof(object_elements) / sizeof(object_elements[0]), GL_UNSIGNED_INT, 0);
 	}
