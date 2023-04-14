@@ -1,5 +1,5 @@
 #include "Defines.h"
-#ifdef EXAMPLE
+#ifdef USER_DEFINED_CLIPPING_PLANES
 #include "System.h"
 
 static const GLchar* vertex_shader_source = R"(
@@ -7,7 +7,7 @@ static const GLchar* vertex_shader_source = R"(
 
 void main() 
 {
-	gl_Position = vec4(0.0);
+	gl_Position = vec4(0.0, 0.0, 0.5, 1.0);
 }
 )";
 
@@ -34,16 +34,18 @@ struct Application : public Program {
 	f64 m_time;
 
 	GLuint m_program;
+	GLuint m_vao;
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
 		m_fps(0),
-		m_time(0)
+		m_time(0.0)
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
 		m_program = LoadShaders(shader_text);
+		glCreateVertexArrays(1, &m_vao);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
@@ -52,6 +54,9 @@ struct Application : public Program {
 	void OnDraw() {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
+		glUseProgram(m_program);
+		glBindVertexArray(m_vao);
+		glDrawArrays(GL_POINTS, 0, 1);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
@@ -75,4 +80,4 @@ SystemConf config = {
 };
 
 MAIN(config)
-#endif //TEST
+#endif //USER_DEFINED_CLIPPING_PLANES

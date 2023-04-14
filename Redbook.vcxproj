@@ -174,6 +174,7 @@
     <ClCompile Include="bluebook\Chapter7\Instancing.cpp" />
     <ClCompile Include="bluebook\Chapter7\model_base.cpp" />
     <ClCompile Include="bluebook\Chapter7\Transform_Feedback_Springmass.cpp" />
+    <ClCompile Include="bluebook\Chapter7\User_Defined_Clipping_Planes.cpp" />
     <ClCompile Include="bluebook\Chapter7\Variable_Point_Size.cpp" />
     <ClCompile Include="bluebook\Chapter7\Vertex_Attrib_Divisor.cpp" />
     <ClCompile Include="bluebook\Chapter7\Vertex_Shader_Inputs.cpp" />

@@ -207,7 +207,13 @@ struct Application : public Program {
 
 				//std::cout << initial_positions[n].x << " " << initial_positions[n].y << " " << initial_positions[n].z << std::endl;
 
-				initial_velocities[n] = glm::vec3(0.0f);
+
+				if (j < POINTS_Y / 2) {
+					initial_velocities[n] = glm::vec3(1.0f, 1.0, 0.0);
+				}
+				else {
+					initial_velocities[n] = glm::vec3(0.0f);
+				}
 
 				connection_vectors[n] = glm::ivec4(-1);
 

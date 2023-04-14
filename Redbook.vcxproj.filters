@@ -168,6 +168,9 @@
     <ClCompile Include="bluebook\Chapter7\Transform_Feedback_Springmass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\Chapter7\User_Defined_Clipping_Planes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">
