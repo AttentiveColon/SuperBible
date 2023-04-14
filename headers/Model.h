@@ -52,7 +52,7 @@ namespace SB
 		Camera(string name, glm::vec3 eye, glm::vec3 center, CameraType type, double aspect_or_xmag, double fovy_or_ymag, double znear, double zfar);
 
 		glm::mat4 ViewProj() { return m_viewproj; }
-		glm::vec3 Eye() { return glm::vec3(m_view[3][0], m_view[3][1], m_view[3][2]); }
+		glm::vec3 Eye() { return m_cam_position; }
 
 		string m_name;
 		glm::vec3 m_cam_position;

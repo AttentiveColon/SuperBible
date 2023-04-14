@@ -12,10 +12,18 @@ in vec3 position;
 layout (location = 5)
 uniform mat4 mvp;
 
+layout (location = 6)
+uniform vec3 eye;
+
 out vec4 vs_frag_pos;
+
+uniform vec4 clip_plane = vec4(0.0, -0.5, 0.5, 1.0);
 
 void main() 
 {
+	gl_ClipDistance[0] = dot(vec4(position-eye, 1.0), clip_plane);
+	
+	
 	gl_Position = mvp * vec4(position, 1.0);
 	vs_frag_pos = mvp * vec4(position, 1.0);
 }
@@ -26,12 +34,14 @@ static const GLchar* fragment_shader_source = R"(
 
 in vec4 vs_frag_pos;
 
+layout (location = 6)
+uniform vec3 eye;
+
 out vec4 color;
 
 void main() 
 {
-	
-	color = vs_frag_pos;
+	color = vec4(vs_frag_pos.xy, 1.0, 1.0);
 }
 )";
 
@@ -104,7 +114,7 @@ struct Application : public Program {
 		glBindVertexArray(0);
 
 
-		m_camera = SB::Camera("camera", glm::vec3(0.0f, 2.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+		m_camera = SB::Camera("camera", glm::vec3(5.5f, 3.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
@@ -118,17 +128,20 @@ struct Application : public Program {
 		m_camera.OnUpdate(input, 3.0f, 0.02f, dt);
 	}
 	void OnDraw() {
+		glEnable(GL_CLIP_DISTANCE0 + 0);
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
 		glUseProgram(m_program);
 		glBindVertexArray(m_vao);
 		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj() * glm::scale(glm::vec3(1.0, 1.0, 10.0))));
+		glUniform3fv(6, 1, glm::value_ptr(m_camera.Eye()));
 		glDrawElements(GL_TRIANGLES, sizeof(object_elements) / sizeof(object_elements[0]), GL_UNSIGNED_INT, 0);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
+		ImGui::Text("Eye: %f %f %f", m_camera.Eye().x, m_camera.Eye().y, m_camera.Eye().z);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::End();
 	}
