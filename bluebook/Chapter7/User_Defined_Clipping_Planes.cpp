@@ -18,18 +18,26 @@ uniform mat4 mvp;
 layout (location = 6)
 uniform vec3 eye;
 
+layout (location = 7)
+uniform vec3 look;
 
-uniform vec4 clip_plane = vec4(0.0, 0.0, 0.1, 0.1);
+//uniform vec4 clip_plane = vec4(0.0, 0.0, 0.1, 0.1);
 
 out vec4 vs_frag_pos;
 
+	//gl_ClipDistance[0] = dot(world_position, clip_plane);
 
 
 void main() 
 {
 	vec4 world_position = model * vec4(position, 1.0);
 	gl_Position = mvp * model * vec4(position, 1.0);
-	gl_ClipDistance[0] = dot(world_position, clip_plane);
+
+	vec3 clip_plane_normal = normalize(look);
+
+	vec3 clip_plane_point = eye + (15.0 * clip_plane_normal);
+	//gl_ClipDistance[0] = -dot(world_position.xyz - clip_plane_point, clip_plane_normal);
+	gl_ClipDistance[0] = dot(clip_plane_point - world_position.xyz, clip_plane_normal);
 	vs_frag_pos = world_position;
 }
 )";
@@ -48,8 +56,9 @@ out vec4 color;
 
 void main() 
 {
-	float fade_factor = clamp(gl_ClipDistance[0] / 0.5, 0.0, 1.0);
+	float fade_factor = clamp(gl_ClipDistance[0] / 5.1, 0.0, 1.0);
 	color = vec4(vs_frag_pos.xy, 1.0, 1.0 * fade_factor);
+	//color = vec4(1.0);
 }
 )";
 
@@ -147,6 +156,7 @@ struct Application : public Program {
 		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::vec3(1.0, 1.0, 10.0))));
 		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
 		glUniform3fv(6, 1, glm::value_ptr(m_camera.Eye()));
+		glUniform3fv(7, 1, glm::value_ptr(m_camera.m_forward_vector));
 		glDrawElements(GL_TRIANGLES, sizeof(object_elements) / sizeof(object_elements[0]), GL_UNSIGNED_INT, 0);
 	}
 	void OnGui() {
@@ -154,6 +164,7 @@ struct Application : public Program {
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::Text("Eye: %f %f %f", m_camera.Eye().x, m_camera.Eye().y, m_camera.Eye().z);
+		ImGui::Text("Look: %f %f %f", m_camera.m_forward_vector.x, m_camera.m_forward_vector.y, m_camera.m_forward_vector.z);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::End();
 	}
