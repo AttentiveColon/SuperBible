@@ -19,16 +19,32 @@ static const GLchar* tess_control_shader_source = R"(
 
 layout (vertices = 4) out;
 
+layout (binding = 0, std140)
+uniform TessUniform
+{
+	float u_quad_inner_0;
+	float u_quad_inner_1;
+	float u_quad_outer_0;
+	float u_quad_outer_1;
+	float u_quad_outer_2;
+	float u_quad_outer_3;
+
+	float u_tri_inner_0;
+	float u_tri_outer_0;
+	float u_tri_outer_1;
+	float u_tri_outer_2;
+};
+
 void main()
 {
 	if (gl_InvocationID == 0)
 	{
-		gl_TessLevelInner[0] = 9.0;
-		gl_TessLevelInner[1] = 7.0;
-		gl_TessLevelOuter[0] = 3.0;
-		gl_TessLevelOuter[1] = 5.0;
-		gl_TessLevelOuter[2] = 3.0;
-		gl_TessLevelOuter[3] = 5.0;
+		gl_TessLevelInner[0] = u_quad_inner_0;
+		gl_TessLevelInner[1] = u_quad_inner_1;
+		gl_TessLevelOuter[0] = u_quad_outer_0;
+		gl_TessLevelOuter[1] = u_quad_outer_1;
+		gl_TessLevelOuter[2] = u_quad_outer_2;
+		gl_TessLevelOuter[3] = u_quad_outer_3;
 	}
 
 	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
@@ -53,14 +69,30 @@ static const GLchar* tess_tri_control_shader_source = R"(
 
 layout (vertices = 3) out;
 
+layout (binding = 0, std140)
+uniform TessUniform
+{
+	float u_quad_inner_0;
+	float u_quad_inner_1;
+	float u_quad_outer_0;
+	float u_quad_outer_1;
+	float u_quad_outer_2;
+	float u_quad_outer_3;
+
+	float u_tri_inner_0;
+	float u_tri_outer_0;
+	float u_tri_outer_1;
+	float u_tri_outer_2;
+};
+
 void main()
 {
 	if (gl_InvocationID == 0)
 	{
-		gl_TessLevelInner[0] = 5.0;
-		gl_TessLevelOuter[0] = 8.0;
-		gl_TessLevelOuter[1] = 8.0;
-		gl_TessLevelOuter[2] = 8.0;
+		gl_TessLevelInner[0] = u_tri_inner_0;
+		gl_TessLevelOuter[0] = u_tri_outer_0;
+		gl_TessLevelOuter[1] = u_tri_outer_1;
+		gl_TessLevelOuter[2] = u_tri_outer_2;
 	}
 
 	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
@@ -156,6 +188,22 @@ static GLuint GetQuad() {
 	return vao;
 }
 
+struct TessUniformBlock {
+	//Quads
+	float quad_inner_0;
+	float quad_inner_1;
+	float quad_outer_0;
+	float quad_outer_1;
+	float quad_outer_2;
+	float quad_outer_3;
+
+	//Triangles
+	float tri_inner_0;
+	float tri_outer_0;
+	float tri_outer_1;
+	float tri_outer_2;
+};
+
 enum TessMode {
 	Quad,
 	Tri,
@@ -175,11 +223,17 @@ struct Application : public Program {
 
 	GLuint m_vao;
 
+	GLuint m_ubo;
+	GLbyte* m_ubo_data;
+
+	TessUniformBlock m_tess_ubo;
+
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
 		m_fps(0),
 		m_time(0.0),
-		m_mode(TessMode::Quad)
+		m_mode(TessMode::Quad),
+		m_tess_ubo{9.0, 7.0, 3.0, 5.0, 3.0, 5.0, 5.0, 8.0, 8.0, 8.0}
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
@@ -189,14 +243,23 @@ struct Application : public Program {
 		m_tess_quad_program = LoadShaders(shader_text);
 		m_tess_tri_program = LoadShaders(shader_tri_text);
 		m_vao = GetQuad();
+
+		glCreateBuffers(1, &m_ubo);
+		m_ubo_data = new GLbyte[sizeof(TessUniformBlock)];
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
+
+		memcpy(m_ubo_data, &m_tess_ubo, sizeof(TessUniformBlock));
 	}
 	void OnDraw() {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
+
+		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(TessUniformBlock), m_ubo_data, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
 
 		glBindVertexArray(m_vao);
 
@@ -231,14 +294,25 @@ struct Application : public Program {
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		if (m_mode == 0) {
 			ImGui::Text("Quad");
+			ImGui::SliderInt("Mode", (int*)&m_mode, 0, 2);
+			float* q_inners[] = { &m_tess_ubo.quad_inner_0, &m_tess_ubo.quad_inner_1 };
+			ImGui::DragFloat2("Inners", *q_inners, 0.1f, 1.0, 10.0f);
+			float* q_outers[] = { &m_tess_ubo.quad_outer_0, &m_tess_ubo.quad_outer_1, &m_tess_ubo.quad_outer_2, &m_tess_ubo.quad_outer_3 };
+			ImGui::DragFloat4("Outers", *q_outers, 0.1f, 1.0f, 10.0f);
 		}
 		else if (m_mode == 1) {
 			ImGui::Text("Tri");
+			ImGui::SliderInt("Mode", (int*)&m_mode, 0, 2);
+			float* t_inners[] = { &m_tess_ubo.tri_inner_0 };
+			ImGui::DragFloat("Inners", *t_inners, 0.1f, 1.0f, 10.0f);
+			float* t_outers[] = { &m_tess_ubo.tri_outer_0, &m_tess_ubo.tri_outer_1, &m_tess_ubo.tri_outer_2 };
+			ImGui::DragFloat3("Outers", *t_outers, 0.1f, 1.0f, 10.0f);
 		}
 		else {
 			ImGui::Text("None");
+			ImGui::SliderInt("Mode", (int*)&m_mode, 0, 2);
 		}
-		ImGui::SliderInt("Mode", (int*)&m_mode, 0, 2);
+		
 		ImGui::End();
 	}
 };
