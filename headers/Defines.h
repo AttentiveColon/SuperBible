@@ -11,5 +11,5 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 //Current Project
-#define TESSELATION_MODES
+#define DISPLACEMENT_MAPS
 

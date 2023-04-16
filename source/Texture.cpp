@@ -5,6 +5,8 @@
 #include <fstream>
 #include <vector>
 
+
+
 struct KTX_Header {
 	unsigned char	identifier[12];
 	unsigned int	endianness;
@@ -52,6 +54,38 @@ void SwapHeader(KTX_Header& header) {
 	header.faces = swap32(header.faces);
 	header.miplevels = swap32(header.miplevels);
 	header.keypairbytes = swap32(header.keypairbytes);
+}
+
+static unsigned int calculate_stride(const KTX_Header& h, unsigned int width, unsigned int pad = 4)
+{
+	unsigned int channels = 0;
+
+	switch (h.glbaseinternalformat)
+	{
+	case GL_RED:    channels = 1;
+		break;
+	case GL_RG:     channels = 2;
+		break;
+	case GL_BGR:
+	case GL_RGB:    channels = 3;
+		break;
+	case GL_BGRA:
+	case GL_RGBA:   channels = 4;
+		break;
+	}
+
+	unsigned int stride = h.gltypesize * channels * width;
+
+	stride = (stride + (pad - 1)) & ~(pad - 1);
+
+	return stride;
+}
+
+static unsigned int calculate_face_size(const KTX_Header& h)
+{
+	unsigned int stride = calculate_stride(h, h.pixelwidth);
+
+	return stride * h.pixelheight;
 }
 
 GLuint Load_KTX(const char* filename, GLuint texture) {
@@ -175,6 +209,17 @@ GLuint Load_KTX(const char* filename, GLuint texture) {
 					if (!width)
 						width = 1;
 				}
+			}
+		}
+		break;
+	case GL_TEXTURE_CUBE_MAP:
+		glTexStorage2D(GL_TEXTURE_CUBE_MAP, header->miplevels, header->glinternalformat, header->pixelwidth, header->pixelheight);
+		// glTexSubImage3D(GL_TEXTURE_CUBE_MAP, 0, 0, 0, 0, h.pixelwidth, h.pixelheight, h.faces, h.glformat, h.gltype, data);
+		{
+			unsigned int face_size = calculate_face_size(*header);
+			for (unsigned int i = 0; i < header->faces; i++)
+			{
+				glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 0, 0, header->pixelwidth, header->pixelheight, header->glformat, header->gltype, data + face_size * i);
 			}
 		}
 		break;
