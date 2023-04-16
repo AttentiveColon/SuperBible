@@ -91,6 +91,10 @@ uniform TessUniform
 	float u_iso_outer_1;
 };
 
+out float tc_offset[];
+
+out patch float tc_offset_patch;
+
 void main()
 {
 	if (gl_InvocationID == 0)
@@ -102,6 +106,8 @@ void main()
 	}
 
 	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+	tc_offset[gl_InvocationID] = 0.1;
+	tc_offset_patch = 0.2;
 }
 )";
 
@@ -110,9 +116,12 @@ static const GLchar* tess_tri_evaluation_shader_source = R"(
 
 layout (triangles) in;
 
+in float tc_offset[];
+in patch float tc_offset_patch;
+
 void main()
 {
-	gl_Position = (gl_TessCoord.x * gl_in[0].gl_Position) + (gl_TessCoord.y * gl_in[1].gl_Position) + (gl_TessCoord.z * gl_in[2].gl_Position);
+	gl_Position = ((tc_offset[0] + gl_TessCoord.x) * gl_in[0].gl_Position) + ((tc_offset_patch + gl_TessCoord.y) * gl_in[1].gl_Position) + (gl_TessCoord.z * gl_in[2].gl_Position);
 }
 )";
 
