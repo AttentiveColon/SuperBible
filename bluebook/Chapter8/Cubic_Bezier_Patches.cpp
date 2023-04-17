@@ -7,7 +7,8 @@
 static const GLchar* vertex_shader_source = R"(
 #version 450 core
 
-in vec4 position;
+layout (location = 0)
+in vec3 position;
 
 layout (location = 10)
 uniform mat4 mv_matrix;
@@ -17,7 +18,7 @@ uniform mat4 mvp;
 
 void main()
 {
-	gl_Position = mv_matrix * position;
+	gl_Position = mv_matrix * vec4(position, 1.0);
 }
 )";
 
@@ -131,6 +132,38 @@ static ShaderText shader_text[] = {
 	{GL_NONE, NULL, NULL}
 };
 
+static const GLchar* cp_vertex_shader_source = R"(
+#version 450 core
+
+layout (location = 0)
+in vec3 position;
+
+layout (location = 12)
+uniform mat4 mvp;
+
+void main()
+{
+	gl_Position = mvp * vec4(position, 1.0);
+}
+)";
+
+static const GLchar* cp_fragment_shader_source = R"(
+#version 450 core
+
+out vec4 color;
+
+void main()
+{
+	color = vec4(1.0, 1.0, 1.0, 1.0);
+}
+)";
+
+static ShaderText cp_shader_text[] = {
+	{GL_VERTEX_SHADER, cp_vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, cp_fragment_shader_source, NULL},
+	{GL_NONE, NULL, NULL}
+};
+
 
 struct Application : public Program {
 	float m_clear_color[4];
@@ -148,8 +181,6 @@ struct Application : public Program {
 
 	bool m_wireframe = false;
 
-	SB::Camera m_camera;
-	bool m_input_mode = false;
 
 
 	Application()
@@ -162,6 +193,7 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 
 		m_program = LoadShaders(shader_text);
+		m_cp_program = LoadShaders(cp_shader_text);
 
 		glGenVertexArrays(1, &m_vao);
 		glBindVertexArray(m_vao);
@@ -173,22 +205,26 @@ struct Application : public Program {
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 		glEnableVertexAttribArray(0);
 
-		m_camera = SB::Camera("Camera", glm::vec3(1.0f, 5.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+		static const GLushort indices[] =
+		{
+			0, 1, 1, 2, 2, 3,
+			4, 5, 5, 6, 6, 7,
+			8, 9, 9, 10, 10, 11,
+			12, 13, 13, 14, 14, 15,
 
+			0, 4, 4, 8, 8, 12,
+			1, 5, 5, 9, 9, 13,
+			2, 6, 6, 10, 10, 14,
+			3, 7, 7, 11, 11, 15
+		};
+
+		glGenBuffers(1, &m_cage_indices);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_cage_indices);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
-
-		if (m_input_mode) {
-			m_camera.OnUpdate(input, 3.0f, 0.2f, dt);
-		}
-
-		//Implement Camera Movement Functions
-		if (input.Pressed(GLFW_KEY_LEFT_CONTROL)) {
-			m_input_mode = !m_input_mode;
-			input.SetRawMouseMode(window.GetHandle(), m_input_mode);
-		}
 	}
 	void OnDraw() {
 		static const float patch_initializer[] =
@@ -227,12 +263,15 @@ struct Application : public Program {
 		
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 
+		glBindBuffer(GL_ARRAY_BUFFER, m_patch_buffer);
 		glBindVertexArray(m_vao);
 		glUseProgram(m_program);
 
-		glUniformMatrix4fv(10, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
-		glUniformMatrix4fv(11, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
-		glUniformMatrix4fv(12, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
+		glm::mat4 proj_matrix = glm::perspective(0.90f, 16.0f / 9.0f, 0.001f, 1000.0f);
+		glm::mat4 mv_matrix = glm::translate(glm::vec3(0.0f, 0.0f, -4.0f)) * glm::rotate((float)m_time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate((float)m_time * glm::radians(17.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+		glUniformMatrix4fv(10, 1, GL_FALSE, glm::value_ptr(mv_matrix));
+		glUniformMatrix4fv(11, 1, GL_FALSE, glm::value_ptr(proj_matrix));
 
 		if (m_wireframe) {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -243,6 +282,17 @@ struct Application : public Program {
 		
 		glPatchParameteri(GL_PATCH_VERTICES, 16);
 		glDrawArrays(GL_PATCHES, 0, 16);
+
+
+		glUseProgram(m_cp_program);
+		glUniformMatrix4fv(12, 1, GL_FALSE, glm::value_ptr(proj_matrix * mv_matrix));
+		glPointSize(9.0f);
+		//Render control points
+		glDrawArrays(GL_POINTS, 0, 16);
+		//Render lines
+		glDrawElements(GL_LINES, 48, GL_UNSIGNED_SHORT, NULL);
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
