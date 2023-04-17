@@ -177,6 +177,9 @@
     <ClCompile Include="bluebook\Chapter8\Displacement_Maps.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\Chapter8\Cubic_Bezier_Patches.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">

@@ -178,6 +178,7 @@
     <ClCompile Include="bluebook\Chapter7\Variable_Point_Size.cpp" />
     <ClCompile Include="bluebook\Chapter7\Vertex_Attrib_Divisor.cpp" />
     <ClCompile Include="bluebook\Chapter7\Vertex_Shader_Inputs.cpp" />
+    <ClCompile Include="bluebook\Chapter8\Cubic_Bezier_Patches.cpp" />
     <ClCompile Include="bluebook\Chapter8\Displacement_Maps.cpp" />
     <ClCompile Include="bluebook\Chapter8\Tesselation_Modes.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />

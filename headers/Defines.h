@@ -11,5 +11,5 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 //Current Project
-#define DISPLACEMENT_MAPS
+#define CUBIC_BEZIER_PATCHES
 
