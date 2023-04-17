@@ -183,6 +183,9 @@
     <ClCompile Include="bluebook\Chapter8\Pass_Through_Geometry_Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\Chapter8\Geometry_Backface_Culling.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">
