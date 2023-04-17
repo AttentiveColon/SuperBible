@@ -1,5 +1,5 @@
 #include "Defines.h"
-#ifdef GEOMETRY_FRONTFACE_CULLING
+#ifdef GEOMETRY_EXPLOSION_SHADER
 #include "System.h"
 #include "Texture.h"
 #include "Model.h"
@@ -38,6 +38,9 @@ layout (max_vertices = 3) out;
 layout (location = 12)
 uniform mat4 mvp;
 
+layout (location = 13)
+uniform float explosion_factor;
+
 in VS_OUT
 {
 	vec2 uv;
@@ -54,20 +57,14 @@ void main()
 	vec3 ac = gl_in[2].gl_Position.xyz - gl_in[0].gl_Position.xyz;
 	vec3 normal = normalize(cross(ab, ac));
 
-	vec3 transformed_normal = (vec4(normal, 0.0) * mvp).xyz;
-
-	float d = normal.z;
-
-	if (d < 0.0)
+	for (int i = 0; i < gl_in.length(); ++i)
 	{
-		for (int i = 0; i < gl_in.length(); ++i)
-		{
-			gl_Position = gl_in[i].gl_Position;
-			gs_out.uv = gs_in[i].uv;
-			EmitVertex();
-		}
-		EndPrimitive();
+		gl_Position = gl_in[i].gl_Position + vec4(explosion_factor * -normal, 0.0);
+		gs_out.uv = gs_in[i].uv;
+		EmitVertex();
 	}
+	EndPrimitive();
+	
 }
 )";
 
@@ -147,12 +144,14 @@ struct Application : public Program {
 
 	GLuint m_vao;
 
+	float m_explosion_factor = 1.0f;
+
 	SB::Camera m_camera;
 	bool m_input_mode = false;
 
 
 	bool m_wireframe = false;
-
+	
 
 
 	Application()
@@ -163,10 +162,12 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+		
 
 		m_program = LoadShaders(shader_text);
 
-		SB::ModelDump("./resources/cube.glb");
+		//SB::ModelDump("./resources/cube.glb");
 
 		glGenVertexArrays(1, &m_vao);
 		glBindVertexArray(m_vao);
@@ -210,6 +211,7 @@ struct Application : public Program {
 		glUseProgram(m_program);
 		glBindVertexArray(m_vao);
 		glUniformMatrix4fv(12, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
+		glUniform1f(13, m_explosion_factor);
 		glDrawElements(GL_TRIANGLES, sizeof(buffer_indices) / sizeof(buffer_indices[0]), GL_UNSIGNED_INT, NULL);
 	}
 	void OnGui() {
@@ -218,6 +220,7 @@ struct Application : public Program {
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::Checkbox("Wireframe", &m_wireframe);
+		ImGui::SliderFloat("ExplosionFactor", &m_explosion_factor, 0.0f, 15.0f);
 		ImGui::End();
 	}
 };
@@ -235,4 +238,4 @@ SystemConf config = {
 };
 
 MAIN(config)
-#endif //GEOMETRY_FRONTFACE_CULLING
+#endif //GEOMETRY_EXPLOSION_SHADER
