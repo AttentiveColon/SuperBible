@@ -3,6 +3,7 @@
 #include "System.h"
 #include "Texture.h"
 #include "Model.h"
+#include "Mesh.h"
 
 
 static const GLchar* vertex_shader_source = R"(
@@ -13,9 +14,6 @@ in vec3 position;
 layout (location = 1)
 in vec2 uv;
 
-layout (location = 12)
-uniform mat4 mvp;
-
 out VS_OUT
 {
 	vec2 uv;
@@ -23,7 +21,7 @@ out VS_OUT
 
 void main()
 {
-	gl_Position = mvp * vec4(position, 1.0);
+	gl_Position = vec4(position, 1.0);
 	vs_out.uv = uv;
 }
 )";
@@ -53,13 +51,13 @@ out GS_OUT
 
 void main()
 {
-	vec3 ab = gl_in[1].gl_Position.xyz - gl_in[0].gl_Position.xyz;
-	vec3 ac = gl_in[2].gl_Position.xyz - gl_in[0].gl_Position.xyz;
-	vec3 normal = normalize(cross(ab, ac));
+	vec3 ab = gl_in[2].gl_Position.xyz - gl_in[0].gl_Position.xyz;
+	vec3 ac = gl_in[1].gl_Position.xyz - gl_in[0].gl_Position.xyz;
+	vec3 normal = -normalize(cross(ab, ac));
 
 	for (int i = 0; i < gl_in.length(); ++i)
 	{
-		gl_Position = gl_in[i].gl_Position + vec4(explosion_factor * -normal, 0.0);
+		gl_Position = mvp * (gl_in[i].gl_Position + vec4(explosion_factor * normal, 0.0));
 		gs_out.uv = gs_in[i].uv;
 		EmitVertex();
 	}
@@ -151,7 +149,7 @@ struct Application : public Program {
 
 
 	bool m_wireframe = false;
-	
+	ObjMesh m_mesh;
 
 
 	Application()
@@ -161,13 +159,15 @@ struct Application : public Program {
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
+		glFrontFace(GL_CCW);
 		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LEQUAL);
+		glDepthFunc(GL_LESS);
 		
 
 		m_program = LoadShaders(shader_text);
 
 		//SB::ModelDump("./resources/cube.glb");
+		m_mesh.Load_OBJ("./resources/monkey.obj");
 
 		glGenVertexArrays(1, &m_vao);
 		glBindVertexArray(m_vao);
@@ -207,12 +207,16 @@ struct Application : public Program {
 	void OnDraw() {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
+		
+		
 
 		glUseProgram(m_program);
 		glBindVertexArray(m_vao);
 		glUniformMatrix4fv(12, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
 		glUniform1f(13, m_explosion_factor);
-		glDrawElements(GL_TRIANGLES, sizeof(buffer_indices) / sizeof(buffer_indices[0]), GL_UNSIGNED_INT, NULL);
+		//glDrawElements(GL_TRIANGLES, sizeof(buffer_indices) / sizeof(buffer_indices[0]), GL_UNSIGNED_INT, NULL);
+
+		m_mesh.OnDraw();
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
