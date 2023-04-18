@@ -11,5 +11,5 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 //Current Project
-#define POINTS_TO_CUBES
+#define GENERATING_GEOMETRY
 

@@ -180,6 +180,7 @@
     <ClCompile Include="bluebook\Chapter7\Vertex_Shader_Inputs.cpp" />
     <ClCompile Include="bluebook\Chapter8\Cubic_Bezier_Patches.cpp" />
     <ClCompile Include="bluebook\Chapter8\Displacement_Maps.cpp" />
+    <ClCompile Include="bluebook\Chapter8\Generating_Geometry.cpp" />
     <ClCompile Include="bluebook\Chapter8\Geometry_Explosion_Shader.cpp" />
     <ClCompile Include="bluebook\Chapter8\Geometry_Frontface_Culling.cpp" />
     <ClCompile Include="bluebook\Chapter8\Pass_Through_Geometry_Shader.cpp" />

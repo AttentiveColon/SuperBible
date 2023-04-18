@@ -213,7 +213,7 @@ struct Application : public Program {
 		glUseProgram(m_program);
 		glBindVertexArray(m_vao);
 		glUniformMatrix4fv(12, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
-		glUniform1f(13, m_explosion_factor);
+		glUniform1f(13, m_stretch_factor);
 		//glDrawElements(GL_TRIANGLES, sizeof(buffer_indices) / sizeof(buffer_indices[0]), GL_UNSIGNED_INT, NULL);
 
 		m_mesh.OnDraw();
@@ -224,7 +224,7 @@ struct Application : public Program {
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::Checkbox("Wireframe", &m_wireframe);
-		ImGui::SliderFloat("ExplosionFactor", &m_explosion_factor, 0.0f, 15.0f);
+		ImGui::SliderFloat("ExplosionFactor", &m_stretch_factor, 0.0f, 15.0f);
 		ImGui::End();
 	}
 };
