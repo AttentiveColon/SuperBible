@@ -51,27 +51,48 @@ const vec4 offsets[] = {
 	vec4(1.0, -1.0, 1.0, 1.0)
 };
 
+const vec2 uvs[] = {
+	vec2(0.0, 1.0),
+	vec2(0.0, 0.0),
+	vec2(1.0, 1.0),
+	vec2(1.0, 0.0)
+};
+
+const vec2 uvs2[] = {
+	vec2(1.0, 0.0),
+	vec2(0.0, 0.0),
+	vec2(0.0, 0.0),
+	vec2(1.0, 0.0)
+};
+
+const vec2 uvs3[] = {
+	vec2(1.0, 1.0),
+	vec2(0.0, 1.0),
+	vec2(0.0, 1.0),
+	vec2(1.0, 1.0)
+};
+
 void main()
 {
 	vec4 position = gl_in[0].gl_Position;
 	for (int i = 0; i < 10; ++i)
 	{
 		gl_Position = mvp * (position + offsets[i]);
-		gs_out.uv = vec2(1.0, 1.0);
+		gs_out.uv = uvs[i % 4];
 		EmitVertex();
 	}
 	EndPrimitive();
 	for (int i = 10; i < 14; ++i)
 	{
 		gl_Position = mvp * (position + offsets[i]);
-		gs_out.uv = vec2(1.0, 1.0);
+		gs_out.uv = uvs2[i % 4];
 		EmitVertex();
 	}
 	EndPrimitive();
 	for (int i = 14; i < 18; ++i)
 	{
 		gl_Position = mvp * (position + offsets[i]);
-		gs_out.uv = vec2(1.0, 1.0);
+		gs_out.uv = uvs3[i % 4];
 		EmitVertex();
 	}
 	EndPrimitive();
@@ -90,7 +111,7 @@ in GS_OUT
 
 void main()
 {
-	color = vec4(gl_FragCoord.x, gl_FragCoord.y, 1.0, 1.0);
+	color = vec4(fs_in.uv.x, fs_in.uv.y, 1.0, 1.0);
 }
 )";
 
@@ -148,12 +169,11 @@ struct Application : public Program {
 	void OnDraw() {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		glPointSize(15.0f);
 
 		glBindVertexArray(m_vao);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glUseProgram(m_program);
 		glUniformMatrix4fv(12, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glDrawArrays(GL_POINTS, 0, 1);
 	}
 	void OnGui() {
