@@ -207,6 +207,9 @@
     <ClCompile Include="bluebook\Chapter9\Stencil_Test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\Chapter9\Depth_Clamping.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">
