@@ -1,5 +1,5 @@
 #include "Defines.h"
-#ifdef DEPTH_CLAMPING
+#ifdef BLENDING_EXAMPLES
 #include "System.h"
 #include "Texture.h"
 #include "Model.h"
@@ -58,6 +58,31 @@ static ShaderText shader_text[] = {
 	{GL_NONE, NULL, NULL}
 };
 
+static const GLenum blend_func[] = {
+	GL_ZERO,
+	GL_ONE,
+	GL_SRC_COLOR,
+	GL_ONE_MINUS_SRC_COLOR,
+	GL_DST_COLOR,
+	GL_ONE_MINUS_DST_COLOR,
+	GL_SRC_ALPHA,
+	GL_ONE_MINUS_SRC_ALPHA,
+	GL_DST_ALPHA,
+	GL_ONE_MINUS_DST_ALPHA,
+	GL_CONSTANT_COLOR,
+	GL_ONE_MINUS_CONSTANT_COLOR,
+	GL_CONSTANT_ALPHA,
+	GL_ONE_MINUS_CONSTANT_ALPHA,
+	GL_SRC_ALPHA_SATURATE,
+	GL_SRC1_COLOR,
+	GL_ONE_MINUS_SRC1_COLOR,
+	GL_SRC1_ALPHA,
+	GL_ONE_MINUS_SRC1_ALPHA
+};
+
+static const int num_blend_funcs = sizeof(blend_func) / sizeof(blend_func[0]);
+static const float x_scale = 20.0f / float(num_blend_funcs);
+static const float y_scale = 16.0f / float(num_blend_funcs);
 
 struct Application : public Program {
 	float m_clear_color[4];
@@ -72,28 +97,27 @@ struct Application : public Program {
 
 
 	bool m_wireframe = false;
-	bool m_depth_clamp = true;
 	ObjMesh m_cube;
-	glm::vec3 m_cube_pos = glm::vec3(0.0f, 0.0f, 1.0f);
+	glm::vec3 m_cube_pos = glm::vec3(0.0f, 0.0f, 0.0f);
 
 
 	Application()
-		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
+		:m_clear_color{ 0.6f, 0.4f, 0.1f, 1.0f },
 		m_fps(0),
 		m_time(0.0)
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
-		glFrontFace(GL_CCW);
 		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
-		
+		glDepthFunc(GL_LEQUAL);
+		glEnable(GL_CULL_FACE);
+
 
 		m_program = LoadShaders(shader_text);
 
 		m_cube.Load_OBJ("./resources/cube.obj");
 
-		m_camera = SB::Camera("Camera", glm::vec3(1.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 1.1, 1000.0);
+		m_camera = SB::Camera("Camera", glm::vec3(1.0f, 2.0f, 5.0f), glm::vec3(1.0f, 1.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 1.1, 1000.0);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
@@ -113,14 +137,7 @@ struct Application : public Program {
 	void OnDraw() {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		glCullFace(GL_BACK);
-
-		if (m_depth_clamp) {
-			glEnable(GL_DEPTH_CLAMP);
-		}
-		else {
-			glDisable(GL_DEPTH_CLAMP);
-		}
+		
 
 		if (m_wireframe) {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -128,11 +145,19 @@ struct Application : public Program {
 		else {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
-
 		glUseProgram(m_program);
 		glUniformMatrix4fv(12, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
-		glUniform3fv(13, 1, glm::value_ptr(m_cube_pos));
-		m_cube.OnDraw();
+
+		glEnable(GL_BLEND);
+		glBlendColor(0.2f, 0.5f, 0.7f, 0.5f);
+		for (int j = 0; j < num_blend_funcs; ++j) {
+			for (int i = 0; i < num_blend_funcs; ++i) {
+				m_cube_pos = glm::vec3(x_scale * float(i) * 4.0, y_scale * float(j) * 4.0, -25.0f);
+				glUniform3fv(13, 1, glm::value_ptr(m_cube_pos));
+				glBlendFunc(blend_func[i], blend_func[j]);
+				m_cube.OnDraw();
+			}
+		}
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
@@ -140,8 +165,6 @@ struct Application : public Program {
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::Checkbox("Wireframe", &m_wireframe);
-		ImGui::Checkbox("DepthClamp", &m_depth_clamp);
-		ImGui::DragFloat3("Cube Position", glm::value_ptr(m_cube_pos), 0.1f, -5.0f, 5.0f);
 		ImGui::End();
 	}
 };
@@ -159,4 +182,4 @@ SystemConf config = {
 };
 
 MAIN(config)
-#endif //DEPTH_CLAMPING
+#endif //BLENDING_EXAMPLES
