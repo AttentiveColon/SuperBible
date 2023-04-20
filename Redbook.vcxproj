@@ -189,6 +189,7 @@
     <ClCompile Include="bluebook\Chapter8\Pass_Through_Geometry_Shader.cpp" />
     <ClCompile Include="bluebook\Chapter8\Points_To_Cubes.cpp" />
     <ClCompile Include="bluebook\Chapter8\Tesselation_Modes.cpp" />
+    <ClCompile Include="bluebook\Chapter9\Stencil_Test.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />
     <ClCompile Include="source\boilerplate_main.cpp" />
     <ClCompile Include="source\Mesh.cpp" />

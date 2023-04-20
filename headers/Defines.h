@@ -11,5 +11,5 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 //Current Project
-#define MULTI_VIEWPORT
+#define STENCIL_TEST
 
