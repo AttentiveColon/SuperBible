@@ -1,5 +1,5 @@
 #include "Defines.h"
-#ifdef BLENDING_EXAMPLES
+#ifdef BLENDING_MASKING_EXAMPLES
 #include "System.h"
 #include "Texture.h"
 #include "Model.h"
@@ -100,6 +100,8 @@ struct Application : public Program {
 	ObjMesh m_cube;
 	glm::vec3 m_cube_pos = glm::vec3(0.0f, 0.0f, 0.0f);
 
+	bool m_masks[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
+
 
 	Application()
 		:m_clear_color{ 0.6f, 0.4f, 0.1f, 1.0f },
@@ -138,6 +140,7 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
 		
+		glColorMask(m_masks[0], m_masks[1], m_masks[2], m_masks[3]);
 
 		if (m_wireframe) {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -158,6 +161,8 @@ struct Application : public Program {
 				m_cube.OnDraw();
 			}
 		}
+
+		glColorMask(true, true, true, true);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
@@ -165,6 +170,10 @@ struct Application : public Program {
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::Checkbox("Wireframe", &m_wireframe);
+		ImGui::Checkbox("Red Mask", &m_masks[0]);
+		ImGui::Checkbox("Green Mask", &m_masks[1]);
+		ImGui::Checkbox("Blue Mask", &m_masks[2]);
+		ImGui::Checkbox("Alpha Mask", &m_masks[3]);
 		ImGui::End();
 	}
 };
@@ -182,4 +191,4 @@ SystemConf config = {
 };
 
 MAIN(config)
-#endif //BLENDING_EXAMPLES
+#endif //BLENDING_MASKING_EXAMPLES

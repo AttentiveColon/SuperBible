@@ -210,7 +210,7 @@
     <ClCompile Include="bluebook\Chapter9\Depth_Clamping.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bluebook\Chapter9\Blending_Examples.cpp">
+    <ClCompile Include="bluebook\Chapter9\Blending_Masking_Examples.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
