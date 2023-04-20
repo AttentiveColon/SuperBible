@@ -9,8 +9,17 @@
 static const GLchar* vertex_shader_source = R"(
 #version 450 core
 
-layout (location = 12)
+layout (std140, binding = 0)
+uniform default_block
+{
+	mat4 mvp_matrix[4];
+};
+
+layout (location = 9)
 uniform mat4 mvp;
+layout (location = 13)
+uniform int viewport_index;
+
 uniform int vid_offset = 0;
 
 out VS_OUT
@@ -30,7 +39,7 @@ void main(void)
                                  vec4(0.0, 0.0, 0.0, 1.0),
                                  vec4(1.0, 1.0, 1.0, 1.0));
 
-    gl_Position = mvp * vertices[(gl_VertexID + vid_offset) % 4];
+    gl_Position = mvp_matrix[viewport_index] * vertices[(gl_VertexID + vid_offset) % 4];
     vs_out.color = colors[gl_VertexID];
 }
 )";
@@ -154,12 +163,10 @@ struct Application : public Program {
 
 	GLuint m_program;
 	GLuint m_vao;
+	GLuint m_uniform_buffer;
 
-
-	float m_stretch_factor = 0.667f;
-
-	SB::Camera m_camera;
-	bool m_input_mode = false;
+	SB::Camera m_camera[4];
+	int m_active_window = 0;
 
 	bool m_wireframe = false;
 
@@ -182,22 +189,49 @@ struct Application : public Program {
 		glBindVertexArray(m_vao);
 
 
-		m_camera = SB::Camera("Camera", glm::vec3(1.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+		m_camera[0] = SB::Camera("Camera", glm::vec3(1.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+		m_camera[1] = SB::Camera("Camera", glm::vec3(1.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+		m_camera[2] = SB::Camera("Camera", glm::vec3(1.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+		m_camera[3] = SB::Camera("Camera", glm::vec3(1.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+
+		glGenBuffers(1, &m_uniform_buffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, m_uniform_buffer);
+		glBufferData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 		m_window_size = window.GetWindowDimensions();
 
-		if (m_input_mode) {
-			m_camera.OnUpdate(input, 3.0f, 0.2f, dt);
+		float viewport_width = (float)(7 * m_window_size.width) / 16.0f;
+		float viewport_height = (float)(7 * m_window_size.height) / 16.0f;
+
+		if (input.MousePressed(GLFW_MOUSE_BUTTON_3)) {
+			MousePos mp = input.GetMousePos();
+
+			if ((0 < mp.x && mp.x < viewport_width) && (m_window_size.height - viewport_height < mp.y && mp.y < m_window_size.height)) m_active_window = 0;
+			else if ((m_window_size.width - viewport_width < mp.x && mp.x < m_window_size.width) && (m_window_size.height - viewport_height < mp.y && mp.y < m_window_size.height)) m_active_window = 1;
+			else if ((0 < mp.x && mp.x < viewport_width) && (0 < mp.y && mp.y < viewport_height)) m_active_window = 2;
+			else if ((m_window_size.width - viewport_width < mp.x && mp.x < m_window_size.width) && (0 < mp.y && mp.y < viewport_height)) m_active_window = 3;
+			else m_active_window = -1;
+		}
+		if (input.MouseHeld(GLFW_MOUSE_BUTTON_3)) {
+			if (m_active_window != -1) {
+				input.SetRawMouseMode(window.GetHandle(), true);
+				m_camera[m_active_window].OnUpdate(input, 3.0f, 0.2f, dt);
+			}
+		}
+		else {
+			input.SetRawMouseMode(window.GetHandle(), false);
 		}
 
-		//Implement Camera Movement Functions
-		if (input.Pressed(GLFW_KEY_LEFT_CONTROL)) {
-			m_input_mode = !m_input_mode;
-			input.SetRawMouseMode(window.GetHandle(), m_input_mode);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_uniform_buffer);
+		glm::mat4* mvp_array = (glm::mat4*)glMapBufferRange(GL_UNIFORM_BUFFER, 0, 4 * sizeof(glm::mat4), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+		for (int i = 0; i < 4; ++i) {
+			mvp_array[i] = m_camera[i].ViewProj();
 		}
+		glUnmapBuffer(GL_UNIFORM_BUFFER);
+		
 	}
 	void OnDraw() {
 		glViewport(0, 0, m_window_size.width, m_window_size.height);
@@ -244,7 +278,9 @@ struct Application : public Program {
 		}
 
 		glUseProgram(m_program);
-		glUniformMatrix4fv(12, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
+
+
+		glUniformMatrix4fv(9, 1, GL_FALSE, glm::value_ptr(m_camera[0].ViewProj()));
 		for (int i = 0; i < 4; ++i) {
 			glUniform1i(13, i);
 			glDrawArrays(GL_LINES_ADJACENCY, 0, 4);
