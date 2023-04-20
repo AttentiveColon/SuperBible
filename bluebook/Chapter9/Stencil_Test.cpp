@@ -134,7 +134,7 @@ struct Application : public Program {
 		m_cube.OnDraw();
 
 		glStencilFuncSeparate(GL_FRONT_AND_BACK, GL_LEQUAL, 1, 0xff);
-		glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_KEEP);
+		glStencilOpSeparate(GL_FRONT_AND_BACK, GL_KEEP, GL_KEEP, GL_KEEP);
 
 		glUniform3fv(13, 1, glm::value_ptr(m_monkey_pos));
 		m_monkey.OnDraw();
