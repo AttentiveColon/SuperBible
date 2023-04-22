@@ -65,7 +65,8 @@ struct Application : public Program {
 	f64 m_time;
 
 	GLuint m_program;
-	PostProcess m_post_process;
+	PostProcess m_post_process_crt;
+	PostProcess m_post_process_vhs;
 
 	SB::Camera m_camera;
 	bool m_input_mode = false;
@@ -75,6 +76,8 @@ struct Application : public Program {
 	glm::vec3 m_cube_pos = glm::vec3(0.0f, 0.0f, 1.0f);
 
 	bool m_recompile = false;
+
+	glm::ivec2 m_resolution;
 
 
 	Application()
@@ -91,18 +94,22 @@ struct Application : public Program {
 
 		m_program = LoadShaders(shader_text);
 
-		m_post_process.Init("./shaders/post_process_test.frag", window.GetWindowDimensions().width, window.GetWindowDimensions().height);
+		m_post_process_crt.Init("./shaders/post_process_crt.frag", window.GetWindowDimensions().width, window.GetWindowDimensions().height);
+		m_post_process_vhs.Init("./shaders/post_process_vhs.frag", window.GetWindowDimensions().width, window.GetWindowDimensions().height);
 
-		m_cube.Load_OBJ("./resources/cube.obj");
+		m_cube.Load_OBJ("./resources/basic_scene.obj");
 
 		m_camera = SB::Camera("Camera", glm::vec3(1.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+
+		m_resolution = glm::ivec2(window.GetWindowDimensions().width, window.GetWindowDimensions().height);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 
 		if (m_recompile) {
-			m_post_process.Init("./shaders/post_process_test.frag", window.GetWindowDimensions().width, window.GetWindowDimensions().height);
+			m_post_process_crt.Init("./shaders/post_process_crt.frag", window.GetWindowDimensions().width, window.GetWindowDimensions().height);
+			m_post_process_vhs.Init("./shaders/post_process_vhs.frag", window.GetWindowDimensions().width, window.GetWindowDimensions().height);
 			m_recompile = false;
 		}
 
@@ -120,12 +127,27 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
-		m_post_process.StartFrame(m_clear_color);
+		float time = (float)m_time;
+		glm::ivec2 resolution = m_resolution;
 
+		m_post_process_crt.StartFrame(m_clear_color);
 		RenderScene();
+		m_post_process_crt.EndFrame(m_clear_color);
 
-		m_post_process.EndFrame(m_clear_color);
-		m_post_process.PresentFrame();
+
+		m_post_process_crt.SetUniform("u_time", &time);
+		m_post_process_crt.SetUniform("u_resolution", &resolution);
+
+		m_post_process_vhs.StartFrame(m_clear_color);
+		m_post_process_crt.PresentFrame();
+		m_post_process_vhs.EndFrame(m_clear_color);
+
+		m_post_process_vhs.SetUniform("u_time", &time);
+		m_post_process_vhs.SetUniform("u_resolution", &resolution);
+
+		m_post_process_vhs.PresentFrame();
+
+		glUseProgram(0);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
@@ -156,14 +178,14 @@ struct Application : public Program {
 };
 
 SystemConf config = {
-		1600,					//width
-		900,					//height
+		1080,					//width
+		720,					//height
 		300,					//Position x
 		200,					//Position y
 		"Application",			//window title
 		false,					//windowed fullscreen
 		false,					//vsync
-		144,					//framelimit
+		30,					//framelimit
 		"resources/Icon.bmp"	//icon path
 };
 

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <fstream>
 #include <string>
+#include <vector>
 
 static const GLchar* default_vertex_shader_source = R"(
 #version 450 core
@@ -54,21 +55,6 @@ static ShaderText default_shader_text[] = {
 	{GL_NONE, NULL, NULL}
 };
 
-//std::string ReadShader(const char* filename) {
-//	std::ifstream ifs;
-//	ifs.open(filename);
-//
-//	if (!ifs.is_open()) {
-//		std::cerr << "Unable to open file '" << filename << "'" << std::endl;
-//		return std::string("");
-//	}
-//
-//	std::stringstream ss;
-//	ss << ifs.rdbuf();
-//	return ss.str();
-//}
-
-
 struct PostProcess {
 	GLuint m_program;
 	GLuint m_fbo;
@@ -77,11 +63,20 @@ struct PostProcess {
 
 	GLuint m_default_program;
 
-	PostProcess() :m_program(0), m_fbo(0), m_texture(0), m_depth(0), m_default_program(0) {}
+	//Uniform information
+	GLint m_uniform_count;
+	std::vector<std::string> m_uniform_names;
+	std::vector<GLenum> m_uniform_types;
+	std::vector<GLuint> m_uniform_locations;
+
+	PostProcess() :m_program(0), m_fbo(0), m_texture(0), m_depth(0), m_default_program(0), m_uniform_count(0) {}
 	void Init(const char* fragment_shader_filename, int window_width, int window_height);
 	void StartFrame(float clear_color[4]);
 	void EndFrame(float clear_color[4]);
+	void ReadyFrame();
 	void PresentFrame();
+
+	void SetUniform(const char* name, void* value);
 };
 
 void PostProcess::Init(const char* fragment_shader_filename, int window_width, int window_height) {
@@ -89,8 +84,6 @@ void PostProcess::Init(const char* fragment_shader_filename, int window_width, i
 
 	std::ifstream ifs;
 	std::stringstream ss;
-	ifs.clear();
-	ss.clear();
 	ifs.open(fragment_shader_filename);
 
 	if (!ifs.is_open()) {
@@ -114,8 +107,24 @@ void PostProcess::Init(const char* fragment_shader_filename, int window_width, i
 			m_program = m_default_program;
 		}
 	}
+
+	//Determine Uniform Data
+	glGetProgramiv(m_program, GL_ACTIVE_UNIFORMS, &m_uniform_count);
+	for (size_t i = 0; i < m_uniform_count; ++i) {
+		const GLsizei bufSize = 256;
+		GLchar name[bufSize];
+		GLsizei length;
+		GLint size;
+		GLenum type;
+		glGetActiveUniform(m_program, i, bufSize, &length, &size, &type, name);
+		GLint location = glGetUniformLocation(m_program, name);
+
+		std::cout << type << std::endl;
+		m_uniform_names.push_back(std::string(name));
+		m_uniform_types.push_back(type);
+		m_uniform_locations.push_back(location);
+	}
 	
-	ifs.close();
 	if (m_fbo) return;
 
 	static const GLenum draw_buffers[] = { GL_COLOR_ATTACHMENT0 };
@@ -158,9 +167,34 @@ void PostProcess::EndFrame(float clear_color[4]) {
 	glClear(GL_STENCIL_BUFFER_BIT);
 }
 
+void PostProcess::ReadyFrame() {
+	glUseProgram(m_program);
+}
+
 void PostProcess::PresentFrame() {
 	glUseProgram(m_program);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTextureUnit(0, m_texture);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void PostProcess::SetUniform(const char* name, void* value) {
+	glUseProgram(m_program);
+	std::string string_name = std::string(name);
+	for (size_t i = 0; i < m_uniform_names.size(); ++i) {
+		if (string_name == m_uniform_names[i]) {
+			switch (m_uniform_types[i]) {
+			case GL_FLOAT:
+				glUniform1f(m_uniform_locations[i], *(float*)value);
+				return;
+			case GL_INT_VEC2:
+				glUniform2iv(m_uniform_locations[i], 1, (int*)value);
+				return;
+			default:
+				std::cerr << "Unsupported Uniform Type" << std::endl;
+			}
+
+		}
+	}
+	std::cerr << "Uniform name: " << name << " doesn't exist or was optimized away." << std::endl;
 }
