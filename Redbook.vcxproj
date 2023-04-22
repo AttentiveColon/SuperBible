@@ -219,6 +219,7 @@
     <ClInclude Include="headers\GL_Helpers.h" />
     <ClInclude Include="headers\Model.h" />
     <ClInclude Include="headers\Mesh.h" />
+    <ClInclude Include="headers\PostProcess.h" />
     <ClInclude Include="headers\System.h" />
     <ClInclude Include="headers\Texture.h" />
     <ClInclude Include="ThirdParty\glew-2.1.0\include\GL\eglew.h" />
