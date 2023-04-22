@@ -193,6 +193,7 @@
     <ClCompile Include="bluebook\Chapter9\Depth_Clamping.cpp" />
     <ClCompile Include="bluebook\Chapter9\Multiple_Framebuffer_Attachments.cpp" />
     <ClCompile Include="bluebook\Chapter9\Off_Screen_Rendering.cpp" />
+    <ClCompile Include="bluebook\Chapter9\Post_Processing.cpp" />
     <ClCompile Include="bluebook\Chapter9\Stencil_Test.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />
     <ClCompile Include="source\boilerplate_main.cpp" />

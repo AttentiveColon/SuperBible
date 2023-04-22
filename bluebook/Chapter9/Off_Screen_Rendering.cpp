@@ -125,9 +125,12 @@ struct Application : public Program {
 
 	bool m_wireframe = false;
 	ObjMesh m_cube;
+	ObjMesh m_monkey;
 	glm::vec3 m_cube_pos = glm::vec3(0.0f, 0.0f, 0.0f);
 
 	bool m_masks[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
+
+	bool m_flip = true;
 
 
 	Application()
@@ -164,6 +167,7 @@ struct Application : public Program {
 		m_program2 = LoadShaders(shader_text2);
 
 		m_cube.Load_OBJ("./resources/cube.obj");
+		m_monkey.Load_OBJ("./resources/monkey.obj");
 
 		m_camera = SB::Camera("Camera", glm::vec3(1.0f, 2.0f, 5.0f), glm::vec3(1.0f, 1.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 1.1, 1000.0);
 	}
@@ -234,7 +238,14 @@ struct Application : public Program {
 				m_cube_pos = glm::vec3(x_scale * float(i) * 4.0, y_scale * float(j) * 4.0, -25.0f);
 				glUniform3fv(13, 1, glm::value_ptr(m_cube_pos));
 				glBlendFunc(blend_func[i], blend_func[j]);
-				m_cube.OnDraw();
+				if (m_flip) {
+					m_cube.OnDraw();
+					m_flip = !m_flip;
+				}
+				else {
+					m_monkey.OnDraw();
+					m_flip = !m_flip;
+				}
 			}
 		}
 		glColorMask(true, true, true, true);
