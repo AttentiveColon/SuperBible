@@ -67,6 +67,8 @@ struct Application : public Program {
 	GLuint m_program;
 	PostProcess m_post_process_crt;
 	PostProcess m_post_process_vhs;
+	PostProcess m_post_process_film_grain;
+	PostProcess m_post_process_chroma_shift;
 
 	SB::Camera m_camera;
 	bool m_input_mode = false;
@@ -79,6 +81,13 @@ struct Application : public Program {
 
 	glm::ivec2 m_resolution;
 
+	float m_vhs_rate = 1.0f;
+	float m_film_grain_strength = 16.0f;
+
+	bool m_disable_crt = false;
+	bool m_disable_vhs = false;
+	bool m_disable_film_grain = false;
+	bool m_disable_chroma_shift = false;
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
@@ -91,25 +100,29 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 
+		m_resolution = glm::ivec2(window.GetWindowDimensions().width, window.GetWindowDimensions().height);
 
 		m_program = LoadShaders(shader_text);
 
-		m_post_process_crt.Init("./shaders/post_process_crt.frag", window.GetWindowDimensions().width, window.GetWindowDimensions().height);
-		m_post_process_vhs.Init("./shaders/post_process_vhs.frag", window.GetWindowDimensions().width, window.GetWindowDimensions().height);
+		m_post_process_crt.Init("./shaders/post_process_crt.frag", m_resolution.x, m_resolution.y);
+		m_post_process_vhs.Init("./shaders/post_process_vhs.frag", m_resolution.x, m_resolution.y);
+		m_post_process_film_grain.Init("./shaders/post_process_film_grain.frag", m_resolution.x, m_resolution.y);
+		m_post_process_chroma_shift.Init("./shaders/post_process_chroma_shift.frag", m_resolution.x, m_resolution.y);
 
 		m_cube.Load_OBJ("./resources/basic_scene.obj");
 
 		m_camera = SB::Camera("Camera", glm::vec3(1.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
 
-		m_resolution = glm::ivec2(window.GetWindowDimensions().width, window.GetWindowDimensions().height);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
 
 		if (m_recompile) {
-			m_post_process_crt.Init("./shaders/post_process_crt.frag", window.GetWindowDimensions().width, window.GetWindowDimensions().height);
-			m_post_process_vhs.Init("./shaders/post_process_vhs.frag", window.GetWindowDimensions().width, window.GetWindowDimensions().height);
+			m_post_process_crt.Init("./shaders/post_process_crt.frag", m_resolution.x, m_resolution.y);
+			m_post_process_vhs.Init("./shaders/post_process_vhs.frag", m_resolution.x, m_resolution.y);
+			m_post_process_film_grain.Init("./shaders/post_process_film_grain.frag", m_resolution.x, m_resolution.y);
+			m_post_process_chroma_shift.Init("./shaders/post_process_chroma_shift.frag", m_resolution.x, m_resolution.y);
 			m_recompile = false;
 		}
 
@@ -122,6 +135,18 @@ struct Application : public Program {
 			m_input_mode = !m_input_mode;
 			input.SetRawMouseMode(window.GetHandle(), m_input_mode);
 		}
+
+		if (m_disable_crt) m_post_process_crt.Disable();
+		else m_post_process_crt.Enable();
+
+		if (m_disable_vhs) m_post_process_vhs.Disable();
+		else m_post_process_vhs.Enable();
+
+		if (m_disable_film_grain) m_post_process_film_grain.Disable();
+		else m_post_process_film_grain.Enable();
+
+		if (m_disable_chroma_shift) m_post_process_chroma_shift.Disable();
+		else m_post_process_chroma_shift.Enable();
 	}
 	void OnDraw() {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
@@ -134,7 +159,6 @@ struct Application : public Program {
 		RenderScene();
 		m_post_process_crt.EndFrame(m_clear_color);
 
-
 		m_post_process_crt.SetUniform("u_time", &time);
 		m_post_process_crt.SetUniform("u_resolution", &resolution);
 
@@ -144,8 +168,25 @@ struct Application : public Program {
 
 		m_post_process_vhs.SetUniform("u_time", &time);
 		m_post_process_vhs.SetUniform("u_resolution", &resolution);
+		m_post_process_vhs.SetUniform("u_rate", &m_vhs_rate);
 
+		m_post_process_film_grain.StartFrame(m_clear_color);
 		m_post_process_vhs.PresentFrame();
+		m_post_process_film_grain.EndFrame(m_clear_color);
+
+		m_post_process_film_grain.SetUniform("u_time", &time);
+		m_post_process_film_grain.SetUniform("u_resolution", &resolution);
+		m_post_process_film_grain.SetUniform("u_strength", &m_film_grain_strength);
+
+		m_post_process_chroma_shift.StartFrame(m_clear_color);
+		m_post_process_film_grain.PresentFrame();
+		m_post_process_chroma_shift.EndFrame(m_clear_color);
+
+		m_post_process_chroma_shift.SetUniform("u_time", &time);
+		m_post_process_chroma_shift.SetUniform("u_resolution", &resolution);
+
+		m_post_process_chroma_shift.PresentFrame();
+
 
 		glUseProgram(0);
 	}
@@ -156,6 +197,12 @@ struct Application : public Program {
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::Checkbox("Wireframe", &m_wireframe);
 		ImGui::DragFloat3("Cube Position", glm::value_ptr(m_cube_pos), 0.1f, -5.0f, 5.0f);
+		ImGui::Checkbox("Disable CRT", &m_disable_crt);
+		ImGui::Checkbox("Disable VHS", &m_disable_vhs);
+		ImGui::DragFloat("VHS rate", &m_vhs_rate, 0.1f, 0.1f, 10.0f);
+		ImGui::Checkbox("Disable Film Grain", &m_disable_film_grain);
+		ImGui::DragFloat("Film Grain Stength", &m_film_grain_strength, 0.1f, 0.0f, 100.0f);
+		ImGui::Checkbox("Disable Chroma Shift", &m_disable_chroma_shift);
 		if (ImGui::Button("Recompile")) {
 			m_recompile = true;
 		}
@@ -174,6 +221,8 @@ struct Application : public Program {
 		glUniformMatrix4fv(12, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
 		glUniform3fv(13, 1, glm::value_ptr(m_cube_pos));
 		m_cube.OnDraw();
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 };
 

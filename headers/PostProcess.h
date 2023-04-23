@@ -62,6 +62,8 @@ struct PostProcess {
 	GLuint m_depth;
 
 	GLuint m_default_program;
+	GLuint m_disabled_program;
+	GLuint m_enabled_program;
 
 	//Uniform information
 	GLint m_uniform_count;
@@ -69,18 +71,21 @@ struct PostProcess {
 	std::vector<GLenum> m_uniform_types;
 	std::vector<GLuint> m_uniform_locations;
 
-	PostProcess() :m_program(0), m_fbo(0), m_texture(0), m_depth(0), m_default_program(0), m_uniform_count(0) {}
+	PostProcess() :m_program(0), m_fbo(0), m_texture(0), m_depth(0), m_default_program(0), m_disabled_program(0), m_enabled_program(0), m_uniform_count(0) {}
 	void Init(const char* fragment_shader_filename, int window_width, int window_height);
 	void StartFrame(float clear_color[4]);
 	void EndFrame(float clear_color[4]);
 	void ReadyFrame();
 	void PresentFrame();
+	void Enable() { m_program = m_enabled_program; }
+	void Disable() { m_program = m_disabled_program; }
 
 	void SetUniform(const char* name, void* value);
 };
 
 void PostProcess::Init(const char* fragment_shader_filename, int window_width, int window_height) {
 	m_default_program = LoadShaders(default_shader_text);
+	m_disabled_program = m_default_program;
 
 	std::ifstream ifs;
 	std::stringstream ss;
@@ -107,6 +112,7 @@ void PostProcess::Init(const char* fragment_shader_filename, int window_width, i
 			m_program = m_default_program;
 		}
 	}
+	m_enabled_program = m_program;
 
 	//Determine Uniform Data
 	glGetProgramiv(m_program, GL_ACTIVE_UNIFORMS, &m_uniform_count);
@@ -179,6 +185,7 @@ void PostProcess::PresentFrame() {
 }
 
 void PostProcess::SetUniform(const char* name, void* value) {
+	if (m_program == m_disabled_program) return;
 	glUseProgram(m_program);
 	std::string string_name = std::string(name);
 	for (size_t i = 0; i < m_uniform_names.size(); ++i) {

@@ -5,6 +5,7 @@ uniform sampler2D u_texture;
 
 uniform float u_time;
 uniform ivec2 u_resolution;
+uniform float u_rate = 1.0f;
 
 out vec4 color;
 
@@ -40,7 +41,7 @@ void main()
     
     for (float i = 0.0; i < 0.71; i += 0.1313)
     {
-        float d = mod(u_time * i, 1.7);
+        float d = mod(u_time * i * u_rate, 1.7);
         float o = sin(1.0 - tan(u_time * 0.24 * i));
     	o *= offsetIntensity;
         uv.x += verticalBar(d, uv.y, o);

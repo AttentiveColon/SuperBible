@@ -819,7 +819,7 @@
     <None Include="ikpFlac.dll" />
     <None Include="ikpMP3.dll" />
     <None Include="irrKlang.dll" />
-    <None Include="shaders\post_process_vhs.frag" />
+    <None Include="shaders\post_process_chroma_shift.frag" />
     <None Include="ThirdParty\glew-2.1.0\bin\Release\x64\glew32.dll" />
     <None Include="ThirdParty\glfw\lib-vc2022\glfw3.dll" />
     <None Include="ThirdParty\glm\detail\func_common.inl" />
