@@ -231,10 +231,6 @@ struct Application : public Program {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime() * 0.1;
 
-		glm::mat4 mv_matrix = glm::translate(glm::vec3(0.0f, 0.0f, -4.0f)) * glm::rotate((float)m_time * 5.0f, glm::vec3(0.0f, 0.0f, 1.0f)) * glm::rotate((float)m_time * 30.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-		glm::mat4 proj_matrix = glm::perspective(50.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
-		glm::mat4 mvp = proj_matrix * mv_matrix;
-
 		struct UNIFORM_BUFFER
 		{
 			glm::mat4 proj_matrix;
