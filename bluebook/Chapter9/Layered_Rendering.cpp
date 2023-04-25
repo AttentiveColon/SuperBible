@@ -223,7 +223,29 @@ struct Application : public Program {
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_color_attachment, 0);
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_depth_attachment, 0);
 
-		
+		//Check framebuffer completeness
+		GLenum fbo_status = glCheckNamedFramebufferStatus(m_fbo, GL_DRAW_FRAMEBUFFER);
+		switch (fbo_status) {
+		case GL_FRAMEBUFFER_COMPLETE:
+			std::cout << "GL_FRAMEBUFFER_COMPLETE" << std::endl;
+			break;
+		case GL_FRAMEBUFFER_UNDEFINED:
+			std::cout << "GL_FRAMEBUFFER_UNDEFINED" << std::endl;
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+			std::cout << "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT" << std::endl;
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+			std::cout << "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT" << std::endl;
+			break;
+		case GL_FRAMEBUFFER_UNSUPPORTED:
+			std::cout << "GL_FRAMEBUFFER_UNSUPPORTED" << std::endl;
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+			std::cout << "GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS" << std::endl;
+			break;
+		}
+
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
