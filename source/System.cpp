@@ -155,7 +155,15 @@ Window::Window(SystemConf config)
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
 	glfwWindowHint(GLFW_CENTER_CURSOR, GLFW_TRUE);
+#ifdef MSAAOFF
+	glfwWindowHint(GLFW_SAMPLES, 0);
+#endif
+#ifdef MSAA4X
 	glfwWindowHint(GLFW_SAMPLES, 4);
+#endif
+#ifdef MSAA8X
+	glfwWindowHint(GLFW_SAMPLES, 8);
+#endif
 
 	GLFWwindow* handle;
 

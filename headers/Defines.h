@@ -10,6 +10,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
+//Enable MSAA
+//#define MSAAOFF
+#define MSAA4X
+//#define MSAA8X
+
 //Current Project
-#define LAYERED_RENDERING
+#define MULTISAMPLE_TEXTURES
 
