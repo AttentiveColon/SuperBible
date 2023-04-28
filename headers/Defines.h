@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define MULTISAMPLE_TEXTURES
+#define CENTROID_EDGE_FINDER
 
