@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define CENTROID_EDGE_FINDER
+#define SAMPLE_RATE_SHADING
 

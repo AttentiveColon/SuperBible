@@ -234,6 +234,9 @@
     <ClCompile Include="bluebook\Chapter9\Centroid_Edge_Finder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\Chapter9\Sample_Rate_Shading.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">
