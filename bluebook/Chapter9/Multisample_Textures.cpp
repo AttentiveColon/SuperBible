@@ -40,6 +40,9 @@ static const GLchar* fragment_shader_source = R"(
 
 out vec4 color;
 
+layout (binding = 0)
+uniform sampler2D u_texture;
+
 in VS_OUT
 {
 	vec3 normal;
@@ -48,7 +51,8 @@ in VS_OUT
 
 void main()
 {
-	color = vec4(fs_in.uv.x, fs_in.uv.y, 0.0, 1.0);
+	color = texture(u_texture, fs_in.uv);
+	//color = vec4(fs_in.uv.x, fs_in.uv.y, 0.0, 1.0);
 }
 )";
 
@@ -88,6 +92,9 @@ static const GLchar* default_fragment_shader_source = R"(
 layout (binding = 0)
 uniform sampler2DMS u_texture;
 
+layout (location = 0)
+uniform bool u_active;
+
 out vec4 color;
 
 in VS_OUT
@@ -107,6 +114,10 @@ void main()
 		min_result = min(min_result, texelFetch(u_texture, uv, i));
 	}
 	color = max_result - min_result;
+	if (!u_active)
+	{
+		color = texelFetch(u_texture, uv, 0);
+	}
 }
 )";
 
@@ -128,9 +139,11 @@ struct Application : public Program {
 
 	bool m_wireframe = false;
 	ObjMesh m_cube;
+	GLuint m_tex;
 	glm::vec3 m_cube_pos = glm::vec3(0.0f, 0.0f, 1.0f);
 
 	GLuint m_fbo, m_color_ms_tex, m_depth_ms_tex;
+	bool m_active = true;
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
@@ -142,9 +155,10 @@ struct Application : public Program {
 		m_program = LoadShaders(shader_text);
 		m_program2 = LoadShaders(default_shader_text);
 
-		m_cube.Load_OBJ("./resources/monkey.obj");
+		m_cube.Load_OBJ("./resources/cube.obj");
 
 		m_camera = SB::Camera("Camera", glm::vec3(1.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+		m_tex = Load_KTX("./resources/fiona.ktx");
 
 		//Create multisampled color texture
 		glCreateTextures(GL_TEXTURE_2D_MULTISAMPLE, 1, &m_color_ms_tex);
@@ -201,8 +215,9 @@ struct Application : public Program {
 		//Render our multisampled texture
 		//This example renders the color different between the max and min values within the multisampled pixel
 		glUseProgram(m_program2);
-		glActiveTexture(GL_TEXTURE0);
+		//glActiveTexture(GL_TEXTURE0);
 		glBindTextureUnit(0, m_color_ms_tex);
+		glUniform1i(0, m_active);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		glBindTextureUnit(0, 0);
@@ -214,6 +229,7 @@ struct Application : public Program {
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::Checkbox("Wireframe", &m_wireframe);
 		ImGui::DragFloat3("Cube Position", glm::value_ptr(m_cube_pos), 0.1f, -5.0f, 5.0f);
+		ImGui::Checkbox("Multisample Shader Active", &m_active);
 		ImGui::End();
 	}
 
@@ -228,6 +244,7 @@ struct Application : public Program {
 		glUseProgram(m_program);
 		glUniformMatrix4fv(10, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
 		glUniform4fv(11, 1, glm::value_ptr(m_cube_pos));
+		glBindTextureUnit(0, m_tex);
 		m_cube.OnDraw();
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
