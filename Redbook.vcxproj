@@ -196,6 +196,7 @@
     <ClCompile Include="bluebook\Chapter9\Layered_Rendering.cpp" />
     <ClCompile Include="bluebook\Chapter9\Multiple_Framebuffer_Attachments.cpp" />
     <ClCompile Include="bluebook\Chapter9\Multisample_Textures.cpp" />
+    <ClCompile Include="bluebook\Chapter9\No_Attachments.cpp" />
     <ClCompile Include="bluebook\Chapter9\Off_Screen_Rendering.cpp" />
     <ClCompile Include="bluebook\Chapter9\Post_Processing.cpp" />
     <ClCompile Include="bluebook\Chapter9\Sample_Rate_Shading.cpp" />

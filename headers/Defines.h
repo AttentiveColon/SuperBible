@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define SAMPLE_RATE_SHADING
+#define NO_ATTACHMENTS
 
