@@ -16,4 +16,5 @@ struct ObjMesh {
     void Load_OBJ(const char* filename);
     void OnUpdate(f64 dt);
     void OnDraw();
+    void OnDraw(int instances);
 };

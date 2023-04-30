@@ -194,6 +194,7 @@
     <ClCompile Include="bluebook\Chapter9\Centroid_Edge_Finder.cpp" />
     <ClCompile Include="bluebook\Chapter9\Depth_Clamping.cpp" />
     <ClCompile Include="bluebook\Chapter9\Floating_Point_Framebuffers.cpp" />
+    <ClCompile Include="bluebook\Chapter9\HDR_Bloom.cpp" />
     <ClCompile Include="bluebook\Chapter9\Layered_Rendering.cpp" />
     <ClCompile Include="bluebook\Chapter9\Multiple_Framebuffer_Attachments.cpp" />
     <ClCompile Include="bluebook\Chapter9\Multisample_Textures.cpp" />

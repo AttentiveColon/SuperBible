@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define FLOATING_POINT_FRAMEBUFFERS
+#define HDR_BLOOM
 

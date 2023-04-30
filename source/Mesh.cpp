@@ -51,3 +51,8 @@ void ObjMesh::OnDraw() {
 	glBindVertexArray(m_vao);
 	glDrawElements(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0);
 }
+
+void ObjMesh::OnDraw(int instances) {
+	glBindVertexArray(m_vao);
+	glDrawElementsInstanced(GL_TRIANGLES, m_count, GL_UNSIGNED_INT, (void*)0, instances);
+}
