@@ -463,6 +463,13 @@ struct Application : public Program {
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
+        ImGui::DragFloat("Bloom threshold min", &bloom_thresh_min, 0.01f, 0.1f, 1.0f);
+        ImGui::DragFloat("Bloom threshold max", &bloom_thresh_max, 0.01f, 1.0f, 2.0f);
+        ImGui::DragFloat("Exposure", &m_exposure, 0.01f, 0.1f, 5.0f);
+        ImGui::DragFloat("Bloom factor", &m_bloom_factor, 0.01f, 0.1f, 5.0f);
+        ImGui::Checkbox("Show Prefilter", &m_show_prefilter);
+        ImGui::Checkbox("Show Bloom", &m_show_bloom);
+        ImGui::Checkbox("Show Scene", &m_show_scene);
 		ImGui::End();
 	}
 };
