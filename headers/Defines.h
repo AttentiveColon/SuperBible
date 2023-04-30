@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define NO_ATTACHMENTS
+#define FLOATING_POINT_FRAMEBUFFERS
 
