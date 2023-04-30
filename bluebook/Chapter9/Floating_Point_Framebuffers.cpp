@@ -5,80 +5,6 @@
 #include "Model.h"
 #include "Mesh.h"
 
-
-static const GLchar* vertex_shader_source = R"(
-#version 450 core
-
-layout (location = 0)
-in vec3 position;
-layout (location = 1)
-in vec3 normal;
-layout (location = 2)
-in vec2 uv;
-
-layout (location = 10)
-uniform mat4 u_viewproj;
-layout (location = 11)
-uniform vec4 u_model_pos;
-
-out VS_OUT
-{	
-	vec3 normal;
-	vec2 uv;
-} vs_out;
-
-void main()
-{
-	gl_Position = u_viewproj * (u_model_pos + vec4(position, 1.0));
-	vs_out.normal = normal;
-	vs_out.uv = uv;
-}
-)";
-
-static const GLchar* fragment_shader_source = R"(
-#version 450 core
-
-out vec4 color;
-
-layout (binding = 0)
-uniform sampler2D u_texture;
-
-layout (location = 4)
-uniform bool u_active;
-
-in VS_OUT
-{
-	vec3 normal;
-	vec2 uv;
-} fs_in;
-
-void main()
-{
-	vec4 c = texture(u_texture, fs_in.uv);
-
-	vec4 c0 = c;
-	vec4 c1 = c;
-	vec4 c2 = c;
-
-	c0.rgb = vec3(1.0) - exp(-c0.rgb * 1.5);
-	c1.rgb = vec3(1.0) - exp(-c1.rgb * 2.5);
-	c2.rgb = vec3(1.0) - exp(-c2.rgb * 6.5);
-	
-	color = (c0 + c1 + c2) / 3.0;
-
-	if (!u_active)
-	{
-		color = texture(u_texture, fs_in.uv);
-	}
-}
-)";
-
-static ShaderText shader_text[] = {
-	{GL_VERTEX_SHADER, vertex_shader_source, NULL},
-	{GL_FRAGMENT_SHADER, fragment_shader_source, NULL},
-	{GL_NONE, NULL, NULL}
-};
-
 static const GLchar* default_vertex_shader_source = R"(
 #version 450 core
 out VS_OUT
@@ -132,28 +58,83 @@ void main()
 }
 )";
 
+static const GLchar* adaptive_fragment_shader_source = R"(
+#version 450 core
+
+layout (binding = 0)
+uniform sampler2D u_texture;
+
+layout (location = 4)
+uniform bool u_active;
+
+layout (location = 1)
+uniform float u_exposure;
+
+out vec4 color;
+
+in VS_OUT
+{
+	vec2 uv;
+} fs_in;
+
+void main()
+{
+	float lum[25];
+	vec2 tex_scale = vec2(1.0) / textureSize(u_texture, 0);
+
+	for (int i = 0; i < 25; ++i)
+	{
+		vec2 tc = (2.0 * gl_FragCoord.xy + 3.5 * vec2(i % 5 - 2, 5 - 2));
+		vec3 col = texture(u_texture, tc * tex_scale).rgb;
+		lum[i] = dot(col, vec3(0.3, 0.59, 0.11));
+	}
+
+	vec3 vColor = texelFetch(u_texture, ivec2(gl_FragCoord.xy), 0).rgb;
+
+	float kernelLuminance = (
+          (1.0  * (lum[0] + lum[4] + lum[20] + lum[24])) +
+          (4.0  * (lum[1] + lum[3] + lum[5] + lum[9] +
+                  lum[15] + lum[19] + lum[21] + lum[23])) +
+          (7.0  * (lum[2] + lum[10] + lum[14] + lum[22])) +
+          (16.0 * (lum[6] + lum[8] + lum[16] + lum[18])) +
+          (26.0 * (lum[7] + lum[11] + lum[13] + lum[17])) +
+          (41.0 * lum[12])
+          ) / 273.0;
+
+
+	float exposure = sqrt(8.0 / (kernelLuminance + 0.25));
+
+	color.rgb = 1.0 - exp2(-vColor * exposure);
+	color.a = 1.0f;
+}
+)";
+
+
 static ShaderText default_shader_text[] = {
 	{GL_VERTEX_SHADER, default_vertex_shader_source, NULL},
 	{GL_FRAGMENT_SHADER, default_fragment_shader_source, NULL},
 	{GL_NONE, NULL, NULL}
 };
 
+static ShaderText adaptive_shader_text[] = {
+	{GL_VERTEX_SHADER, default_vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, adaptive_fragment_shader_source, NULL},
+	{GL_NONE, NULL, NULL}
+};
 
 struct Application : public Program {
 	float m_clear_color[4];
 	u64 m_fps;
 	f64 m_time;
 
-	GLuint m_program, m_program2;
-	SB::Camera m_camera;
-	bool m_input_mode = false;
+	GLuint m_program2, m_adaptive_shader;
+	GLuint m_vao;
 
-	bool m_wireframe = false;
-	ObjMesh m_cube;
-	GLuint m_tex, m_tex_lut;
-	glm::vec3 m_cube_pos = glm::vec3(0.0f, 0.0f, 1.0f);
 
-	GLuint m_fbo, m_color_tex1, m_color_tex2, m_color_tex3, m_depth_tex;
+	GLuint m_tex;
+
+
+	GLuint m_fbo, m_color_tex1, m_depth_tex;
 	bool m_active = true;
 	float m_exposure = 1.0f;
 
@@ -164,56 +145,34 @@ struct Application : public Program {
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
-		m_program = LoadShaders(shader_text);
 		m_program2 = LoadShaders(default_shader_text);
+		m_adaptive_shader = LoadShaders(adaptive_shader_text);
+		m_tex = Load_KTX("./resources/treelights_2k.ktx");
 
-		m_cube.Load_OBJ("./resources/cube.obj");
+		glGenVertexArrays(1, &m_vao);
+		glBindVertexArray(m_vao);
 
-		m_camera = SB::Camera("Camera", glm::vec3(1.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
-		m_tex = Load_KTX("./resources/fiona.ktx");
-
-		static const GLfloat exposureLUT[20] = { 11.0f, 6.0f, 3.2f, 2.8f, 2.2f, 1.90f, 1.80f, 1.80f, 1.70f, 1.70f, 1.60f, 1.60f, 1.50f, 1.50f, 1.40f, 1.40f, 1.30f, 1.20f, 1.10f, 1.00f };
-
-		glGenTextures(1, &m_tex_lut);
-		glBindTexture(GL_TEXTURE_1D, m_tex_lut);
-		glTexStorage1D(GL_TEXTURE_1D, 1, GL_R32F, 20);
-		glTexSubImage1D(GL_TEXTURE_1D, 0, 0, 20, GL_RED, GL_FLOAT, exposureLUT);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-
+		//Create FBO with Floating point buffers
 		FBOSetup(window);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
-
-
-		if (m_input_mode) {
-			m_camera.OnUpdate(input, 3.0f, 0.2f, dt);
-		}
-
-		//Implement Camera Movement Functions
-		if (input.Pressed(GLFW_KEY_LEFT_CONTROL)) {
-			m_input_mode = !m_input_mode;
-			input.SetRawMouseMode(window.GetHandle(), m_input_mode);
-		}
 	}
 	void OnDraw() {
 		static const GLfloat one = 1.0f;
 
 
-		//Bind framebuffer and render out to our multisampled textures
+		//Bind framebuffer
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 		static const GLuint draw_buffers[] = { GL_COLOR_ATTACHMENT0 };
 		glDrawBuffers(1, draw_buffers);
 
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LEQUAL);
 
-		RenderScene();
+		//Render scene to floating point buffer textures
+		RenderScene(m_program2, m_tex);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glDrawBuffer(GL_BACK);
@@ -221,15 +180,10 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 
 
-		//Render our multisampled texture
-		//This example renders the color different between the max and min values within the multisampled pixel
-		glUseProgram(m_program2);
-		//glActiveTexture(GL_TEXTURE0);
-		glBindTextureUnit(0, m_color_tex1);
-		glBindTextureUnit(1, m_tex_lut);
-		glUniform1i(4, m_active);
-		glUniform1f(1, m_exposure);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		//Render texture with adaptive hdr
+		if (m_active)
+			RenderScene(m_adaptive_shader, m_color_tex1);
+		else RenderScene(m_program2, m_color_tex1);
 
 		glBindTextureUnit(0, 0);
 	}
@@ -238,37 +192,25 @@ struct Application : public Program {
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
-		ImGui::Checkbox("Wireframe", &m_wireframe);
-		ImGui::DragFloat3("Cube Position", glm::value_ptr(m_cube_pos), 0.1f, -5.0f, 5.0f);
 		ImGui::Checkbox("Shader Active", &m_active);
 		ImGui::DragFloat("Exposure", &m_exposure, 0.1f, 0.01f, 20.0f);
 		ImGui::End();
 	}
 
-	void RenderScene() {
-		if (m_wireframe) {
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		}
-		else {
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		}
-
-		glUseProgram(m_program);
-		glUniformMatrix4fv(10, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
-		glUniform4fv(11, 1, glm::value_ptr(m_cube_pos));
+	void RenderScene(GLuint shader, GLuint texture) {
+		glUseProgram(shader);
+		glBindTextureUnit(0, texture);
 		glUniform1i(4, m_active);
-		glBindTextureUnit(0, m_tex);
-		m_cube.OnDraw();
-
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glUniform1f(1, m_exposure);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
 
 	void FBOSetup(Window& window) {
-		//Create color texture for each attachment
+		//Create color texture for floating point buffer attachment
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_color_tex1);
 		glTextureStorage2D(m_color_tex1, 1, GL_RGBA32F, window.GetWindowDimensions().width, window.GetWindowDimensions().height);
 
-		//Create multisampled depth texture
+		//Create depth texture
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_depth_tex);
 		glTextureStorage2D(m_depth_tex, 1, GL_DEPTH_COMPONENT32, window.GetWindowDimensions().width, window.GetWindowDimensions().height);
 
@@ -279,6 +221,7 @@ struct Application : public Program {
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_depth_tex, 0);
 
 		assert(glCheckNamedFramebufferStatus(m_fbo, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 };
 

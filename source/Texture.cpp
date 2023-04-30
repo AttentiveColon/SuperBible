@@ -131,7 +131,7 @@ GLuint Load_KTX(const char* filename, GLuint texture) {
 	}
 	else if (header->pixeldepth == 0) {
 		if (header->arrayelements == 0) {
-			if (header->faces == 1) target = GL_TEXTURE_2D;
+			if (header->faces == 0) target = GL_TEXTURE_2D;
 			else target = GL_TEXTURE_CUBE_MAP;
 		}
 		else {
@@ -180,28 +180,11 @@ GLuint Load_KTX(const char* filename, GLuint texture) {
 				unsigned int height = header->pixelheight;
 				unsigned int width = header->pixelwidth;
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-				unsigned int stride;
-				switch (header->glbaseinternalformat)
-				{
-				case GL_RED:
-					stride = 1;
-					break;
-				case GL_RG:
-					stride = 2;
-					break;
-				case GL_BGR:
-				case GL_RGB:
-					stride = 3;
-					break;
-				case GL_BGRA:
-				case GL_RGBA:
-					stride = 4;
-					break;
-				}
+				
 				for (unsigned int i = 0; i < header->miplevels; i++)
 				{
 					glTexSubImage2D(GL_TEXTURE_2D, i, 0, 0, width, height, header->glformat, header->gltype, ptr);
-					ptr += height * stride;
+					ptr += height * calculate_stride(*header, width, 1);
 					height >>= 1;
 					width >>= 1;
 					if (!height)
