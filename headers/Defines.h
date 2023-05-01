@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define POINT_STARFIELD
+#define SHAPED_POINTS
 

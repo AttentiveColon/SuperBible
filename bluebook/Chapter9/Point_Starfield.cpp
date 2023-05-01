@@ -140,13 +140,13 @@ struct Application : public Program {
         glEnable(GL_PROGRAM_POINT_SIZE);
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE);
 
         glUseProgram(m_program);
         glUniform1f(5, t);
         glUniformMatrix4fv(6, 1, GL_FALSE, glm::value_ptr(m_proj));
 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_ONE, GL_ONE);
 
         glBindVertexArray(m_vao);
         glDrawArrays(GL_POINTS, 0, NUM_STARS);

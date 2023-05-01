@@ -203,6 +203,7 @@
     <ClCompile Include="bluebook\Chapter9\Point_Starfield.cpp" />
     <ClCompile Include="bluebook\Chapter9\Post_Processing.cpp" />
     <ClCompile Include="bluebook\Chapter9\Sample_Rate_Shading.cpp" />
+    <ClCompile Include="bluebook\Chapter9\Shaped_Points.cpp" />
     <ClCompile Include="bluebook\Chapter9\Stencil_Test.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />
     <ClCompile Include="source\boilerplate_main.cpp" />
