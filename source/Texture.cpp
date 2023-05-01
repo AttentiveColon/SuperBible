@@ -131,7 +131,7 @@ GLuint Load_KTX(const char* filename, GLuint texture) {
 	}
 	else if (header->pixeldepth == 0) {
 		if (header->arrayelements == 0) {
-			if (header->faces == 0) target = GL_TEXTURE_2D;
+			if (header->faces == 0 || header->faces == 1) target = GL_TEXTURE_2D;
 			else target = GL_TEXTURE_CUBE_MAP;
 		}
 		else {
@@ -164,17 +164,32 @@ GLuint Load_KTX(const char* filename, GLuint texture) {
 		header->miplevels = 1;
 	}
 
+	//Adjust internal format
+	GLenum internalformat;
+	switch (header->glinternalformat)
+	{
+	case GL_SRGB8:
+		internalformat = GL_RGBA8;
+		break;
+	case GL_RGB32F:
+		internalformat = GL_RGBA32F;
+		break;
+	default:
+		internalformat = header->glinternalformat;
+		break;
+	}
+
 	//Only support GL_TEXTURE_2D for now
 	switch (target)
 	{
 	case GL_TEXTURE_2D:
 		if (header->gltype == GL_NONE)
 		{
-			glCompressedTexImage2D(GL_TEXTURE_2D, 0, header->glinternalformat, header->pixelwidth, header->pixelheight, 0, 420 * 380 / 2, data);
+			glCompressedTexImage2D(GL_TEXTURE_2D, 0, internalformat, header->pixelwidth, header->pixelheight, 0, 420 * 380 / 2, data);
 		}
 		else
 		{
-			glTexStorage2D(GL_TEXTURE_2D, header->miplevels, header->glinternalformat, header->pixelwidth, header->pixelheight);
+			glTexStorage2D(GL_TEXTURE_2D, header->miplevels, internalformat, header->pixelwidth, header->pixelheight);
 			{
 				unsigned char* ptr = data;
 				unsigned int height = header->pixelheight;
