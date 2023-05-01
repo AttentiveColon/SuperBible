@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define SHAPED_POINTS
+#define ROTATING_POINTS
 
