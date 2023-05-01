@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define ROTATING_POINTS
+#define FLOATING_POINT_FRAMEBUFFERS
 

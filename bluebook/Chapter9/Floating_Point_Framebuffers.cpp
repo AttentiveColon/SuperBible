@@ -54,7 +54,7 @@ in VS_OUT
 void main()
 {
 	ivec2 uv = ivec2(gl_FragCoord.xy);
-	color = texelFetch(u_texture, uv, 0);
+	color = texelFetch(u_texture, uv, 0).gbra;
 }
 )";
 
@@ -84,12 +84,12 @@ void main()
 
 	for (int i = 0; i < 25; ++i)
 	{
-		vec2 tc = (2.0 * gl_FragCoord.xy + 3.5 * vec2(i % 5 - 2, 5 - 2));
-		vec3 col = texture(u_texture, tc * tex_scale).rgb;
+		vec2 tc = (2.0 * gl_FragCoord.xy + 3.5 * vec2(i % 5 - 2, i / 5 - 2));
+		vec3 col = texture(u_texture, tc * tex_scale).gbr;
 		lum[i] = dot(col, vec3(0.3, 0.59, 0.11));
 	}
 
-	vec3 vColor = texelFetch(u_texture, ivec2(gl_FragCoord.xy), 0).rgb;
+	vec3 vColor = texelFetch(u_texture, ivec2(gl_FragCoord.xy), 0).gbr;
 
 	float kernelLuminance = (
           (1.0  * (lum[0] + lum[4] + lum[20] + lum[24])) +
@@ -106,6 +106,7 @@ void main()
 
 	color.rgb = 1.0 - exp2(-vColor * exposure);
 	color.a = 1.0f;
+	//color = color.gbra;
 }
 )";
 
@@ -208,7 +209,7 @@ struct Application : public Program {
 	void FBOSetup(Window& window) {
 		//Create color texture for floating point buffer attachment
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_color_tex1);
-		glTextureStorage2D(m_color_tex1, 1, GL_RGBA32F, window.GetWindowDimensions().width, window.GetWindowDimensions().height);
+		glTextureStorage2D(m_color_tex1, 1, GL_RGB32F, window.GetWindowDimensions().width, window.GetWindowDimensions().height);
 
 		//Create depth texture
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_depth_tex);
