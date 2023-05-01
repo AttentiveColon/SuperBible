@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define HDR_BLOOM
+#define POINT_STARFIELD
 
