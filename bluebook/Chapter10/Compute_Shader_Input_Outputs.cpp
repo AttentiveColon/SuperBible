@@ -52,13 +52,26 @@ readonly uniform image2D img_input;
 layout (binding = 1)
 writeonly uniform image2D img_output;
 
+layout (location = 0)
+uniform int u_blur_x;
+
+layout (location = 1)
+uniform int u_blur_y;
+
 void main()
 {
+	vec4 texel = vec4(0.0);
 	ivec2 p = ivec2(gl_GlobalInvocationID.xy);
-
-	vec4 texel = imageLoad(img_input, p);
-	texel = vec4(1.0) - texel;
-	imageStore(img_output, p, texel);
+	for (int i = -u_blur_y; i < u_blur_y + 1; ++i)
+	{
+		for (int j = -u_blur_x; j < u_blur_x + 1; ++j)
+		{
+			ivec2 offset_p = ivec2(p.x + j, p.y + i);
+			texel += imageLoad(img_input, offset_p);
+		} 
+	}
+	vec4 texel_average = texel / float((u_blur_x * 2 + 1) * (u_blur_y * 2 + 1));
+	imageStore(img_output, p, texel_average);
 }
 )";
 
@@ -76,6 +89,10 @@ struct Application : public Program {
 	GLuint m_vao;
 
 	GLuint m_tex, m_tex_out;
+
+	bool m_active = true;
+	int m_blur_x = 2;
+	int m_blur_y = 2;
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
@@ -98,14 +115,18 @@ struct Application : public Program {
 		glGenVertexArrays(1, &m_vao);
 		glBindVertexArray(m_vao);
 
-		glUseProgram(m_compute_shader);
-		glBindImageTexture(0, m_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
-		glBindImageTexture(1, m_tex_out, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glDispatchCompute(3648 / 32, 2736 / 32, 1);
+		
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
 		m_time = window.GetTime();
+
+		glUseProgram(m_compute_shader);
+		glBindImageTexture(0, m_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
+		glBindImageTexture(1, m_tex_out, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glUniform1i(0, m_blur_x);
+		glUniform1i(1, m_blur_y);
+		glDispatchCompute(3648 / 32, 2736 / 32, 1);
 	}
 	void OnDraw() {
 
@@ -116,7 +137,10 @@ struct Application : public Program {
 
 		glUseProgram(m_program);
 		glBindVertexArray(m_vao);
-		glBindTextureUnit(0, m_tex_out);
+		if (m_active)
+			glBindTextureUnit(0, m_tex_out);
+		else
+			glBindTextureUnit(0, m_tex);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
 	void OnGui() {
@@ -124,6 +148,9 @@ struct Application : public Program {
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
+		ImGui::Checkbox("Compute Active", &m_active);
+		ImGui::DragInt("Blur X", &m_blur_x, 1.0f, 0, 20);
+		ImGui::DragInt("Blur Y", &m_blur_y, 1.0f, 0, 20);
 		ImGui::End();
 	}
 };
