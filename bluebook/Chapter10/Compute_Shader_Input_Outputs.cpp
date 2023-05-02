@@ -8,6 +8,8 @@
 static const GLchar* default_vertex_shader_source = R"(
 #version 450 core
 
+out vec2 uv;
+
 void main()
 {
 	const vec2 vertices[] = 
@@ -15,7 +17,13 @@ void main()
 		vec2(-1.0, -1.0), vec2(-1.0, 1.0), vec2(1.0, 1.0),
 		vec2(-1.0, -1.0), vec2(1.0, 1.0), vec2(1.0, -1.0)
 	};
+	const vec2 uvs[] = 
+	{
+		vec2(0.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0),
+		vec2(0.0, 0.0), vec2(1.0, 1.0), vec2(1.0, 0.0)
+	};
 	gl_Position = vec4(vertices[gl_VertexID], 0.5, 1.0);
+	uv = uvs[gl_VertexID];
 }
 )";
 
@@ -25,13 +33,13 @@ static const GLchar* default_fragment_shader_source = R"(
 layout (binding = 0)
 uniform sampler2D u_texture;
 
+in vec2 uv;
 
 out vec4 color;
 
 void main()
 {
-	ivec2 uv = ivec2(gl_FragCoord.xy);
-	color = texelFetch(u_texture, uv, 0);
+	color = texture(u_texture, uv);
 }
 )";
 

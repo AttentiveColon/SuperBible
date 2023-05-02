@@ -8,6 +8,8 @@
 static const GLchar* default_vertex_shader_source = R"(
 #version 450 core
 
+out vec2 uv;
+
 void main()
 {
 	const vec2 vertices[] = 
@@ -15,7 +17,13 @@ void main()
 		vec2(-1.0, -1.0), vec2(-1.0, 1.0), vec2(1.0, 1.0),
 		vec2(-1.0, -1.0), vec2(1.0, 1.0), vec2(1.0, -1.0)
 	};
+	const vec2 uvs[] = 
+	{
+		vec2(0.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0),
+		vec2(0.0, 0.0), vec2(1.0, 1.0), vec2(1.0, 0.0)
+	};
 	gl_Position = vec4(vertices[gl_VertexID], 0.5, 1.0);
+	uv = uvs[gl_VertexID];
 }
 )";
 
@@ -25,13 +33,13 @@ static const GLchar* default_fragment_shader_source = R"(
 layout (binding = 0)
 uniform sampler2D u_texture;
 
+in vec2 uv;
 
 out vec4 color;
 
 void main()
 {
-	ivec2 uv = ivec2(gl_FragCoord.xy);
-	color = texelFetch(u_texture, uv, 0);
+	color = texture(u_texture, uv);
 }
 )";
 
@@ -105,7 +113,7 @@ struct Application : public Program {
 
 		glGenTextures(1, &m_tex_out);
 		glBindTexture(GL_TEXTURE_2D, m_tex_out);
-		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 3648, 2736);
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 3600, 2400);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -120,7 +128,6 @@ struct Application : public Program {
 		m_time = window.GetTime();
 
 		glUseProgram(m_compute_shader);
-		glViewport(0, 0, 3648, 2736);
 		glBindImageTexture(0, m_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
 		glBindImageTexture(1, m_tex_out, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 		glUniform1i(0, m_offset);
@@ -134,7 +141,6 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
 
-		glViewport(0, 0, 1600, 900);
 
 		glUseProgram(m_program);
 		glBindVertexArray(m_vao);

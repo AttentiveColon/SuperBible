@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define COMPUTER_SHADER_MEMORY_BARRIER
+#define COMPUTER_SHADER_INPUTS_OUTPUTS
 
