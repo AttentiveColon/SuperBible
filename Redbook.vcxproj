@@ -146,6 +146,7 @@
   <ItemGroup>
     <ClCompile Include="bluebook\Chapter10\Compute_Shader_Input_Outputs.cpp" />
     <ClCompile Include="bluebook\Chapter10\Compute_Shader_Memory_Barrier.cpp" />
+    <ClCompile Include="bluebook\Chapter10\Parallel_Prefix_Sum.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_1.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_2.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_3.cpp" />

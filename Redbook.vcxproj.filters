@@ -261,6 +261,9 @@
     <ClCompile Include="bluebook\Chapter10\Compute_Shader_Memory_Barrier.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\Chapter10\Parallel_Prefix_Sum.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">
