@@ -224,6 +224,7 @@ struct Application : public Program {
 
 
 		//display fbo
+		glViewport(0, 0, 1600, 900);
 		glUseProgram(m_display_program);
 		glBindTextureUnit(0, m_color_tex);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -272,6 +273,8 @@ struct Application : public Program {
 
 		glBindFramebuffer(GL_FRAMEBUFFER, m_depth_fbo);
 		glDrawBuffers(1, attachments);
+
+		glViewport(0, 0, 2048, 2048);
 
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
