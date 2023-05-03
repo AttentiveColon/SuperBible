@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define PARALLEL_PREFIX_SUM
+#define VARIABLE_FILTERING
 
