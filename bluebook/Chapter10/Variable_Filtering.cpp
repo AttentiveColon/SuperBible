@@ -49,38 +49,70 @@ static ShaderText render_shader_text[] = {
 static const GLchar* default_vertex_shader_source = R"(
 #version 450 core
 
-out vec2 uv;
-
-void main()
+void main(void)
 {
-	const vec2 vertices[] = 
-	{
-		vec2(-1.0, -1.0), vec2(-1.0, 1.0), vec2(1.0, 1.0),
-		vec2(-1.0, -1.0), vec2(1.0, 1.0), vec2(1.0, -1.0)
-	};
-	const vec2 uvs[] = 
-	{
-		vec2(0.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0),
-		vec2(0.0, 0.0), vec2(1.0, 1.0), vec2(1.0, 0.0)
-	};
-	gl_Position = vec4(vertices[gl_VertexID], 0.5, 1.0);
-	uv = uvs[gl_VertexID];
+    const vec4 vertex[] = vec4[] ( vec4(-1.0, -1.0, 0.5, 1.0),
+                                   vec4( 1.0, -1.0, 0.5, 1.0),
+                                   vec4(-1.0,  1.0, 0.5, 1.0),
+                                   vec4( 1.0,  1.0, 0.5, 1.0) );
+
+    gl_Position = vertex[gl_VertexID];
 }
 )";
 
 static const GLchar* default_fragment_shader_source = R"(
-#version 450 core
+#version 430 core
 
-layout (binding = 0)
-uniform sampler2D u_texture;
+layout (binding = 0) uniform sampler2D input_image;
 
-in vec2 uv;
+layout (location = 0) out vec4 color;
 
-out vec4 color;
+layout (location = 1)
+uniform float focal_distance = 50.0;
+layout (location = 2)
+uniform float focal_depth = 30.0;
 
-void main()
+void main(void)
 {
-	color = texture(u_texture, uv);
+    vec2 s = 1.0 / textureSize(input_image, 0);
+    vec2 C = gl_FragCoord.xy;
+
+    vec4 v = texelFetch(input_image, ivec2(gl_FragCoord.xy), 0).rgba;
+
+    float m;
+
+    if (v.w == 0.0)
+    {
+        m = 0.5;
+    }
+    else
+    {
+        m = abs(v.w - focal_distance);
+        m = 0.5 + smoothstep(0.0, focal_depth, m) * 7.5;
+    }
+
+    vec2 P0 = vec2(C * 1.0) + vec2(-m, -m);
+    vec2 P1 = vec2(C * 1.0) + vec2(-m, m);
+    vec2 P2 = vec2(C * 1.0) + vec2(m, -m);
+    vec2 P3 = vec2(C * 1.0) + vec2(m, m);
+
+    P0 *= s;
+    P1 *= s;
+    P2 *= s;
+    P3 *= s;
+
+    vec3 a = textureLod(input_image, P0, 0).rgb;
+    vec3 b = textureLod(input_image, P1, 0).rgb;
+    vec3 c = textureLod(input_image, P2, 0).rgb;
+    vec3 d = textureLod(input_image, P3, 0).rgb;
+
+    vec3 f = a - b - c + d;
+
+    m *= 2;
+
+    f /= float(m * m);
+
+    color = vec4(f, 1.0);
 }
 )";
 
@@ -90,10 +122,30 @@ static ShaderText default_shader_text[] = {
 	{GL_NONE, NULL, NULL}
 };
 
+static const GLchar* bypass_fragment_shader_source = R"(
+#version 430 core
+
+layout (binding = 0) uniform sampler2D input_image;
+
+out vec4 color;
+
+void main(void)
+{
+	vec2 uv = vec2(gl_FragCoord.x / 1600.0, gl_FragCoord.y / 900.0);
+    color = texture(input_image, uv);
+}
+)";
+
+static ShaderText bypass_shader_text[] = {
+	{GL_VERTEX_SHADER, default_vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, bypass_fragment_shader_source, NULL},
+	{GL_NONE, NULL, NULL}
+};
+
 static const GLchar* compute_shader_source = R"(
 #version 450 core
 
-layout (local_size_x = 724) in;
+layout (local_size_x = 1024) in;
 
 layout (binding = 0, rgba8) readonly uniform image2D input_image;
 layout (binding = 1, rgba32f) writeonly uniform image2D output_image;
@@ -150,7 +202,7 @@ struct Application : public Program {
 	u64 m_fps;
 	f64 m_time;
 
-	GLuint m_render_program, m_display_program, m_compute_shader;
+	GLuint m_render_program, m_display_program, m_compute_shader, m_bypass_program;
 
 	GLuint m_depth_fbo, m_depth_tex, m_color_tex, m_temp_tex;
 
@@ -158,6 +210,9 @@ struct Application : public Program {
 
 	bool m_original_texture_active = false;
 	bool m_input_mode = false;
+
+	float m_focal_distance = 50.0f;
+	float m_focal_depth = 30.0f;
 
 	ObjMesh m_cube;
 	SB::Camera m_camera;
@@ -176,6 +231,7 @@ struct Application : public Program {
 		m_render_program = LoadShaders(render_shader_text);
 		m_display_program = LoadShaders(default_shader_text);
 		m_compute_shader = LoadShaders(compute_shader_text);
+		m_bypass_program = LoadShaders(bypass_shader_text);
 
 		m_cube.Load_OBJ("./resources/cube.obj");
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, -5.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
@@ -208,26 +264,32 @@ struct Application : public Program {
 		RenderScene();
 
 		//compute rendered scene
-		/*glUseProgram(m_compute_shader);
-		glBindImageTexture(0, m_color_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-		glBindImageTexture(1, m_temp_tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-		glDispatchCompute(2048, 1, 1);
+		if (!m_original_texture_active) {
+			glUseProgram(m_compute_shader);
+			glBindImageTexture(0, m_color_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+			glBindImageTexture(1, m_temp_tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+			glDispatchCompute(900, 1, 1);
 
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-		glBindImageTexture(0, m_temp_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-		glBindImageTexture(1, m_color_tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+			glBindImageTexture(0, m_temp_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+			glBindImageTexture(1, m_color_tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-		glDispatchCompute(2048, 1, 1);
+			glDispatchCompute(1600, 1, 1);
 
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);*/
+			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
+			glUseProgram(m_display_program);
+			glUniform1f(1, m_focal_distance);
+			glUniform1f(2, m_focal_depth);
+		}
+		else glUseProgram(m_bypass_program);
 
 		//display fbo
+		glDisable(GL_DEPTH_TEST);
 		glViewport(0, 0, 1600, 900);
-		glUseProgram(m_display_program);
 		glBindTextureUnit(0, m_color_tex);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
@@ -235,6 +297,8 @@ struct Application : public Program {
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::Checkbox("Original Texture", &m_original_texture_active);
+		ImGui::DragFloat("Focal Distance", &m_focal_distance, 0.1f, 1.0f, 100.0f);
+		ImGui::DragFloat("Focal Depth", &m_focal_depth, 0.1f, 1.0f, 100.0f);
 		ImGui::End();
 	}
 
