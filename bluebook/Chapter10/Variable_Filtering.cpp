@@ -15,6 +15,8 @@ in vec3 normal;
 layout (location = 2)
 in vec2 uv;
 
+layout (location = 4)
+uniform vec3 model_pos;
 layout (location = 5)
 uniform mat4 mvp;
 
@@ -22,7 +24,7 @@ out vec2 tc;
 
 void main()
 {
-	gl_Position = mvp * vec4(position, 1.0);
+	gl_Position = mvp * vec4(position + model_pos, 1.0);
 	tc = uv;
 }
 )";
@@ -147,7 +149,7 @@ static const GLchar* compute_shader_source = R"(
 
 layout (local_size_x = 1024) in;
 
-layout (binding = 0, rgba8) readonly uniform image2D input_image;
+layout (binding = 0, rgba32f) readonly uniform image2D input_image;
 layout (binding = 1, rgba32f) writeonly uniform image2D output_image;
 
 shared vec3 shared_data[gl_WorkGroupSize.x * 2];
@@ -215,6 +217,7 @@ struct Application : public Program {
 	float m_focal_depth = 30.0f;
 
 	ObjMesh m_cube;
+	glm::vec3 m_cube_pos = glm::vec3(0.0f, 0.0f, 0.0f);
 	SB::Camera m_camera;
 
 	Application()
@@ -299,6 +302,7 @@ struct Application : public Program {
 		ImGui::Checkbox("Original Texture", &m_original_texture_active);
 		ImGui::DragFloat("Focal Distance", &m_focal_distance, 0.1f, 1.0f, 100.0f);
 		ImGui::DragFloat("Focal Depth", &m_focal_depth, 0.1f, 1.0f, 100.0f);
+		ImGui::DragFloat3("Cube Pos", glm::value_ptr(m_cube_pos), 0.1f, -100.0f, 100.0f);
 		ImGui::End();
 	}
 
@@ -338,12 +342,13 @@ struct Application : public Program {
 		glBindFramebuffer(GL_FRAMEBUFFER, m_depth_fbo);
 		glDrawBuffers(1, attachments);
 
-		glViewport(0, 0, 2048, 2048);
+		glViewport(0, 0, 1600, 900);
 
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
 
 		glUseProgram(m_render_program);
+		glUniform3fv(4, 1, glm::value_ptr(m_cube_pos));
 		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
 		m_cube.OnDraw();
 
