@@ -18,13 +18,20 @@ in vec2 uv;
 layout (location = 4)
 uniform vec3 model_pos;
 layout (location = 5)
-uniform mat4 mvp;
+uniform mat4 u_view;
+layout (location = 6)
+uniform mat4 u_proj;
 
 out vec2 tc;
+out vec3 V;
 
 void main()
 {
-	gl_Position = mvp * vec4(position + model_pos, 1.0);
+	vec4 P = u_view * vec4(position + model_pos, 1.0);
+
+
+	gl_Position = u_proj * P;
+	V = -P.xyz;
 	tc = uv;
 }
 )";
@@ -33,12 +40,13 @@ static const GLchar* render_fragment_shader_source = R"(
 #version 450 core
 
 in vec2 tc;
+in vec3 V;
 
 out vec4 color;
 
 void main()
 {
-	color = vec4(tc.x, tc.y, 0.0, 1.0);
+	color = vec4(tc.x, tc.y, 0.0, V.z);
 }
 )";
 
@@ -70,9 +78,9 @@ layout (binding = 0) uniform sampler2D input_image;
 layout (location = 0) out vec4 color;
 
 layout (location = 1)
-uniform float focal_distance = 50.0;
+uniform float focal_distance;
 layout (location = 2)
-uniform float focal_depth = 30.0;
+uniform float focal_depth;
 
 void main(void)
 {
@@ -213,11 +221,12 @@ struct Application : public Program {
 	bool m_original_texture_active = false;
 	bool m_input_mode = false;
 
-	float m_focal_distance = 50.0f;
-	float m_focal_depth = 30.0f;
+	float m_focal_distance = 19.0f;
+	float m_focal_depth = 23.0f;
 
 	ObjMesh m_cube;
-	glm::vec3 m_cube_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 m_cube_pos[3] = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-2.0f, 0.0f, -12.0f), glm::vec3(-4.0f, 0.0f, -24.0f)};
+	
 	SB::Camera m_camera;
 
 	Application()
@@ -237,12 +246,12 @@ struct Application : public Program {
 		m_bypass_program = LoadShaders(bypass_shader_text);
 
 		m_cube.Load_OBJ("./resources/cube.obj");
-		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, -5.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
+		m_camera = SB::Camera("Camera", glm::vec3(-3.0f, 2.0f, 10.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
 
 		SetupDepthFBO();
 
 
-		
+		glEnable(GL_DEPTH_TEST);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
@@ -302,7 +311,7 @@ struct Application : public Program {
 		ImGui::Checkbox("Original Texture", &m_original_texture_active);
 		ImGui::DragFloat("Focal Distance", &m_focal_distance, 0.1f, 1.0f, 100.0f);
 		ImGui::DragFloat("Focal Depth", &m_focal_depth, 0.1f, 1.0f, 100.0f);
-		ImGui::DragFloat3("Cube Pos", glm::value_ptr(m_cube_pos), 0.1f, -100.0f, 100.0f);
+		ImGui::DragFloat3("Cube Pos", glm::value_ptr(m_cube_pos[0]), 0.1f, -100.0f, 100.0f);
 		ImGui::End();
 	}
 
@@ -342,15 +351,21 @@ struct Application : public Program {
 		glBindFramebuffer(GL_FRAMEBUFFER, m_depth_fbo);
 		glDrawBuffers(1, attachments);
 
-		glViewport(0, 0, 1600, 900);
 
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
+		glViewport(0, 0, 1600, 900);
 
 		glUseProgram(m_render_program);
-		glUniform3fv(4, 1, glm::value_ptr(m_cube_pos));
-		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
-		m_cube.OnDraw();
+		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
+		glUniformMatrix4fv(6, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
+
+		glClearBufferfv(GL_DEPTH, 0, &one);
+
+		for (int i = 0; i < 3; ++i) {
+			glUniform3fv(4, 1, glm::value_ptr(m_cube_pos[i]));
+			m_cube.OnDraw();
+		}
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
