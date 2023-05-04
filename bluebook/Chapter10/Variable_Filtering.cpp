@@ -98,7 +98,7 @@ void main(void)
     else
     {
         m = abs(v.w - focal_distance);
-        m = 0.5 + smoothstep(0.0, focal_depth, m) * 7.5;
+        m = 0.5 + smoothstep(0.0, focal_depth, m) * 6.5;
     }
 
     vec2 P0 = vec2(C * 1.0) + vec2(-m, -m);
@@ -129,26 +129,6 @@ void main(void)
 static ShaderText default_shader_text[] = {
 	{GL_VERTEX_SHADER, default_vertex_shader_source, NULL},
 	{GL_FRAGMENT_SHADER, default_fragment_shader_source, NULL},
-	{GL_NONE, NULL, NULL}
-};
-
-static const GLchar* bypass_fragment_shader_source = R"(
-#version 430 core
-
-layout (binding = 0) uniform sampler2D input_image;
-
-out vec4 color;
-
-void main(void)
-{
-	vec2 uv = vec2(gl_FragCoord.x / 1600.0, gl_FragCoord.y / 900.0);
-    color = texture(input_image, uv);
-}
-)";
-
-static ShaderText bypass_shader_text[] = {
-	{GL_VERTEX_SHADER, default_vertex_shader_source, NULL},
-	{GL_FRAGMENT_SHADER, bypass_fragment_shader_source, NULL},
 	{GL_NONE, NULL, NULL}
 };
 
@@ -195,10 +175,6 @@ void main()
 	
 	imageStore(output_image, P0.yx, vec4(shared_data[P0.x], i0.a));
 	imageStore(output_image, P1.yx, vec4(shared_data[P1.x], i1.a));
-
-	//ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-	//vec4 texel = imageLoad(input_image, uv);
-	//imageStore(output_image, uv, texel);
 }
 )";
 
@@ -218,7 +194,6 @@ struct Application : public Program {
 
 	GLuint m_texture, m_summation_texture;
 
-	bool m_original_texture_active = false;
 	bool m_input_mode = false;
 
 	float m_focal_distance = 19.0f;
@@ -243,15 +218,11 @@ struct Application : public Program {
 		m_render_program = LoadShaders(render_shader_text);
 		m_display_program = LoadShaders(default_shader_text);
 		m_compute_shader = LoadShaders(compute_shader_text);
-		m_bypass_program = LoadShaders(bypass_shader_text);
 
 		m_cube.Load_OBJ("./resources/cube.obj");
 		m_camera = SB::Camera("Camera", glm::vec3(-3.0f, 2.0f, 10.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
 
 		SetupDepthFBO();
-
-
-		glEnable(GL_DEPTH_TEST);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
@@ -276,31 +247,27 @@ struct Application : public Program {
 		RenderScene();
 
 		//compute rendered scene
-		if (!m_original_texture_active) {
-			glUseProgram(m_compute_shader);
-			glBindImageTexture(0, m_color_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-			glBindImageTexture(1, m_temp_tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-			glDispatchCompute(900, 1, 1);
+		glUseProgram(m_compute_shader);
+		glBindImageTexture(0, m_color_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+		glBindImageTexture(1, m_temp_tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		glDispatchCompute(900, 1, 1);
 
-			glBindImageTexture(0, m_temp_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-			glBindImageTexture(1, m_color_tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-			glDispatchCompute(1600, 1, 1);
+		glBindImageTexture(0, m_temp_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+		glBindImageTexture(1, m_color_tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		glDispatchCompute(1600, 1, 1);
 
-			glUseProgram(m_display_program);
-			glUniform1f(1, m_focal_distance);
-			glUniform1f(2, m_focal_depth);
-		}
-		else glUseProgram(m_bypass_program);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 		//display fbo
-		glDisable(GL_DEPTH_TEST);
-		glViewport(0, 0, 1600, 900);
 		glBindTextureUnit(0, m_color_tex);
+		glDisable(GL_DEPTH_TEST);
+		glUseProgram(m_display_program);
+		glUniform1f(1, m_focal_distance);
+		glUniform1f(2, m_focal_depth);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 	void OnGui() {
@@ -308,7 +275,6 @@ struct Application : public Program {
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
-		ImGui::Checkbox("Original Texture", &m_original_texture_active);
 		ImGui::DragFloat("Focal Distance", &m_focal_distance, 0.1f, 1.0f, 100.0f);
 		ImGui::DragFloat("Focal Depth", &m_focal_depth, 0.1f, 1.0f, 100.0f);
 		ImGui::DragFloat3("Cube Pos", glm::value_ptr(m_cube_pos[0]), 0.1f, -100.0f, 100.0f);
@@ -321,17 +287,23 @@ struct Application : public Program {
 
 		glGenTextures(1, &m_depth_tex);
 		glBindTexture(GL_TEXTURE_2D, m_depth_tex);
-		glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32F, 2048, 2048);
+		glTexStorage2D(GL_TEXTURE_2D, 11, GL_DEPTH_COMPONENT32F, 2048, 2048);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+
 
 		glGenTextures(1, &m_color_tex);
 		glBindTexture(GL_TEXTURE_2D, m_color_tex);
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, 2048, 2048);
 
+
+
 		glGenTextures(1, &m_temp_tex);
 		glBindTexture(GL_TEXTURE_2D, m_temp_tex);
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, 2048, 2048);
+
+
 
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_depth_tex, 0);
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_color_tex, 0);
@@ -352,9 +324,9 @@ struct Application : public Program {
 		glDrawBuffers(1, attachments);
 
 
+		glViewport(0, 0, 1600, 900);
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
-		glViewport(0, 0, 1600, 900);
 
 		glUseProgram(m_render_program);
 		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
