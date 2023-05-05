@@ -146,6 +146,7 @@
   <ItemGroup>
     <ClCompile Include="bluebook\Chapter10\Compute_Shader_Input_Outputs.cpp" />
     <ClCompile Include="bluebook\Chapter10\Compute_Shader_Memory_Barrier.cpp" />
+    <ClCompile Include="bluebook\Chapter10\Flocking.cpp" />
     <ClCompile Include="bluebook\Chapter10\Parallel_Prefix_Sum.cpp" />
     <ClCompile Include="bluebook\Chapter10\Variable_Filtering.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_1.cpp" />
@@ -834,7 +835,6 @@
     <None Include="ikpFlac.dll" />
     <None Include="ikpMP3.dll" />
     <None Include="irrKlang.dll" />
-    <None Include="shaders\post_process_chroma_shift.frag" />
     <None Include="ThirdParty\glew-2.1.0\bin\Release\x64\glew32.dll" />
     <None Include="ThirdParty\glfw\lib-vc2022\glfw3.dll" />
     <None Include="ThirdParty\glm\detail\func_common.inl" />

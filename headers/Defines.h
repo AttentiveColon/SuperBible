@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define VARIABLE_FILTERING
+#define FLOCKING
 

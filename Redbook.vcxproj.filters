@@ -267,6 +267,9 @@
     <ClCompile Include="bluebook\Chapter10\Variable_Filtering.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\Chapter10\Flocking.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">
@@ -2883,7 +2886,6 @@
     <None Include="ThirdParty\glm\glm\detail\type_vec4_simd.inl">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="shaders\post_process_chroma_shift.frag" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="ThirdParty\glm\glm\copying.txt" />
