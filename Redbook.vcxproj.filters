@@ -276,9 +276,6 @@
     <ClCompile Include="bluebook\Chapter11\Sparse_Textures.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bluebook\Chapter11\Texture_Compression.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="bluebook\Chapter11\High_Quality_Filtering.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

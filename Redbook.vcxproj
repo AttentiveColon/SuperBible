@@ -152,7 +152,6 @@
     <ClCompile Include="bluebook\Chapter11\Bindless_Textures.cpp" />
     <ClCompile Include="bluebook\Chapter11\High_Quality_Filtering.cpp" />
     <ClCompile Include="bluebook\Chapter11\Sparse_Textures.cpp" />
-    <ClCompile Include="bluebook\Chapter11\Texture_Compression.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_1.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_2.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_3.cpp" />
