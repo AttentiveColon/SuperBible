@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define BINDLESS_TEXTURES
+#define SPARSE_TEXTURES
 
