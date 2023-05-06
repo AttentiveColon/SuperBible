@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define HIGH_QUALITY_FILTERING
+#define OCCLUSION_QUERIES
 
