@@ -23,7 +23,7 @@ uniform uint u_index;
 
 layout (binding = 0) uniform DefaultUniform
 {
-	vec3 cube_pos[64];
+	vec4 cube_pos[64];
 };
 
 out VS_OUT
@@ -34,7 +34,7 @@ out VS_OUT
 
 void main(void)
 {
-    gl_Position = u_viewProj * vec4(position + cube_pos[u_index], 1.0);
+    gl_Position = u_viewProj * (cube_pos[u_index] + vec4(position, 1.0));
 	vs_out.normal = normal;
 	vs_out.uv = uv;
 }
@@ -76,7 +76,7 @@ struct Application : public Program {
 	GLuint m_queries[NUM_CUBES];
 
 	ObjMesh m_cube;
-	glm::vec3 m_cube_positions[NUM_CUBES];
+	glm::vec4 m_cube_positions[NUM_CUBES];
 
 	SB::Camera m_camera;
 	bool m_input_mode = false;
@@ -103,9 +103,9 @@ struct Application : public Program {
 		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(m_cube_positions), nullptr, GL_STATIC_DRAW);
 		
-		glm::vec3* positions = (glm::vec3*)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(m_cube_positions), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+		glm::vec4* positions = (glm::vec4*)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(m_cube_positions), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 		for (int i = 0; i < NUM_CUBES; ++i) {
-			positions[i] = glm::vec3(m_random.Float() * 25.0f, m_random.Float() * 25.0f, m_random.Float() * 25.0f);
+			positions[i] = glm::vec4(m_random.Float() * 25.0f, m_random.Float() * 25.0f, m_random.Float() * 25.0f, 0.0f);
 		}
 
 		glUnmapBuffer(GL_UNIFORM_BUFFER);
@@ -130,19 +130,34 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
 
+		//Disable color and depth rendering, render our "simple" version of objects and query if they pass
+		//depth and stencil sampling
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDepthMask(GL_FALSE);
 		for (unsigned int i = 0; i < NUM_CUBES; ++i) {
 			glBeginQuery(GL_SAMPLES_PASSED, m_queries[i]);
 			RenderBasicScene(i);
 			glEndQuery(GL_SAMPLES_PASSED);
 		}
 
+		//call this so our queries are actually availabe for this example, avoid using glFinish normally
+		glFinish();
+
+		//Turn on color and depth rendering, see which queries are available, if they are available get their result,
+		//if they are not available set result to TRUE anyway and render to be safe, otherwise render based on the
+		//query state
 		m_rendered_cube_count = 0;
-		glClearBufferfv(GL_DEPTH, 0, &one);
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glDepthMask(GL_TRUE);
 		for (unsigned int i = 0; i < NUM_CUBES; ++i) {
 			GLuint result;
-			glGetQueryObjectuiv(m_queries[i], GL_QUERY_RESULT, &result);
+			glGetQueryObjectuiv(m_queries[i], GL_QUERY_RESULT_AVAILABLE, &result);
+
+			if (result != 0)
+				glGetQueryObjectuiv(m_queries[i], GL_QUERY_RESULT, &result);
+			else
+				result = 1;
+
 			if (result != 0) {
 				++m_rendered_cube_count;
 				RenderComplexScene(i);
