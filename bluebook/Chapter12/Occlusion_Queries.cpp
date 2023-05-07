@@ -5,6 +5,66 @@
 #include "Model.h"
 #include "Mesh.h"
 
+static const GLchar* occlusion_vertex_shader_source = R"(
+#version 450 core
+
+layout (location = 0)
+in vec3 position;
+layout (location = 1)
+in vec3 normal;
+layout (location = 2)
+in vec2 uv;
+
+layout (location = 4)
+uniform mat4 u_viewProj;
+
+layout (location = 5)
+uniform vec3 u_model;
+
+layout (location = 6)
+uniform vec3 u_color;
+
+
+out VS_OUT
+{
+	vec3 normal;
+	vec2 uv;
+	vec3 color;
+} vs_out;
+
+void main(void)
+{
+    gl_Position = u_viewProj * vec4(position + u_model, 1.0);
+	vs_out.normal = normal;
+	vs_out.uv = uv;
+	vs_out.color = u_color;
+}
+)";
+
+static const GLchar* occlusion_fragment_shader_source = R"(
+#version 450 core
+
+in VS_OUT
+{
+	vec3 normal;
+	vec2 uv;
+	vec3 color;
+} fs_in;
+
+out vec4 color;
+
+void main()
+{
+	color = vec4(fs_in.color, 1.0);
+}
+)";
+
+static ShaderText occlusion_shader_text[] = {
+	{GL_VERTEX_SHADER, occlusion_vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, occlusion_fragment_shader_source, NULL},
+	{GL_NONE, NULL, NULL}
+};
+
 static const GLchar* default_vertex_shader_source = R"(
 #version 450 core
 
@@ -70,7 +130,7 @@ struct Application : public Program {
 	u64 m_fps;
 	f64 m_time;
 
-	GLuint m_program;
+	GLuint m_program, m_occlusion_program;
 	GLuint m_ubo;
 
 	GLuint m_queries[NUM_CUBES];
@@ -93,7 +153,8 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		m_program = LoadShaders(default_shader_text);
-		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 2.0f, -10.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
+		m_occlusion_program = LoadShaders(occlusion_shader_text);
+		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 2.0f, -12.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 		m_cube.Load_OBJ("./resources/cube.obj");
 		m_random.Init();
 
@@ -130,6 +191,9 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
 
+		//First render a cube to the scene that will occlude the other cubes
+		RenderOcclusionCube();
+
 		//Disable color and depth rendering, render our "simple" version of objects and query if they pass
 		//depth and stencil sampling
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -144,8 +208,8 @@ struct Application : public Program {
 		glFinish();
 
 		//Turn on color and depth rendering, see which queries are available, if they are available get their result,
-		//if they are not available set result to TRUE anyway and render to be safe, otherwise render based on the
-		//query state
+		//if they are not available set result to TRUE anyway and render to be safe, otherwise render our "complex" scene 
+		// based on the query state
 		m_rendered_cube_count = 0;
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glDepthMask(GL_TRUE);
@@ -172,6 +236,14 @@ struct Application : public Program {
 		ImGui::Text("Rendered Cubes: %d", m_rendered_cube_count);
 		ImGui::End();
 	}
+	void RenderOcclusionCube() {
+		glEnable(GL_DEPTH_TEST);
+		glUseProgram(m_occlusion_program);
+		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
+		glUniform3fv(5, 1, glm::value_ptr(glm::vec3(0.0f, 2.0f, -8.0f)));
+		glUniform3fv(6, 1, glm::value_ptr(glm::vec3(0.0f)));
+		m_cube.OnDraw();
+	}
 	void RenderBasicScene(unsigned int n) {
 		glEnable(GL_DEPTH_TEST);
 		glUseProgram(m_program);
@@ -181,12 +253,7 @@ struct Application : public Program {
 		m_cube.OnDraw();
 	}
 	void RenderComplexScene(unsigned int n) {
-		glEnable(GL_DEPTH_TEST);
-		glUseProgram(m_program);
-		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
-		glUniform1ui(5, n);
-		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
-		m_cube.OnDraw();
+		RenderBasicScene(n);
 	}
 };
 
