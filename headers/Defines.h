@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define TRANSFORM_FEEDBACK_QUERIES
+#define GOURAUD_SHADING
 
