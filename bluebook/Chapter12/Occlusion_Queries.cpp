@@ -205,27 +205,22 @@ struct Application : public Program {
 		}
 
 		//call this so our queries are actually availabe for this example, avoid using glFinish normally
+		glFlush();
 		glFinish();
 
-		//Turn on color and depth rendering, see which queries are available, if they are available get their result,
-		//if they are not available set result to TRUE anyway and render to be safe, otherwise render our "complex" scene 
-		// based on the query state
+		//Turn on color and depth rendering, Begin condition rendering based on the result of out previous queries
+		//Our render complex scene function will only make opengl calls if the related query is true
+		//We get the result again in RenderComplexScene so we can count how many cubes passed the query and were rendered
 		m_rendered_cube_count = 0;
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glDepthMask(GL_TRUE);
 		for (unsigned int i = 0; i < NUM_CUBES; ++i) {
 			GLuint result;
-			glGetQueryObjectuiv(m_queries[i], GL_QUERY_RESULT_AVAILABLE, &result);
-
-			if (result != 0)
-				glGetQueryObjectuiv(m_queries[i], GL_QUERY_RESULT, &result);
-			else
-				result = 1;
-
-			if (result != 0) {
-				++m_rendered_cube_count;
-				RenderComplexScene(i);
-			}
+			glGetQueryObjectuiv(m_queries[i], GL_QUERY_RESULT, &result);
+			if (result) m_rendered_cube_count++;
+			glBeginConditionalRender(m_queries[i], GL_QUERY_NO_WAIT);
+			RenderComplexScene(i);
+			glEndConditionalRender();
 		}
 	}
 	void OnGui() {
