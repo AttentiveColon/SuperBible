@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define OCCLUSION_QUERIES
+#define TRANSFORM_FEEDBACK_QUERIES
 
