@@ -1,9 +1,103 @@
 #include "Defines.h"
-#ifdef PHONG_SHADING
+#ifdef BLINN_PHONG
 #include "System.h"
 #include "Texture.h"
 #include "Model.h"
 #include "Mesh.h"
+
+static const GLchar* blinn_phong_vertex_shader_source = R"(
+#version 450 core
+
+layout (location = 0)
+in vec3 position;
+layout (location = 1)
+in vec3 normal;
+layout (location = 2)
+in vec2 uv;
+
+layout (location = 3)
+uniform mat4 u_model;
+layout (location = 4)
+uniform mat4 u_view;
+layout (location = 5)
+uniform mat4 u_proj;
+
+layout (binding = 0, std140)
+uniform Material
+{
+	vec3 light_pos;
+	float pad0;
+	vec3 diffuse_albedo;
+	float pad1;
+	vec3 specular_albedo;
+	float specular_power;
+	vec3 ambient;
+};
+
+out VS_OUT
+{
+	vec3 N;
+	vec3 L;
+	vec3 V;
+} vs_out;
+
+void main(void)
+{
+	mat4 mv_matrix = u_view * u_model;
+
+    vec4 P = mv_matrix * vec4(position, 1.0);
+	vs_out.N = mat3(mv_matrix) * normal;
+	vs_out.L = light_pos - P.xyz;
+	vs_out.V = -P.xyz;
+
+	gl_Position = u_proj * P;
+}
+)";
+
+static const GLchar* blinn_phong_fragment_shader_source = R"(
+#version 450 core
+
+layout (binding = 0, std140)
+uniform Material
+{
+	vec3 light_pos;
+	float pad0;
+	vec3 diffuse_albedo;
+	float pad1;
+	vec3 specular_albedo;
+	float specular_power;
+	vec3 ambient;
+};
+
+in VS_OUT
+{
+	vec3 N;
+	vec3 L;
+	vec3 V;
+} fs_in;
+
+out vec4 color;
+
+void main()
+{
+	vec3 N = normalize(fs_in.N);
+	vec3 L = normalize(fs_in.L);
+	vec3 V = normalize(fs_in.V);
+
+	vec3 H = normalize(L + V);
+
+	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
+	vec3 specular = pow(max(dot(N, H), 0.0), specular_power) * specular_albedo;
+
+	color = vec4(ambient + diffuse + specular, 1.0);
+}
+)";
+
+static ShaderText blinn_phong_shader_text[] = {
+	{GL_VERTEX_SHADER, blinn_phong_vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, blinn_phong_fragment_shader_source, NULL},
+	{GL_NONE, NULL, NULL}
+};
 
 static const GLchar* phong_vertex_shader_source = R"(
 #version 450 core
@@ -99,85 +193,6 @@ static ShaderText phong_shader_text[] = {
 	{GL_NONE, NULL, NULL}
 };
 
-static const GLchar* gouraud_vertex_shader_source = R"(
-#version 450 core
-
-layout (location = 0)
-in vec3 position;
-layout (location = 1)
-in vec3 normal;
-layout (location = 2)
-in vec2 uv;
-
-layout (location = 3)
-uniform mat4 u_model;
-layout (location = 4)
-uniform mat4 u_view;
-layout (location = 5)
-uniform mat4 u_proj;
-
-layout (binding = 0, std140)
-uniform Material
-{
-	vec3 light_pos;
-	float pad0;
-	vec3 diffuse_albedo;
-	float pad1;
-	vec3 specular_albedo;
-	float specular_power;
-	vec3 ambient;
-};
-
-out VS_OUT
-{
-	vec3 color;
-} vs_out;
-
-void main(void)
-{
-	mat4 mv_matrix = u_view * u_model;
-
-    vec4 P = mv_matrix * vec4(position, 1.0);
-	vec3 N = mat3(mv_matrix) * normal;
-	vec3 L = light_pos - P.xyz;
-	vec3 V = -P.xyz;
-
-	N = normalize(N);
-	L = normalize(L);
-	V = normalize(V);
-
-	vec3 R = reflect(-L, N);
-
-	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
-	vec3 specular = pow(max(dot(R, V), 0.0), specular_power) * specular_albedo;
-
-	vs_out.color = ambient + diffuse + specular;
-	gl_Position = u_proj * P;
-}
-)";
-
-static const GLchar* gouraud_fragment_shader_source = R"(
-#version 450 core
-
-in VS_OUT
-{
-	vec3 color;
-} fs_in;
-
-out vec4 color;
-
-void main()
-{
-	color = vec4(fs_in.color, 1.0);
-}
-)";
-
-static ShaderText gouraud_shader_text[] = {
-	{GL_VERTEX_SHADER, gouraud_vertex_shader_source, NULL},
-	{GL_FRAGMENT_SHADER, gouraud_fragment_shader_source, NULL},
-	{GL_NONE, NULL, NULL}
-};
-
 
 
 struct Material_Uniform {
@@ -196,7 +211,7 @@ struct Application : public Program {
 	u64 m_fps;
 	f64 m_time;
 
-	GLuint m_program, m_gouraud_program;
+	GLuint m_blinn_phong_program, m_phong_program;
 
 	GLuint m_ubo;
 	Material_Uniform* m_data;
@@ -214,7 +229,7 @@ struct Application : public Program {
 	SB::Camera m_camera;
 	bool m_input_mode = false;
 
-	bool m_use_gouraud = false;
+	bool m_use_phong = false;
 
 	Random m_random;
 
@@ -225,8 +240,8 @@ struct Application : public Program {
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
-		m_program = LoadShaders(phong_shader_text);
-		m_gouraud_program = LoadShaders(gouraud_shader_text);
+		m_blinn_phong_program = LoadShaders(blinn_phong_shader_text);
+		m_phong_program = LoadShaders(phong_shader_text);
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 4.0f, 2.0f), glm::vec3(0.0f, 5.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 		m_cube.Load_OBJ("./resources/Skull/Skull.obj");
 		//m_cube.Load_OBJ("./resources/cube.obj");
@@ -260,10 +275,10 @@ struct Application : public Program {
 		glClearBufferfv(GL_DEPTH, 0, &one);
 
 		glEnable(GL_DEPTH_TEST);
-		if (m_use_gouraud)
-			glUseProgram(m_gouraud_program);
+		if (m_use_phong)
+			glUseProgram(m_phong_program);
 		else
-			glUseProgram(m_program);
+			glUseProgram(m_blinn_phong_program);
 		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(m_cube_rotation));
 		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
@@ -284,7 +299,7 @@ struct Application : public Program {
 		ImGui::ColorEdit3("Specular Albedo", glm::value_ptr(m_specular_albedo));
 		ImGui::DragFloat("Specular Power", &m_specular_power, 0.1f);
 		ImGui::ColorEdit3("Ambient", glm::value_ptr(m_ambient));
-		ImGui::Checkbox("Use Gouraud Shader", &m_use_gouraud);
+		ImGui::Checkbox("Use Phong Shader", &m_use_phong);
 		ImGui::End();
 	}
 };
@@ -302,4 +317,4 @@ SystemConf config = {
 };
 
 MAIN(config)
-#endif //PHONG_SHADING
+#endif //BLINN_PHONG

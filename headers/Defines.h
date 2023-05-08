@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define PHONG_SHADING
+#define BLINN_PHONG
 
