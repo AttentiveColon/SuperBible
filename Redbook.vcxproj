@@ -156,6 +156,7 @@
     <ClCompile Include="bluebook\Chapter12\Timer_Queries.cpp" />
     <ClCompile Include="bluebook\Chapter12\Transform_Feedback_Queries.cpp" />
     <ClCompile Include="bluebook\Chapter13\Gouraud_Shading.cpp" />
+    <ClCompile Include="bluebook\Chapter13\Phong_Shading.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_1.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_2.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_3.cpp" />
