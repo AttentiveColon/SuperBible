@@ -158,6 +158,7 @@
     <ClCompile Include="bluebook\Chapter13\Blinn_Phong.cpp" />
     <ClCompile Include="bluebook\Chapter13\Gouraud_Shading.cpp" />
     <ClCompile Include="bluebook\Chapter13\Phong_Shading.cpp" />
+    <ClCompile Include="bluebook\Chapter13\Rim_Lighting.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_1.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_2.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_3.cpp" />
