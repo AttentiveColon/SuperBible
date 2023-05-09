@@ -18,13 +18,13 @@ layout (location = 3)
 in vec3 tangent;
 
 layout (location = 0)
-uniform mat4 u_model2;
+uniform mat4 u_model;
 layout (location = 1)
 uniform mat4 u_view;
 layout (location = 2)
 uniform mat4 u_proj;
 layout (location = 3)
-uniform mat4 u_model;
+uniform mat4 u_node_trs;
 layout (location = 4)
 uniform mat3 u_normal_matrix;
 layout (location = 5)
@@ -51,26 +51,43 @@ uniform Material
 
 out VS_OUT
 {
-	vec3 N;
-	vec3 L;
-	vec3 V;
+	vec2 uv;
+	vec3 eye_dir;
+	vec3 light_dir;
+	vec3 normal;
 } vs_out;
 
 void main(void)
 {
-	mat4 mv_matrix = u_view * u_model;
+	mat4 mv_matrix = u_view * u_model * u_node_trs;
 
     vec4 P = mv_matrix * vec4(position, 1.0);
-	vs_out.N = mat3(mv_matrix) * normal;
-	vs_out.L = light_pos - P.xyz;
-	vs_out.V = -P.xyz;
+	vec3 V = P.xyz;
+	vec3 N = normalize(mat3(mv_matrix) * normal);
+	vec3 T = normalize(mat3(mv_matrix) * tangent);
+	vec3 B = cross(N, T);
 
+
+	vec3 L = light_pos - P.xyz;
+	vs_out.light_dir = normalize(vec3(dot(L, T), dot(L, B), dot(L, N)));
+
+	V = -P.xyz;
+	vs_out.eye_dir = normalize(vec3(dot(V, T), dot(V, B), dot(V, N)));
+
+	vs_out.uv = uv;
+	vs_out.normal = N;
 	gl_Position = u_proj * P;
 }
 )";
 
 static const GLchar* rim_lighting_fragment_shader_source = R"(
 #version 450 core
+
+layout (binding = 0)
+uniform sampler2D u_diffuse;
+
+layout (binding = 2)
+uniform sampler2D u_normal_map;
 
 layout (binding = 0, std140)
 uniform Material
@@ -89,9 +106,10 @@ uniform Material
 
 in VS_OUT
 {
-	vec3 N;
-	vec3 L;
-	vec3 V;
+	vec2 uv;
+	vec3 eye_dir;
+	vec3 light_dir;
+	vec3 normal;
 } fs_in;
 
 out vec4 color;
@@ -106,17 +124,16 @@ vec3 calculate_rim(vec3 N, vec3 V)
 
 void main()
 {
-	vec3 N = normalize(fs_in.N);
-	vec3 L = normalize(fs_in.L);
-	vec3 V = normalize(fs_in.V);
+	vec3 V = normalize(fs_in.eye_dir);
+	vec3 L = normalize(fs_in.light_dir);
+	vec3 N = normalize(texture(u_normal_map, fs_in.uv).rgb * 2.0 - vec3(1.0));
+	vec3 R = reflect(-L, N);
 
-	vec3 H = normalize(L + V);
-
-	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
-	vec3 specular = pow(max(dot(N, H), 0.0), specular_power) * specular_albedo;
+	vec3 diffuse = max(dot(N, L), 0.0) * texture(u_diffuse, fs_in.uv).rgb;
+	vec3 specular = max(pow(dot(R, V), specular_power), 0.0) * specular_albedo;
 	vec3 rim = calculate_rim(N, V);
 
-	color = vec4(ambient + diffuse + specular + rim, 1.0);
+	color = vec4(diffuse + specular, 1.0);
 }
 )";
 
@@ -139,6 +156,7 @@ struct Material_Uniform {
 	float rim_power;
 };
 
+//Load a single rook from ABeautifulGame scene and render it with texture and normal maps
 
 struct Application : public Program {
 	float m_clear_color[4];
@@ -177,10 +195,10 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		m_rim_lighting_program = LoadShaders(rim_lighting_shader_text);
-		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 4.0f, 2.0f), glm::vec3(0.0f, 5.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
+		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 		//m_cube.Load_OBJ("./resources/Skull/Skull.obj");
 		//m_cube.Load_OBJ("./resources/cube.obj");
-		m_model = SB::Model("./resources/sponza.glb");
+		m_model = SB::Model("./resources/rook.glb");
 		m_random.Init();
 
 		glGenBuffers(1, &m_ubo);
@@ -200,8 +218,8 @@ struct Application : public Program {
 			input.SetRawMouseMode(window.GetHandle(), m_input_mode);
 		}
 
-		//m_cube_rotation = glm::rotate(-90.0f, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::rotate(cos((float)m_time * 0.1f), glm::vec3(0.0, 0.0, 1.0)) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f));
-		m_cube_rotation = glm::mat4(1.0f);
+		m_cube_rotation = glm::rotate(cos((float)m_time * 0.1f), glm::vec3(0.0, 1.0, 0.0));
+		
 
 		Material_Uniform temp_material = { m_light_pos, 0.0, m_diffuse_albedo, 0.0, m_specular_albedo, m_specular_power, m_ambient, 0.0, m_rim_color, m_rim_power };
 		memcpy(m_data, &temp_material, sizeof(Material_Uniform));
