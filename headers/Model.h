@@ -1021,7 +1021,7 @@ namespace SB
 			const auto& tanAccessor = model.accessors[primitive.attributes.at("TANGENT")];
 			const auto& tanView = model.bufferViews[tanAccessor.bufferView];
 			const float* tangentData = reinterpret_cast<const float*>(model.buffers[tanView.buffer].data.data() + tanView.byteOffset + tanAccessor.byteOffset);
-			for (size_t i = 0; i < tanAccessor.count * 3; i++) {
+			for (size_t i = 0; i < tanAccessor.count * 4; i++) {
 				tangents.push_back(tangentData[i]);
 			}
 		}
@@ -1041,7 +1041,7 @@ namespace SB
 				indices.push_back(indexData[i]);
 			}
 		}
-
+		
 		//Rearrange data into a vector<float> of vertex data
 		vector<float> vertex;
 		for (size_t i = 0; i < positions.size() / 3; ++i) {
@@ -1057,6 +1057,7 @@ namespace SB
 				vertex.push_back(tangents[3 * i + 0]);
 				vertex.push_back(tangents[3 * i + 1]);
 				vertex.push_back(tangents[3 * i + 2]);
+				vertex.push_back(tangents[3 * i + 3]);
 			}
 		}
 
@@ -1083,12 +1084,12 @@ namespace SB
 
 		if (!tangents.empty()) {
 			glVertexArrayAttribBinding(m_vao, 3, 0);
-			glVertexArrayAttribFormat(m_vao, 3, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8);
+			glVertexArrayAttribFormat(m_vao, 3, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 8);
 			glEnableVertexArrayAttrib(m_vao, 3);
 		}
 
 		if (!tangents.empty())
-			glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(float) * 11);
+			glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(float) * 12);
 		else
 			glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(float) * 8);
 		glVertexArrayElementBuffer(m_vao, m_index_buffer);
