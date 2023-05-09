@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define MODEL_BASE
+#define NORMAL_MAPS
 
