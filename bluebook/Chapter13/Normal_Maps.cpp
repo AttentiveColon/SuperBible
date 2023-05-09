@@ -23,16 +23,10 @@ layout (location = 1)
 uniform mat4 u_view;
 layout (location = 2)
 uniform mat4 u_proj;
-layout (location = 3)
-uniform mat4 u_node_trs;
-layout (location = 4)
-uniform mat3 u_normal_matrix;
-layout (location = 5)
-uniform vec3 u_view_pos;
 
 
-layout (location = 7) uniform vec4 u_base_color_factor;
-layout (location = 8) uniform float u_alpha_cutoff;
+
+
 
 layout (binding = 0, std140)
 uniform Material
@@ -59,7 +53,7 @@ out VS_OUT
 
 void main(void)
 {
-	mat4 mv_matrix = u_view * u_model * u_node_trs;
+	mat4 mv_matrix = u_view * u_model;
 
     vec4 P = mv_matrix * vec4(position, 1.0);
 	vec3 V = P.xyz;
@@ -86,7 +80,7 @@ static const GLchar* rim_lighting_fragment_shader_source = R"(
 layout (binding = 0)
 uniform sampler2D u_diffuse;
 
-layout (binding = 2)
+layout (binding = 1)
 uniform sampler2D u_normal_map;
 
 layout (binding = 0, std140)
@@ -127,15 +121,18 @@ void main()
 	vec3 V = normalize(fs_in.eye_dir);
 	vec3 L = normalize(fs_in.light_dir);
 	vec3 N = normalize(texture(u_normal_map, fs_in.uv).rgb * 2.0 - vec3(1.0));
+	//vec3 N = normalize(fs_in.normal);
 	vec3 R = reflect(-L, N);
 
-	vec3 diffuse = max(dot(N, L), 0.0) * texture(u_diffuse, fs_in.uv).rgb;
+	vec3 diffuse_color = texture(u_diffuse, fs_in.uv).rgb;
+	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_color;
 	vec3 specular = max(pow(dot(R, V), specular_power), 0.0) * specular_albedo;
-	vec3 rim = calculate_rim(N, V);
-
+	
 	color = vec4(diffuse + specular, 1.0);
 }
 )";
+
+//vec3 rim = calculate_rim(N, V);
 
 static ShaderText rim_lighting_shader_text[] = {
 	{GL_VERTEX_SHADER, rim_lighting_vertex_shader_source, NULL},
@@ -177,10 +174,10 @@ struct Application : public Program {
 	float m_rim_power = 128.0f;
 
 
-	ObjMesh m_cube;
-	glm::mat4 m_cube_rotation;
 
-	SB::Model m_model;
+	SB::MeshData m_mesh;
+	GLuint m_tex_base, m_tex_normal;
+	glm::mat4 m_mesh_rotation;
 
 	SB::Camera m_camera;
 	bool m_input_mode = false;
@@ -196,9 +193,10 @@ struct Application : public Program {
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		m_rim_lighting_program = LoadShaders(rim_lighting_shader_text);
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
-		//m_cube.Load_OBJ("./resources/Skull/Skull.obj");
-		//m_cube.Load_OBJ("./resources/cube.obj");
-		m_model = SB::Model("./resources/rook.glb");
+
+		m_mesh = SB::GetMesh("./resources/rook/rook.glb");
+		m_tex_base = Load_KTX("./resources/rook/rook_base.ktx");
+		m_tex_normal = Load_KTX("./resources/rook/rook_normal.ktx");
 		m_random.Init();
 
 		glGenBuffers(1, &m_ubo);
@@ -218,7 +216,7 @@ struct Application : public Program {
 			input.SetRawMouseMode(window.GetHandle(), m_input_mode);
 		}
 
-		m_cube_rotation = glm::rotate(cos((float)m_time * 0.1f), glm::vec3(0.0, 1.0, 0.0));
+		m_mesh_rotation = glm::rotate(cos((float)m_time * 0.1f), glm::vec3(0.0, 1.0, 0.0));
 		
 
 		Material_Uniform temp_material = { m_light_pos, 0.0, m_diffuse_albedo, 0.0, m_specular_albedo, m_specular_power, m_ambient, 0.0, m_rim_color, m_rim_power };
@@ -232,18 +230,19 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 
 		glUseProgram(m_rim_lighting_program);
-		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_cube_rotation));
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_mesh_rotation));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
 
-		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.Eye()));
 
 		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(Material_Uniform), m_data, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
 
-		m_model.OnDraw();
-		//m_cube.OnDraw();
+		glBindVertexArray(m_mesh.m_vao);
+		glBindTextureUnit(0, m_tex_base);
+		glBindTextureUnit(1, m_tex_normal);
+		glDrawElements(m_mesh.m_topology, m_mesh.m_count, GL_UNSIGNED_INT, (void*)0);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");

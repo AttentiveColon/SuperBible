@@ -957,6 +957,152 @@ namespace SB
 			}
 		}
 	}
+
+	static MeshData GetMesh(const char* filename) {
+		tinygltf::Model model;
+		tinygltf::TinyGLTF loader;
+		std::string err;
+		std::string warn;
+		bool ret;
+
+		path filepath = filename;
+
+		if (filepath.extension() == ".glb") { ret = loader.LoadBinaryFromFile(&model, &err, &warn, filename); }
+		else ret = loader.LoadASCIIFromFile(&model, &err, &warn, filename);
+
+		if (!warn.empty()) printf("Warn: %s\n", warn.c_str());
+		if (!err.empty()) printf("Err: %s\n", err.c_str());
+		if (!ret) {
+			printf("Failed to parse glTF\n");
+			assert(false);
+		}
+
+		const auto& mesh = model.meshes[0];
+		const auto& primitive = mesh.primitives[0];
+		
+		GLuint m_vao, m_vertex_buffer, m_index_buffer;
+
+		vector<float> positions;
+		vector<float> normals;
+		vector<float> texcoords;
+		vector<float> tangents;
+		vector<unsigned int> indices;
+
+		//Get Positions
+		const auto& positionAccessor = model.accessors[primitive.attributes.at("POSITION")];
+		const auto& positionView = model.bufferViews[positionAccessor.bufferView];
+		const float* positionData = reinterpret_cast<const float*>(model.buffers[positionView.buffer].data.data() + positionView.byteOffset + positionAccessor.byteOffset);
+		for (size_t i = 0; i < positionAccessor.count * 3; i++) {
+			positions.push_back(positionData[i]);
+		}
+
+		//Get Normals
+		if (primitive.attributes.count("NORMAL") > 0) {
+			const auto& normalAccessor = model.accessors[primitive.attributes.at("NORMAL")];
+			const auto& normalView = model.bufferViews[normalAccessor.bufferView];
+			const float* normalData = reinterpret_cast<const float*>(model.buffers[normalView.buffer].data.data() + normalView.byteOffset + normalAccessor.byteOffset);
+			for (size_t i = 0; i < normalAccessor.count * 3; i++) {
+				normals.push_back(normalData[i]);
+			}
+		}
+
+		//Get Texture Coords
+		if (primitive.attributes.count("TEXCOORD_0") > 0) {
+			const auto& texAccessor = model.accessors[primitive.attributes.at("TEXCOORD_0")];
+			const auto& texView = model.bufferViews[texAccessor.bufferView];
+			const float* texCoordData = reinterpret_cast<const float*>(model.buffers[texView.buffer].data.data() + texView.byteOffset + texAccessor.byteOffset);
+			for (size_t i = 0; i < texAccessor.count * 2; i++) {
+				texcoords.push_back(texCoordData[i]);
+			}
+		}
+
+		//Get Tangents
+		if (primitive.attributes.count("TANGENT") > 0) {
+			const auto& tanAccessor = model.accessors[primitive.attributes.at("TANGENT")];
+			const auto& tanView = model.bufferViews[tanAccessor.bufferView];
+			const float* tangentData = reinterpret_cast<const float*>(model.buffers[tanView.buffer].data.data() + tanView.byteOffset + tanAccessor.byteOffset);
+			for (size_t i = 0; i < tanAccessor.count * 3; i++) {
+				tangents.push_back(tangentData[i]);
+			}
+		}
+
+		//Get Indices
+		const auto& indexAccessor = model.accessors[primitive.indices];
+		const auto& indexView = model.bufferViews[indexAccessor.bufferView];
+		if (indexAccessor.componentType == GL_UNSIGNED_INT) {
+			const unsigned int* indexData = reinterpret_cast<const unsigned int*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
+			for (size_t i = 0; i < indexAccessor.count; i++) {
+				indices.push_back(indexData[i]);
+			}
+		}
+		else {
+			const unsigned short* indexData = reinterpret_cast<const unsigned short*>(model.buffers[indexView.buffer].data.data() + indexView.byteOffset + indexAccessor.byteOffset);
+			for (size_t i = 0; i < indexAccessor.count; i++) {
+				indices.push_back(indexData[i]);
+			}
+		}
+
+		//Rearrange data into a vector<float> of vertex data
+		vector<float> vertex;
+		for (size_t i = 0; i < positions.size() / 3; ++i) {
+			vertex.push_back(positions[3 * i + 0]);
+			vertex.push_back(positions[3 * i + 1]);
+			vertex.push_back(positions[3 * i + 2]);
+			vertex.push_back(normals[3 * i + 0]);
+			vertex.push_back(normals[3 * i + 1]);
+			vertex.push_back(normals[3 * i + 2]);
+			vertex.push_back(texcoords[2 * i + 0]);
+			vertex.push_back(texcoords[2 * i + 1]);
+			if (!tangents.empty()) {
+				vertex.push_back(tangents[3 * i + 0]);
+				vertex.push_back(tangents[3 * i + 1]);
+				vertex.push_back(tangents[3 * i + 2]);
+			}
+		}
+
+		//Bind all data to related VAO
+		glCreateVertexArrays(1, &m_vao);
+
+		glCreateBuffers(1, &m_vertex_buffer);
+		glNamedBufferStorage(m_vertex_buffer, vertex.size() * sizeof(float), &vertex[0], 0);
+
+		glCreateBuffers(1, &m_index_buffer);
+		glNamedBufferStorage(m_index_buffer, indices.size() * sizeof(unsigned int), &indices[0], 0);
+
+		glVertexArrayAttribBinding(m_vao, 0, 0);
+		glVertexArrayAttribFormat(m_vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+		glEnableVertexArrayAttrib(m_vao, 0);
+
+		glVertexArrayAttribBinding(m_vao, 1, 0);
+		glVertexArrayAttribFormat(m_vao, 1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3);
+		glEnableVertexArrayAttrib(m_vao, 1);
+
+		glVertexArrayAttribBinding(m_vao, 2, 0);
+		glVertexArrayAttribFormat(m_vao, 2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 6);
+		glEnableVertexArrayAttrib(m_vao, 2);
+
+		if (!tangents.empty()) {
+			glVertexArrayAttribBinding(m_vao, 3, 0);
+			glVertexArrayAttribFormat(m_vao, 3, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8);
+			glEnableVertexArrayAttrib(m_vao, 3);
+		}
+
+		if (!tangents.empty())
+			glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(float) * 11);
+		else
+			glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(float) * 8);
+		glVertexArrayElementBuffer(m_vao, m_index_buffer);
+
+		glBindVertexArray(0);
+
+		MeshData mesh_data;
+		mesh_data.m_vao = m_vao;
+		mesh_data.m_count = indices.size();
+		mesh_data.m_material = primitive.material;
+		mesh_data.m_topology = primitive.mode;		
+		
+		return mesh_data;
+	}
 }
 
 
