@@ -15,6 +15,8 @@ in vec3 normal;
 layout (location = 2) 
 in vec2 uv;
 layout (location = 3)
+in vec3 tangent;
+layout (location = 3)
 uniform mat4 u_model;
 layout (location = 4)
 uniform mat3 u_normal_matrix;

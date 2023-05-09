@@ -530,6 +530,7 @@ namespace SB
 			vector<float> positions;
 			vector<float> normals;
 			vector<float> texcoords;
+			vector<float> tangents;
 			vector<unsigned int> indices;
 
 			//Get Positions
@@ -560,6 +561,16 @@ namespace SB
 				}
 			}
 
+			//Get Tangents
+			if (primitive.attributes.count("TANGENT") > 0) {
+				const auto& tanAccessor = model.accessors[primitive.attributes.at("TANGENT")];
+				const auto& tanView = model.bufferViews[tanAccessor.bufferView];
+				const float* tangentData = reinterpret_cast<const float*>(model.buffers[tanView.buffer].data.data() + tanView.byteOffset + tanAccessor.byteOffset);
+				for (size_t i = 0; i < tanAccessor.count * 3; i++) {
+					tangents.push_back(tangentData[i]);
+				}
+			}
+
 			//Get Indices
 			const auto& indexAccessor = model.accessors[primitive.indices];
 			const auto& indexView = model.bufferViews[indexAccessor.bufferView];
@@ -587,6 +598,11 @@ namespace SB
 				vertex.push_back(normals[3 * i + 2]);
 				vertex.push_back(texcoords[2 * i + 0]);
 				vertex.push_back(texcoords[2 * i + 1]);
+				if (!tangents.empty()) {
+					vertex.push_back(tangents[3 * i + 0]);
+					vertex.push_back(tangents[3 * i + 1]);
+					vertex.push_back(tangents[3 * i + 2]);
+				}
 			}
 			
 			//Bind all data to related VAO
@@ -610,7 +626,16 @@ namespace SB
 			glVertexArrayAttribFormat(m_vao, 2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 6);
 			glEnableVertexArrayAttrib(m_vao, 2);
 
-			glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(float) * 8);
+			if (!tangents.empty()) {
+				glVertexArrayAttribBinding(m_vao, 3, 0);
+				glVertexArrayAttribFormat(m_vao, 3, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8);
+				glEnableVertexArrayAttrib(m_vao, 3);
+			}
+
+			if (!tangents.empty())
+				glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(float) * 11);
+			else
+				glVertexArrayVertexBuffer(m_vao, 0, m_vertex_buffer, 0, sizeof(float) * 8);
 			glVertexArrayElementBuffer(m_vao, m_index_buffer);
 
 			glBindVertexArray(0);

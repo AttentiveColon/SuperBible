@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define RIM_LIGHTING
+#define MODEL_BASE
 

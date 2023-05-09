@@ -15,7 +15,7 @@ in vec3 normal;
 layout (location = 2)
 in vec2 uv;
 
-layout (location = 3)
+layout (location = 0)
 uniform mat4 u_model;
 layout (location = 4)
 uniform mat4 u_view;
@@ -198,7 +198,7 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		
 		glUseProgram(m_rim_lighting_program);
-		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(m_cube_rotation));
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_cube_rotation));
 		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
 
