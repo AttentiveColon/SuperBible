@@ -230,7 +230,7 @@ vec3 calculate_rim(vec3 N, vec3 V)
 
 void main()
 {
-	vec2 normal_uv = -fs_in.uv;
+	vec2 normal_uv = vec2(fs_in.uv.x, -fs_in.uv.y);
 	vec2 diffuse_uv = vec2(fs_in.uv.x, -fs_in.uv.y);
 
 	vec3 V = normalize(fs_in.eye_dir);
@@ -315,11 +315,11 @@ struct Application : public Program {
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
-		m_cube.Load_OBJ("./resources/rook/rook.obj");
+		m_cube.Load_OBJ("./resources/rook2/rook.obj");
 
 		//m_mesh = SB::GetMesh("./resources/rook/rook.glb");
-		m_tex_base = Load_KTX("./resources/rook/rook_base.ktx");
-		m_tex_normal = Load_KTX("./resources/rook/rook_normal.ktx");
+		m_tex_base = Load_KTX("./resources/rook2/rook_base.ktx");
+		m_tex_normal = Load_KTX("./resources/rook2/rook_normal.ktx");
 		m_random.Init();
 
 		glGenBuffers(1, &m_ubo);
