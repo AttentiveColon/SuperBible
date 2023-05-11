@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define SPHERICAL_ENVIROMENT_MAPPING
+#define EQUIRECTANGULAR_ENVIROMENT_MAPS
 

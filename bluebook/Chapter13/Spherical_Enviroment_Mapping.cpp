@@ -66,8 +66,8 @@ void main(void)
 	vs_out.eye_dir = normalize(vec3(dot(V, T), dot(V, B), dot(V, N)));
 
 	vs_out.uv = uv;
-	vs_out.normal = normalize(mat3(mv_matrix) * normal);
-	vs_out.view = normalize(V);
+	vs_out.normal = mat3(mv_matrix) * normal;
+	vs_out.view = P.xyz;
 	gl_Position = u_proj * P;
 }
 )";
@@ -80,6 +80,9 @@ uniform sampler2D u_diffuse;
 
 layout (binding = 1)
 uniform sampler2D u_normal_map;
+
+layout (binding = 2)
+uniform sampler2D u_env_map;
 
 layout (binding = 0, std140)
 uniform Material
@@ -132,8 +135,14 @@ void main()
 	vec3 specular = max(pow(dot(R, V), specular_power), 0.0) * specular_albedo;
 
 	vec3 rim = calculate_rim(fs_in.normal, fs_in.view);
+
+	vec3 u = normalize(fs_in.view);
+	vec3 r = reflect(u, normalize(fs_in.normal));
+	r.z += 1.0;
+	float m = 0.5 * inversesqrt(dot(r, r));
+	vec3 enviroment = texture(u_env_map, r.xy * m + vec2(0.5)).rgb;
 	
-	color = vec4(diffuse + specular + rim, 1.0);
+	color = vec4(enviroment, 1.0);
 }
 )";
 
@@ -248,6 +257,7 @@ struct Application : public Program {
 
 		glBindTextureUnit(0, m_tex_base);
 		glBindTextureUnit(1, m_tex_normal);
+		glBindTextureUnit(2, m_env_map);
 		m_cube.OnDraw();
 	}
 	void OnGui() {
