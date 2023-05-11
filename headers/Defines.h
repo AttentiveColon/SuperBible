@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define NORMAL_MAPS
+#define SPHERICAL_ENVIROMENT_MAPPING
 
