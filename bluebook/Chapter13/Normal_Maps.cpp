@@ -53,7 +53,7 @@ void main(void)
 	vs_out.N = mat3(mv_matrix) * normal;
 	vs_out.L = light_pos - P.xyz;
 	vs_out.V = -P.xyz;
-	vs_out.uv = uv;
+	vs_out.uv = vec2(uv.x, -uv.y);
 
 	gl_Position = u_proj * P;
 }
@@ -243,12 +243,14 @@ void main()
 	vec3 diffuse_color = texture(u_diffuse, diffuse_uv).rgb;
 	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_color;
 	vec3 specular = max(pow(dot(R, V), specular_power), 0.0) * specular_albedo;
+
+	vec3 rim = calculate_rim(N, V);
 	
-	color = vec4(diffuse + specular, 1.0);
+	color = vec4(diffuse + specular + rim, 1.0);
 }
 )";
 
-//vec3 rim = calculate_rim(N, V);
+
 
 static ShaderText normal_shader_text[] = {
 	{GL_VERTEX_SHADER, normal_vertex_shader_source, NULL},
@@ -268,8 +270,6 @@ struct Material_Uniform {
 	glm::vec3 rim_color;
 	float rim_power;
 };
-
-//Load a single rook from ABeautifulGame scene and render it with texture and normal maps
 
 struct Application : public Program {
 	float m_clear_color[4];
@@ -316,8 +316,6 @@ struct Application : public Program {
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
 		m_cube.Load_OBJ("./resources/rook2/rook.obj");
-
-		//m_mesh = SB::GetMesh("./resources/rook/rook.glb");
 		m_tex_base = Load_KTX("./resources/rook2/rook_base.ktx");
 		m_tex_normal = Load_KTX("./resources/rook2/rook_normal.ktx");
 		m_random.Init();
