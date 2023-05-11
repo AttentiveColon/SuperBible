@@ -92,6 +92,7 @@ GLuint Load_KTX(const char* filename, GLuint texture) {
 	//Open filestream and check if successful
 	std::ifstream ifs(filename, std::ios_base::binary);
 	if (!ifs.is_open()) {
+		std::cerr << "Couldn't open file:" << filename << std::endl;
 		return 0;
 	}
 

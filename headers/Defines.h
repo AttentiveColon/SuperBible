@@ -16,5 +16,5 @@
 //#define MSAA8X
 
 //Current Project
-#define EQUIRECTANGULAR_ENVIROMENT_MAPS
+#define CUBEMAP
 
