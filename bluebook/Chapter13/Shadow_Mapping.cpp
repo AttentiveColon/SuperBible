@@ -135,7 +135,7 @@ struct Application : public Program {
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
-		m_cube.Load_OBJ("./resources/sphere.obj");
+		m_cube.Load_OBJ("./resources/Skull/Skull.obj");
 		m_env_map = Load_KTX("./resources/mountains3d.ktx");
 		m_gloss_map = Load_KTX("./resources/pattern1.ktx");
 	}
@@ -164,7 +164,7 @@ struct Application : public Program {
 		glBindTextureUnit(0, m_env_map);
 		glBindTextureUnit(1, m_gloss_map);
 
-		glm::mat4 model = glm::rotate(sin((float)m_time), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 model = glm::rotate(sin((float)m_time), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::degrees(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));

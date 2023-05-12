@@ -315,7 +315,7 @@ struct Application : public Program {
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
-		m_cube.Load_OBJ("./resources/rook2/rook.obj");
+		m_cube.Load_OBJ_Tan("./resources/rook2/rook.obj");
 		m_tex_base = Load_KTX("./resources/rook2/rook_base.ktx");
 		m_tex_normal = Load_KTX("./resources/rook2/rook_normal.ktx");
 		m_random.Init();
