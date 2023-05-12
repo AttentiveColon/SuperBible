@@ -5,6 +5,9 @@
 #include "Model.h"
 #include "Mesh.h"
 
+#define DEPTH_TEXTURE_SIZE      4096
+#define FRUSTUM_DEPTH           1000
+
 static const GLchar* gloss_vertex_shader_source = R"(
 #version 450 core
 
@@ -118,6 +121,10 @@ struct Application : public Program {
 	GLuint m_env_map;
 	GLuint m_gloss_map;
 
+	GLuint m_shadow_buffer, m_shadow_tex;
+
+	glm::vec3 m_light_pos = glm::vec3(15.0f, 5.0f, 50.0f);
+
 
 	SB::Camera m_camera;
 	bool m_input_mode = false;
@@ -133,11 +140,24 @@ struct Application : public Program {
 		m_program = LoadShaders(gloss_shader_text);
 
 
-		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
+		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 5.0f, 12.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
 		m_cube.Load_OBJ("./resources/Skull/Skull.obj");
 		m_env_map = Load_KTX("./resources/mountains3d.ktx");
 		m_gloss_map = Load_KTX("./resources/pattern1.ktx");
+
+		glGenFramebuffers(1, &m_shadow_buffer);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_buffer);
+		
+		glGenTextures(1, &m_shadow_tex);
+		glBindTexture(GL_TEXTURE_2D, m_shadow_tex);
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, DEPTH_TEXTURE_SIZE, DEPTH_TEXTURE_SIZE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_shadow_tex, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
@@ -158,18 +178,33 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
 
+		glm::mat4 light_model_matrix = glm::translate(m_light_pos);
+		glm::mat4 light_view_matrix = glm::lookAt(m_light_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 light_proj_matrix = glm::frustum(-1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1000.0f);
+		glm::mat4 light_mvp_matrix = light_proj_matrix * light_view_matrix * light_model_matrix;
+
 		glEnable(GL_DEPTH_TEST);
+		RenderScene(true);
+		RenderScene(false);
+
+
+		//Move into render scene
+		/*
 		glUseProgram(m_program);
 
 		glBindTextureUnit(0, m_env_map);
 		glBindTextureUnit(1, m_gloss_map);
 
-		glm::mat4 model = glm::rotate(sin((float)m_time), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::degrees(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 model = glm::rotate(sin((float)m_time), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::degrees(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f));
+		glm::mat4 model2 = glm::translate(glm::vec3(0.0f, 5.0f, 5.0f)) * glm::rotate(cos((float)m_time), glm::vec3(1.0f, 1.0f, 0.0f)) * glm::rotate(glm::degrees(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f));
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
-		glUniform3fv(3, 1, glm::value_ptr(glm::vec3(15.0f, 5.0f, 50.0f)));
+		glUniform3fv(3, 1, glm::value_ptr(m_light_pos));
 		m_cube.OnDraw();
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model2));
+		m_cube.OnDraw();
+		*/
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
@@ -177,6 +212,9 @@ struct Application : public Program {
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::End();
+	}
+	void RenderScene(bool from_light) {
+		//Setup scene render here
 	}
 };
 
