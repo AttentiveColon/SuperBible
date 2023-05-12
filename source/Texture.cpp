@@ -222,6 +222,10 @@ GLuint Load_KTX(const char* filename, GLuint texture) {
 			}
 		}
 		break;
+	case GL_TEXTURE_3D:
+		glTexStorage3D(GL_TEXTURE_3D, header->miplevels, header->glinternalformat, header->pixelwidth, header->pixelheight, header->pixeldepth);
+		glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, header->pixelwidth, header->pixelheight, header->pixeldepth, header->glformat, header->gltype, data);
+		break;
 	default:
 		std::cerr << "Unsupported Texture Type" << std::endl;
 		delete[] data;
