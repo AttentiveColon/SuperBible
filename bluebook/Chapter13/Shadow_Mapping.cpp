@@ -17,24 +17,31 @@ in vec2 uv;
 layout (location = 3)
 in vec3 tangent;
 
+layout (location = 0)
+uniform mat4 u_model = mat4(1.0);
 layout (location = 1)
 uniform mat4 u_view;
 layout (location = 2)
 uniform mat4 u_proj;
+layout (location = 3)
+uniform vec3 u_light_pos;
 
 out VS_OUT
 {
 	vec3 normal;
+	vec3 light;
 	vec3 view;
 	vec2 uv;
 } vs_out;
 
 void main(void)
 {
-	vec4 P = u_view * vec4(position, 1.0);
-	
-	vs_out.normal = mat3(u_view) * normal;
-	vs_out.view = P.xyz;
+	mat4 mv_matrix = u_view * u_model;
+
+	vec4 P = mv_matrix * vec4(position, 1.0);	
+	vs_out.normal = mat3(mv_matrix) * normal;
+	vs_out.light = u_light_pos - P.xyz;
+	vs_out.view = -P.xyz;
 	vs_out.uv = uv;
 
 	gl_Position = u_proj * P;
@@ -49,9 +56,12 @@ uniform sampler3D u_tex_envmap;
 layout (binding = 1)
 uniform sampler2D u_tex_glossmap;
 
+uniform vec3 ambient = vec3(0.1);
+
 in VS_OUT
 {
 	vec3 normal;
+	vec3 light;
 	vec3 view;
 	vec2 uv;
 } fs_in;
@@ -60,15 +70,18 @@ out vec4 color;
 
 void main()
 {
-	vec3 u = normalize(fs_in.view);
-	vec3 r = reflect(u, normalize(fs_in.normal));
-	
-	r.z += 1.0;
-	float m = 0.5 * inversesqrt(dot(r, r));
+	vec3 N = normalize(fs_in.normal);
+	vec3 L = normalize(fs_in.light);
+	vec3 V = normalize(fs_in.view);
 
-	float gloss = texture(u_tex_glossmap, fs_in.uv * vec2(3.0, 1.0) * 2.0).r;
-	vec3 env_coord = vec3(r.xy * m + vec2(0.5), gloss);
-	color = texture(u_tex_envmap, env_coord);
+	vec3 R = reflect(-L, N);
+
+	vec3 diffuse_color = texture(u_tex_glossmap, fs_in.uv).rgb;
+	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_color;
+
+	vec3 specular = pow(max(dot(R, V), 0.0), 128.0) * vec3(1.0);
+
+	color = vec4(ambient + diffuse + specular, 1.0);
 }
 )";
 
@@ -122,7 +135,7 @@ struct Application : public Program {
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
-		m_cube.Load_OBJ("./resources/cube.obj");
+		m_cube.Load_OBJ("./resources/sphere.obj");
 		m_env_map = Load_KTX("./resources/mountains3d.ktx");
 		m_gloss_map = Load_KTX("./resources/pattern1.ktx");
 	}
@@ -151,8 +164,11 @@ struct Application : public Program {
 		glBindTextureUnit(0, m_env_map);
 		glBindTextureUnit(1, m_gloss_map);
 
+		glm::mat4 model = glm::rotate(sin((float)m_time), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
+		glUniform3fv(3, 1, glm::value_ptr(glm::vec3(15.0f, 5.0f, 50.0f)));
 		m_cube.OnDraw();
 	}
 	void OnGui() {
