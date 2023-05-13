@@ -8,91 +8,125 @@
 #define DEPTH_TEXTURE_SIZE      4096
 #define FRUSTUM_DEPTH           1000
 
-static const GLchar* gloss_vertex_shader_source = R"(
+static const GLchar* light_vertex_shader_source = R"(
+#version 450 core
+
+layout (location = 0)
+in vec3 position;
+
+layout (location = 0)
+uniform mat4 mvp;
+
+
+void main(void)
+{
+	gl_Position = mvp * vec4(position, 1.0);
+}
+)";
+
+static const GLchar* light_fragment_shader_source = R"(
+#version 450 core
+
+out vec4 color;
+
+void main()
+{
+	color = vec4(gl_FragCoord.z);
+}
+)";
+
+
+
+static ShaderText light_shader_text[] = {
+	{GL_VERTEX_SHADER, light_vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, light_fragment_shader_source, NULL},
+	{GL_NONE, NULL, NULL}
+};
+
+static const GLchar* view_vertex_shader_source = R"(
 #version 450 core
 
 layout (location = 0)
 in vec3 position;
 layout (location = 1)
 in vec3 normal;
-layout (location = 2)
-in vec2 uv;
-layout (location = 3)
-in vec3 tangent;
 
 layout (location = 0)
-uniform mat4 u_model = mat4(1.0);
-layout (location = 1)
-uniform mat4 u_view;
+uniform mat4 mv_matrix;
+layout (location = 1) 
+uniform mat4 proj_matrix;
 layout (location = 2)
-uniform mat4 u_proj;
-layout (location = 3)
-uniform vec3 u_light_pos;
+uniform mat4 shadow_matrix;
 
 out VS_OUT
 {
-	vec3 normal;
-	vec3 light;
-	vec3 view;
-	vec2 uv;
+	vec4 shadow_coord;
+	vec3 N;
+	vec3 L;
+	vec3 V;
 } vs_out;
+
+layout (location = 3)
+uniform vec3 light_pos = vec3(100.0, 100.0, 100.0);
 
 void main(void)
 {
-	mat4 mv_matrix = u_view * u_model;
+	vec4 P = mv_matrix * vec4(position, 1.0);
+	
+	vs_out.N = mat3(mv_matrix) * normal;
+	vs_out.L = light_pos - P.xyz;
+	vs_out.V = -P.xyz;
+	vs_out.shadow_coord = shadow_matrix * vec4(position, 1.0);
 
-	vec4 P = mv_matrix * vec4(position, 1.0);	
-	vs_out.normal = mat3(mv_matrix) * normal;
-	vs_out.light = u_light_pos - P.xyz;
-	vs_out.view = -P.xyz;
-	vs_out.uv = uv;
-
-	gl_Position = u_proj * P;
+	gl_Position = proj_matrix * P;
 }
 )";
 
-static const GLchar* gloss_fragment_shader_source = R"(
+static const GLchar* view_fragment_shader_source = R"(
 #version 450 core
 
 layout (binding = 0)
-uniform sampler3D u_tex_envmap;
-layout (binding = 1)
-uniform sampler2D u_tex_glossmap;
-
-uniform vec3 ambient = vec3(0.1);
-
-in VS_OUT
-{
-	vec3 normal;
-	vec3 light;
-	vec3 view;
-	vec2 uv;
-} fs_in;
+uniform sampler2DShadow shadow_tex;
 
 out vec4 color;
 
+
+
+
+
+in VS_OUT
+{
+	vec4 shadow_coord;
+	vec3 N;
+	vec3 L;
+	vec3 V;
+} fs_in;
+
+uniform vec3 diffuse_albedo = vec3(0.9, 0.8, 1.0);
+uniform vec3 specular_albedo = vec3(0.7);
+uniform float specular_power = 300.0;
+uniform bool full_shading = true;
+
 void main()
 {
-	vec3 N = normalize(fs_in.normal);
-	vec3 L = normalize(fs_in.light);
-	vec3 V = normalize(fs_in.view);
+	vec3 N = normalize(fs_in.N);
+    vec3 L = normalize(fs_in.L);
+    vec3 V = normalize(fs_in.V);
 
 	vec3 R = reflect(-L, N);
 
-	vec3 diffuse_color = texture(u_tex_glossmap, fs_in.uv).rgb;
-	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_color;
+	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
+	vec3 specular = pow(max(dot(R, V), 0.0), specular_power) * specular_albedo;
 
-	vec3 specular = pow(max(dot(R, V), 0.0), 128.0) * vec3(1.0);
-
-	color = vec4(ambient + diffuse + specular, 1.0);
+	color = textureProj(shadow_tex, fs_in.shadow_coord) * vec4(diffuse + specular, 1.0);
 }
 )";
 
 
 
-static ShaderText gloss_shader_text[] = {
-	{GL_VERTEX_SHADER, gloss_vertex_shader_source, NULL},
-	{GL_FRAGMENT_SHADER, gloss_fragment_shader_source, NULL},
+static ShaderText view_shader_text[] = {
+	{GL_VERTEX_SHADER, view_vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, view_fragment_shader_source, NULL},
 	{GL_NONE, NULL, NULL}
 };
 
@@ -114,7 +148,9 @@ struct Application : public Program {
 	u64 m_fps;
 	f64 m_time;
 
-	GLuint m_program;
+	GLuint m_quad_vao;
+
+	GLuint m_light_program, m_view_program;
 
 	ObjMesh m_cube;
 
@@ -137,7 +173,8 @@ struct Application : public Program {
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
-		m_program = LoadShaders(gloss_shader_text);
+		m_light_program = LoadShaders(light_shader_text);
+		m_view_program = LoadShaders(view_shader_text);
 
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 5.0f, 12.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
@@ -157,7 +194,11 @@ struct Application : public Program {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_shadow_tex, 0);
+
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		glGenVertexArrays(1, &m_quad_vao);
+		glBindVertexArray(m_quad_vao);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
@@ -178,43 +219,79 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
 
-		glm::mat4 light_model_matrix = glm::translate(m_light_pos);
-		glm::mat4 light_view_matrix = glm::lookAt(m_light_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		glm::mat4 light_proj_matrix = glm::frustum(-1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1000.0f);
-		glm::mat4 light_mvp_matrix = light_proj_matrix * light_view_matrix * light_model_matrix;
-
 		glEnable(GL_DEPTH_TEST);
 		RenderScene(true);
 		RenderScene(false);
 
-
-		//Move into render scene
-		/*
-		glUseProgram(m_program);
-
-		glBindTextureUnit(0, m_env_map);
-		glBindTextureUnit(1, m_gloss_map);
-
-		glm::mat4 model = glm::rotate(sin((float)m_time), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::degrees(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f));
-		glm::mat4 model2 = glm::translate(glm::vec3(0.0f, 5.0f, 5.0f)) * glm::rotate(cos((float)m_time), glm::vec3(1.0f, 1.0f, 0.0f)) * glm::rotate(glm::degrees(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f));
-		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
-		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
-		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
-		glUniform3fv(3, 1, glm::value_ptr(m_light_pos));
-		m_cube.OnDraw();
-		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model2));
-		m_cube.OnDraw();
-		*/
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
+		ImGui::DragFloat3("Light Pos", glm::value_ptr(m_light_pos), 0.1f);
 		ImGui::End();
 	}
 	void RenderScene(bool from_light) {
-		//Setup scene render here
+		static const GLfloat one = 1.0f;
+		static const glm::mat4 scale_bias_matrix = glm::mat4(glm::vec4(0.5f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.5f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 0.5f, 0.0f), glm::vec4(0.5f, 0.5f, 0.5f, 1.0f));
+
+
+		glClearBufferfv(GL_COLOR, 0, m_clear_color);
+		glClearBufferfv(GL_DEPTH, 0, &one);
+
+		glm::mat4 light_model_matrix = glm::translate(m_light_pos);
+		glm::mat4 light_view_matrix = glm::lookAt(m_light_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 light_proj_matrix = glm::frustum(-1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1000.0f);
+		glm::mat4 light_mvp_matrix = light_proj_matrix * light_view_matrix * light_model_matrix;
+		glm::mat4 light_vp_matrix = light_proj_matrix * light_view_matrix;
+		glm::mat4 shadow_sbpv_matrix = scale_bias_matrix * light_proj_matrix * light_view_matrix;
+
+		if (from_light) {
+			glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_buffer);
+			glViewport(0, 0, DEPTH_TEXTURE_SIZE, DEPTH_TEXTURE_SIZE);
+			glEnable(GL_POLYGON_OFFSET_FILL);
+			glPolygonOffset(4.0f, 4.0f);
+			glUseProgram(m_light_program);
+			static const GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
+			glDrawBuffers(1, buffers);
+			glClearBufferfv(GL_COLOR, 0, m_clear_color);
+		}
+		else {
+			glViewport(0, 0, 1600, 900);
+			glClearBufferfv(GL_COLOR, 0, m_clear_color);
+			glUseProgram(m_view_program);
+			glBindTextureUnit(0, m_shadow_tex);
+			glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
+			glDrawBuffer(GL_BACK);
+		}
+
+		glClearBufferfv(GL_DEPTH, 0, &one);
+
+		glm::mat4 model = glm::rotate(sin((float)m_time), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::degrees(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f));
+		glm::mat4 model2 = glm::translate(glm::vec3(0.0f, 5.0f, 5.0f)) * glm::rotate(cos((float)m_time), glm::vec3(1.0f, 1.0f, 0.0f)) * glm::rotate(glm::degrees(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f));
+
+		if (from_light) {
+			glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_vp_matrix * model));
+			m_cube.OnDraw();
+			glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_vp_matrix * model2));
+			m_cube.OnDraw();
+
+			glDisable(GL_POLYGON_OFFSET_FILL);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+		else {
+			glm::mat4 shadow_matrix = shadow_sbpv_matrix * model;
+			glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(shadow_matrix));
+			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
+			glUniform3fv(3, 1, glm::value_ptr(m_light_pos));
+			glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_camera.m_view * model));
+			m_cube.OnDraw();
+			glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_camera.m_view * model2));
+			m_cube.OnDraw();
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
 	}
 };
 
