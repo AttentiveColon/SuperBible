@@ -27,11 +27,11 @@ void main(void)
 static const GLchar* light_fragment_shader_source = R"(
 #version 450 core
 
-out vec4 color;
+//out vec4 color;
 
 void main()
 {
-	color = vec4(gl_FragCoord.z);
+	//color = vec4(gl_FragCoord.z);
 }
 )";
 
@@ -156,7 +156,7 @@ struct Application : public Program {
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 8.0f, 15.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
-		m_cube.Load_OBJ("./resources/Skull/Skull.obj");
+		m_cube.Load_OBJ("./resources/cube.obj");
 
 		glGenFramebuffers(1, &m_shadow_buffer);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_buffer);		
@@ -219,24 +219,26 @@ struct Application : public Program {
 		glm::mat4 light_mvp_matrix = light_proj_matrix * light_view_matrix * light_model_matrix;
 		glm::mat4 light_vp_matrix = light_proj_matrix * light_view_matrix;
 		glm::mat4 shadow_sbpv_matrix = scale_bias_matrix * light_proj_matrix * light_view_matrix;
-		glm::mat4 model = glm::rotate(sin((float)m_time), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::degrees(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f));
-		glm::mat4 model2 = glm::translate(glm::vec3(0.0f, 5.0f, 5.0f)) * glm::rotate(cos((float)m_time), glm::vec3(1.0f, 1.0f, 0.0f)) * glm::rotate(glm::degrees(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f));
+		glm::mat4 model = glm::rotate(sin((float)m_time), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::degrees(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.1f, 1.1f, 1.1f));
+		glm::mat4 model2 = glm::translate(glm::vec3(0.0f, 5.0f, 5.0f)) * glm::rotate(cos((float)m_time), glm::vec3(1.0f, 1.0f, 0.0f)) * glm::rotate(glm::degrees(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f));
 		glm::mat4 shadow_matrix = shadow_sbpv_matrix * model;
 
 
 		if (from_light) {
-			glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_buffer);
+			glUseProgram(m_light_program);
+			glBindTexture(GL_TEXTURE_2D, 0);
 			glViewport(0, 0, DEPTH_TEXTURE_SIZE, DEPTH_TEXTURE_SIZE);
+			glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_buffer);
+			glClear(GL_DEPTH_BUFFER_BIT);
 			glEnable(GL_POLYGON_OFFSET_FILL);
 			glPolygonOffset(4.0f, 4.0f);
-			glUseProgram(m_light_program);
 			static const GLenum buffers[] = { GL_NONE };
 			glDrawBuffers(1, buffers);
 			glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		}
 		else {
-			glViewport(0, 0, 1600, 900);
 			glClearBufferfv(GL_COLOR, 0, m_clear_color);
+			glViewport(0, 0, 1600, 900);
 			glUseProgram(m_view_program);
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, m_shadow_tex);
@@ -244,7 +246,7 @@ struct Application : public Program {
 			glDrawBuffer(GL_BACK);
 		}
 
-		glClearBufferfv(GL_DEPTH, 0, &one);
+		//glClearBufferfv(GL_DEPTH, 0, &one);
 
 
 		if (from_light) {
