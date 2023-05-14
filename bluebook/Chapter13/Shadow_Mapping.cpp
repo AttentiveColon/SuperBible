@@ -5,7 +5,7 @@
 #include "Model.h"
 #include "Mesh.h"
 
-#define DEPTH_TEXTURE_SIZE      4096
+#define DEPTH_TEXTURE_SIZE      10000
 #define FRUSTUM_DEPTH           1000
 
 static const GLchar* light_vertex_shader_source = R"(
@@ -86,7 +86,7 @@ static const GLchar* view_fragment_shader_source = R"(
 #version 450 core
 
 layout (binding = 0)
-uniform sampler2DShadow shadow_tex;
+uniform sampler2D shadow_tex;
 
 out vec4 color;
 
@@ -103,6 +103,16 @@ uniform vec3 specular_albedo = vec3(0.7);
 uniform float specular_power = 300.0;
 uniform bool full_shading = true;
 
+float ShadowCalculation(vec4 shadow_coord)
+{
+	vec3 projCoords = shadow_coord.xyz / shadow_coord.w;
+	projCoords = projCoords * 0.5 + 0.5;
+	float closestDepth = texture(shadow_tex, projCoords.xy).r;
+	float currentDepth = projCoords.z;
+	float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+	return shadow;
+}
+
 void main()
 {
 	vec3 N = normalize(fs_in.N);
@@ -114,7 +124,11 @@ void main()
 	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
 	vec3 specular = pow(max(dot(R, V), 0.0), specular_power) * specular_albedo;
 
-	color = textureProj(shadow_tex, fs_in.shadow_coord) * vec4(diffuse + specular, 1.0);
+	//float a = textureProj(shadow_tex, fs_in.shadow_coord);
+	float a = ShadowCalculation(fs_in.shadow_coord);
+
+	//color = vec4(diffuse + specular, 1.0) * a;
+	color = a * mix(vec4(1.0), vec4(diffuse + specular, 1.0), bvec4(1));
 }
 )";
 
@@ -163,14 +177,21 @@ struct Application : public Program {
 		
 		glGenTextures(1, &m_shadow_tex);
 		glBindTexture(GL_TEXTURE_2D, m_shadow_tex);
+		//glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, DEPTH_TEXTURE_SIZE, DEPTH_TEXTURE_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 		glTexStorage2D(GL_TEXTURE_2D, 11, GL_DEPTH_COMPONENT32F, DEPTH_TEXTURE_SIZE, DEPTH_TEXTURE_SIZE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_shadow_tex, 0);
 
-		glBindTexture(GL_TEXTURE_2D, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_shadow_tex, 0);
+		glDrawBuffer(GL_NONE);
+		glReadBuffer(GL_NONE);
+		//glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_shadow_tex, 0);
+
+		//glBindTexture(GL_TEXTURE_2D, 0);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		glEnable(GL_DEPTH_TEST);
@@ -225,29 +246,22 @@ struct Application : public Program {
 
 
 		if (from_light) {
-			glUseProgram(m_light_program);
-			glBindTexture(GL_TEXTURE_2D, 0);
 			glViewport(0, 0, DEPTH_TEXTURE_SIZE, DEPTH_TEXTURE_SIZE);
 			glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_buffer);
 			glClear(GL_DEPTH_BUFFER_BIT);
+			glUseProgram(m_light_program);
 			glEnable(GL_POLYGON_OFFSET_FILL);
 			glPolygonOffset(4.0f, 4.0f);
-			static const GLenum buffers[] = { GL_NONE };
-			glDrawBuffers(1, buffers);
-			glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		}
 		else {
-			glClearBufferfv(GL_COLOR, 0, m_clear_color);
 			glViewport(0, 0, 1600, 900);
+			glClearBufferfv(GL_COLOR, 0, m_clear_color);
+			glClear(GL_DEPTH_BUFFER_BIT);
 			glUseProgram(m_view_program);
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, m_shadow_tex);
 			glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
-			glDrawBuffer(GL_BACK);
 		}
-
-		//glClearBufferfv(GL_DEPTH, 0, &one);
-
 
 		if (from_light) {
 			glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_vp_matrix * model));
