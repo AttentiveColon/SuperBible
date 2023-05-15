@@ -16,6 +16,6 @@
 //#define MSAA8X
 
 //Current Project
-#define SHADOWMAP2
+#define TOON_SHADER2
 
 
