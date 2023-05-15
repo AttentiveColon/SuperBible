@@ -16,6 +16,6 @@
 //#define MSAA8X
 
 //Current Project
-#define TOON_SHADER2
+#define FOG
 
 

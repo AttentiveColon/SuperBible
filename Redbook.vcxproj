@@ -158,6 +158,7 @@
     <ClCompile Include="bluebook\Chapter13\Blinn_Phong.cpp" />
     <ClCompile Include="bluebook\Chapter13\CubeMap.cpp" />
     <ClCompile Include="bluebook\Chapter13\Equirectangular_Enviroment_Maps.cpp" />
+    <ClCompile Include="bluebook\Chapter13\Fog.cpp" />
     <ClCompile Include="bluebook\Chapter13\Gouraud_Shading.cpp" />
     <ClCompile Include="bluebook\Chapter13\Normal_Maps.cpp" />
     <ClCompile Include="bluebook\Chapter13\Per_Pixel_Gloss.cpp" />
