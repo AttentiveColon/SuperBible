@@ -64,8 +64,8 @@ uniform vec3 diffuse_albedo = vec3(0.9, 0.8, 1.0);
 uniform vec3 specular_albedo = vec3(0.7);
 uniform float specular_power = 300.0;
 
-const float div = 255.0 / 10.0;
-const float scaling_amount = 1.0 / 10.0;
+const float div = 255.0 / 4.0;
+const float scaling_amount = 1.0 / 4.0;
 
 void main()
 {
