@@ -157,6 +157,7 @@
     <ClCompile Include="bluebook\Chapter12\Transform_Feedback_Queries.cpp" />
     <ClCompile Include="bluebook\Chapter13\Blinn_Phong.cpp" />
     <ClCompile Include="bluebook\Chapter13\CubeMap.cpp" />
+    <ClCompile Include="bluebook\Chapter13\Deferred_Shading.cpp" />
     <ClCompile Include="bluebook\Chapter13\Equirectangular_Enviroment_Maps.cpp" />
     <ClCompile Include="bluebook\Chapter13\Fog.cpp" />
     <ClCompile Include="bluebook\Chapter13\Gouraud_Shading.cpp" />
