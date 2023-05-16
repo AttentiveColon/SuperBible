@@ -85,8 +85,6 @@ void main()
 }
 )";
 
-//CAMERA IS BROKEN!
-
 static ShaderText phong_shader_text[] = {
 	{GL_VERTEX_SHADER, phong_vertex_shader_source, NULL},
 	{GL_FRAGMENT_SHADER, phong_fragment_shader_source, NULL},
@@ -120,7 +118,7 @@ struct Application : public Program {
 		m_phong_program = LoadShaders(phong_shader_text);
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 8.0f, 15.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 		m_tex = Load_KTX("./resources/fiona.ktx");
-		m_cube.Load_OBJ("./resources/monkey.obj");
+		m_cube.Load_OBJ("./resources/sphere.obj");
 
 		glEnable(GL_DEPTH_TEST);
 
@@ -167,6 +165,8 @@ struct Application : public Program {
 		glBindTextureUnit(0, m_tex);
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view_matrix));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(proj_matrix));
+		//glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
+		//glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
 
 		glUniform3fv(10, 1, glm::value_ptr(light_pos));
 
