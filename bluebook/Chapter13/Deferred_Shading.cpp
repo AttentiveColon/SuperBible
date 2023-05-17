@@ -5,6 +5,44 @@
 #include "Model.h"
 #include "Mesh.h"
 
+static const GLchar* light_vertex_shader_source = R"(
+#version 450 core
+
+layout (location = 0)
+in vec3 position;
+
+layout (location = 0)
+uniform mat4 model;
+layout (location = 1)
+uniform mat4 view;
+layout (location = 2)
+uniform mat4 proj;
+
+void main()
+{
+	gl_Position = proj * view * model * vec4(position, 1.0);
+}
+)";
+
+static const GLchar* light_fragment_shader_source = R"(
+#version 450 core
+
+uniform vec3 light_color = vec3(1.0);
+
+out vec4 color;
+
+void main()
+{
+	color = vec4(light_color, 1.0);
+}
+)";
+
+static ShaderText light_shader_text[] = {
+	{GL_VERTEX_SHADER, light_vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, light_fragment_shader_source, NULL},
+	{GL_NONE, NULL, NULL}
+};
+
 static const GLchar* phong_vertex_shader_source = R"(
 #version 450 core
 
@@ -36,14 +74,14 @@ out VS_OUT
 
 void main()
 {	
-	mat4 mv_matrix = view * model;
+	mat4 mv_matrix = model;
 	vec4 P = mv_matrix * vec4(position, 1.0);
 	vs_out.N = mat3(mv_matrix) * normal;
 	vs_out.L = light_position - P.xyz;
 	vs_out.V = -P.xyz;
 	vs_out.uv = uv;
 
-	gl_Position = proj * P;
+	gl_Position = proj * view * P;
 }
 
 )";
@@ -55,8 +93,9 @@ static const GLchar* phong_fragment_shader_source = R"(
 layout (binding = 0)
 uniform sampler2D diffuse_texture;
 
+uniform vec3 ambient_level = vec3(0.05);
 uniform vec3 specular_albedo = vec3(1.0);
-uniform float specular_power = 128.0;
+uniform float specular_power = 128.0 * 2.0;
 
 out vec4 color;
 
@@ -76,12 +115,13 @@ void main()
 	vec3 L = normalize(fs_in.L);
 	vec3 V = normalize(fs_in.V);
 
-	vec3 R = reflect(-L, N);
+	vec3 R = reflect(L, N);
 
 	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
 	vec3 specular = pow(max(dot(R, V), 0.0), specular_power) * specular_albedo;
+	vec3 ambient = diffuse_albedo * ambient_level;
 
-	color = vec4(diffuse + specular, 1.0);
+	color = vec4(diffuse + ambient + specular, 1.0);
 }
 )";
 
@@ -96,7 +136,7 @@ struct Application : public Program {
 	u64 m_fps;
 	f64 m_time;
 
-	GLuint m_phong_program;
+	GLuint m_phong_program, m_light_program;
 	ObjMesh m_cube;
 	GLuint m_tex;
 
@@ -116,9 +156,10 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		m_phong_program = LoadShaders(phong_shader_text);
+		m_light_program = LoadShaders(light_shader_text);
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 8.0f, 15.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 		m_tex = Load_KTX("./resources/fiona.ktx");
-		m_cube.Load_OBJ("./resources/sphere.obj");
+		m_cube.Load_OBJ("./resources/smooth_sphere.obj");
 
 		glEnable(GL_DEPTH_TEST);
 
@@ -154,12 +195,19 @@ struct Application : public Program {
 		ImGui::End();
 	}
 	void Render() {
-		float time = float(m_time) * 1.1f;
+		float time = float(m_time) * 0.5f;
 
-		glm::vec3 light_pos = glm::vec3(sin(time) * 100.0f, cos(time) * 100.0f, 100.0f);
+		glm::vec3 light_pos = glm::vec3(sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f);
+		glm::mat4 light_model = glm::translate(light_pos) * glm::scale(glm::vec3(3.0));
 
 		glm::mat4 view_matrix = glm::lookAt(m_view_pos, glm::vec3(2.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 proj_matrix = glm::perspective(90.0f, 16.0f / 9.0f, 0.01f, 1000.0f);
+
+		glUseProgram(m_light_program);
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_model));
+		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
+		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
+		m_cube.OnDraw();
 
 		glUseProgram(m_phong_program);
 		glBindTextureUnit(0, m_tex);
