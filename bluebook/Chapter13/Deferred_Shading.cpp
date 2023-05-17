@@ -163,10 +163,10 @@ struct Application : public Program {
 
 		glUseProgram(m_phong_program);
 		glBindTextureUnit(0, m_tex);
-		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view_matrix));
-		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(proj_matrix));
-		//glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
-		//glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
+		//glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view_matrix));
+		//glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(proj_matrix));
+		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
+		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
 
 		glUniform3fv(10, 1, glm::value_ptr(light_pos));
 
