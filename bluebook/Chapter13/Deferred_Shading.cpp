@@ -314,7 +314,7 @@ struct Application : public Program {
 
 	GLuint m_phong_program, m_light_program;
 	ObjMesh m_cube[3];
-	GLuint m_tex;
+	GLuint m_tex, m_white_tex;
 
 	glm::vec3 m_view_pos = glm::vec3(-10.0f);
 
@@ -354,6 +354,7 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 
 		CreateGBuffer();
+		CreateWhiteTex();
 
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
@@ -389,6 +390,18 @@ struct Application : public Program {
 		ImGui::Checkbox("Light Paused", &m_light_paused);
 		ImGui::DragFloat("Light Movement", &m_light_movement, 0.01f);
 		ImGui::End();
+	}
+	void CreateWhiteTex() {
+		static const GLubyte white_texture[] = { 0xff, 0xff, 0xff, 0xff };
+
+		glGenTextures(1, &m_white_tex);
+		glBindTexture(GL_TEXTURE_2D, m_white_tex);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white_texture);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	void CreateGBuffer() {
 		glGenFramebuffers(1, &m_gbuffer);
@@ -450,10 +463,9 @@ struct Application : public Program {
 					glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
 					m_cube[x % 3].OnDraw();
 				}
-		glUseProgram(m_light_program);
+		//Render light sphere
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_model));
-		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
-		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
+		glBindTextureUnit(0, m_white_tex);
 		m_cube[0].OnDraw();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
