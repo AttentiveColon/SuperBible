@@ -74,7 +74,7 @@ void main()
 	outvec0.w = fs_in.material_id;
 
 	outvec1.xyz = fs_in.ws_coords;
-	outvec1.z = 30.0;
+	outvec1.w = 30.0;
 
 	color0 = outvec0;
 	color1 = outvec1;
@@ -112,7 +112,6 @@ layout (binding = 1) uniform sampler2D gbuf_tex1;
 layout (location = 0)
 uniform vec3 light_pos = vec3(0.0);
 uniform vec3 light_color = vec3(1.0);
-uniform int num_lights = 64;
 
 layout (location = 11)
 uniform vec3 cam_pos;
@@ -152,10 +151,10 @@ vec4 light_fragment(fragment_into_t fragment)
 	vec3 R = reflect(-L, N);
 
 	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
-	vec3 specular = normalize(pow(max(dot(V, R), 0.0), fragment.specular_power) * light_color);
+	vec3 specular = pow(max(dot(V, R), 0.0), fragment.specular_power) * light_color;
 	vec3 ambient = diffuse_albedo * vec3(0.05);
 
-	return vec4(ambient + diffuse, 1.0);	
+	return vec4(ambient + diffuse + specular, 1.0);	
 }
 
 void main()
@@ -334,6 +333,8 @@ struct Application : public Program {
 	GLuint m_gbuffer;
 	GLuint m_gbuffer_textures[3];
 
+#define OBJ_ARRAY_SIZE 30
+
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
 		m_fps(0),
@@ -454,7 +455,7 @@ struct Application : public Program {
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
 		float scaling = 2.0f;
-		int size = 10;
+		int size = OBJ_ARRAY_SIZE;
 		glm::mat4 model = glm::mat4(1.0f);
 		for (int z = 0; z < size; ++z)
 			for (int y = 0; y < size; ++y)
@@ -478,6 +479,7 @@ struct Application : public Program {
 		glBindTextureUnit(0, m_gbuffer_textures[0]);
 		glBindTextureUnit(1, m_gbuffer_textures[1]);
 		glUniform3fv(0, 1, glm::value_ptr(light_pos));
+		glUniform3fv(11, 1, glm::value_ptr(m_camera.m_cam_position));
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	}
@@ -506,7 +508,7 @@ struct Application : public Program {
 		glUniform3fv(11, 1, glm::value_ptr(m_camera.m_cam_position));
 
 		float scaling = 2.0f;
-		int size = 10;
+		int size = OBJ_ARRAY_SIZE;
 		glm::mat4 model = glm::mat4(1.0f);
 		for (int z = 0; z < size; ++z) 
 			for (int y = 0; y < size; ++y)
