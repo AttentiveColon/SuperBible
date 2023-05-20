@@ -33,12 +33,14 @@ out VS_OUT
 
 void main()
 {	
-	mat4 mv_matrix = model;
-	vec4 P = mv_matrix * vec4(position, 1.0);
-	vs_out.ws_coords = mat3(mv_matrix) * position; //This might need to be fixed
-	vs_out.N = mat3(mv_matrix) * normal;
+	
+	vec4 P = model * vec4(position, 1.0);
+
+	vs_out.ws_coords = P.xyz; 
+	vs_out.N = mat3(model) * normal;
 	vs_out.uv = uv;
 	vs_out.material_id = 1;
+
 	gl_Position = proj * view * P;
 }
 )";
@@ -112,6 +114,9 @@ uniform vec3 light_pos = vec3(0.0);
 uniform vec3 light_color = vec3(1.0);
 uniform int num_lights = 64;
 
+layout (location = 11)
+uniform vec3 cam_pos;
+
 struct fragment_into_t
 {
 	vec3 color;
@@ -138,36 +143,19 @@ void unpackGBuffer(ivec2 coord, out fragment_into_t fragment)
 
 vec4 light_fragment(fragment_into_t fragment)
 {
-	vec4 result = vec4(0.0, 0.0, 0.0, 1.0);
+	vec3 diffuse_albedo = fragment.color;	
 
-	if (fragment.material_id != 0)
-	{
-		for (int i = 0; i < 1; ++i)
-		{
-			vec3 L = light_pos - fragment.ws_coord;
-			float dist = length(L);
-			L = normalize(L);
-			vec3 N = normalize(fragment.normal);
-			vec3 R = reflect(-L, N);
-			vec3 V = -fragment.ws_coord;
-			float NdotR = max(0.0, dot(N, R));
-			float NdotL = max(0.0, dot(N, L));
-			float attenuation = 50.0 / (pow(dist, 2.0) + 1.0);
+	vec3 N = normalize(fragment.normal);
+	vec3 L = normalize(light_pos - fragment.ws_coord);
+	vec3 V = normalize(cam_pos - fragment.ws_coord);
 
-			
-			//vec3 specular_color = vec3(1.0) * pow(NdotR, fragment.specular_power) * attenuation;
+	vec3 R = reflect(-L, N);
 
-			vec3 diffuse_color = NdotL * fragment.color * attenuation; //figure out attenuation
-			vec3 specular_color = max(pow(dot(R, V), fragment.specular_power), 0.0) * light_color * attenuation;
-			//vec3 specular_color = pow(NdotR, fragment.specular_power) * light_color * attenuation;
-			
-			
-			result += vec4(diffuse_color + specular_color, 0.0);
-		}
-	}
-	vec3 ambient = fragment.color * vec3(0.05);
-	result += vec4(ambient, 0.0);
-	return result;
+	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
+	vec3 specular = normalize(pow(max(dot(V, R), 0.0), fragment.specular_power) * light_color);
+	vec3 ambient = diffuse_albedo * vec3(0.05);
+
+	return vec4(ambient + diffuse, 1.0);	
 }
 
 void main()
@@ -232,6 +220,8 @@ layout (location = 1)
 in vec3 normal;
 layout (location = 2)
 in vec2 uv;
+layout (location = 3)
+in vec3 tangent;
 
 layout (location = 0) 
 uniform mat4 model;
@@ -435,6 +425,9 @@ struct Application : public Program {
 		static const GLfloat float_ones[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		static const GLenum draw_buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 
+		glm::vec3 light_pos = glm::vec3(sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f);
+		glm::mat4 light_model = glm::translate(light_pos) * glm::scale(glm::vec3(3.0));
+
 		glBindFramebuffer(GL_FRAMEBUFFER, m_gbuffer);
 		glDrawBuffers(2, draw_buffers);
 		glClearBufferuiv(GL_COLOR, 0, uint_zeros);
@@ -457,10 +450,14 @@ struct Application : public Program {
 					glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
 					m_cube[x % 3].OnDraw();
 				}
+		glUseProgram(m_light_program);
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_model));
+		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
+		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
+		m_cube[0].OnDraw();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
-		glm::vec3 light_pos = glm::vec3(sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f);
 
 		glDrawBuffer(GL_BACK);
 		glDisable(GL_DEPTH_TEST);
