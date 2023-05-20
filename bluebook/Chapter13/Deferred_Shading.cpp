@@ -28,15 +28,17 @@ out VS_OUT
 	vec3 ws_coords;
 	vec3 N;
 	vec2 uv;
+	flat uint material_id;
 } vs_out;
 
 void main()
 {	
 	mat4 mv_matrix = model;
 	vec4 P = mv_matrix * vec4(position, 1.0);
-	vs_out.ws_coords = mat3(model) * position; //This might need to be fixed
+	vs_out.ws_coords = mat3(mv_matrix) * position; //This might need to be fixed
 	vs_out.N = mat3(mv_matrix) * normal;
 	vs_out.uv = uv;
+	vs_out.material_id = 1;
 	gl_Position = proj * view * P;
 }
 )";
@@ -52,6 +54,7 @@ in VS_OUT
 	vec3 ws_coords;
 	vec3 N;
 	vec2 uv;
+	flat uint material_id;
 } fs_in;
 
 layout (binding = 0) uniform sampler2D u_diffuse_texture;
@@ -66,10 +69,10 @@ void main()
 	outvec0.x = packHalf2x16(color.xy);
 	outvec0.y = packHalf2x16(vec2(color.z, fs_in.N.x));
 	outvec0.z = packHalf2x16(fs_in.N.yz);
-	outvec0.w = 1;
+	outvec0.w = fs_in.material_id;
 
 	outvec1.xyz = fs_in.ws_coords;
-	outvec1.z = 60.0;
+	outvec1.z = 30.0;
 
 	color0 = outvec0;
 	color1 = outvec1;
@@ -107,6 +110,7 @@ layout (binding = 1) uniform sampler2D gbuf_tex1;
 layout (location = 0)
 uniform vec3 light_pos = vec3(0.0);
 uniform vec3 light_color = vec3(1.0);
+uniform int num_lights = 64;
 
 struct fragment_into_t
 {
@@ -126,7 +130,7 @@ void unpackGBuffer(ivec2 coord, out fragment_into_t fragment)
 	temp = unpackHalf2x16(data0.y);
 	fragment.color = vec3(unpackHalf2x16(data0.x), temp.x);
 	fragment.normal = normalize(vec3(temp.y, unpackHalf2x16(data0.z)));
-	fragment.material_id = 1;
+	fragment.material_id = data0.w;
 	
 	fragment.ws_coord = data1.xyz;
 	fragment.specular_power = data1.w;
@@ -138,22 +142,31 @@ vec4 light_fragment(fragment_into_t fragment)
 
 	if (fragment.material_id != 0)
 	{
-		vec3 L = light_pos - fragment.ws_coord;
-		float dist = length(L);
-		L = normalize(L);
-		vec3 N = normalize(fragment.normal);
-		vec3 R = reflect(-L, N);
-		float NdotR = max(0.0, dot(N, R));
-		float NdotL = max(0.0, dot(N, L));
-		float attenuation = 50.0 / (pow(dist, 2.0) + 1.0);
+		for (int i = 0; i < 1; ++i)
+		{
+			vec3 L = light_pos - fragment.ws_coord;
+			float dist = length(L);
+			L = normalize(L);
+			vec3 N = normalize(fragment.normal);
+			vec3 R = reflect(-L, N);
+			vec3 V = -fragment.ws_coord;
+			float NdotR = max(0.0, dot(N, R));
+			float NdotL = max(0.0, dot(N, L));
+			float attenuation = 50.0 / (pow(dist, 2.0) + 1.0);
 
-		vec3 diffuse_color = (max(NdotL, 0.0) * fragment.color);// * attenuation; //figure out attenuation
-		
-		//vec3 specular_color = vec3(1.0) * pow(NdotR, fragment.specular_power) * attenuation; //Get specular working
-		
-		result += vec4(diffuse_color, 0.0);
+			
+			//vec3 specular_color = vec3(1.0) * pow(NdotR, fragment.specular_power) * attenuation;
+
+			vec3 diffuse_color = NdotL * fragment.color * attenuation; //figure out attenuation
+			vec3 specular_color = max(pow(dot(R, V), fragment.specular_power), 0.0) * light_color * attenuation;
+			//vec3 specular_color = pow(NdotR, fragment.specular_power) * light_color * attenuation;
+			
+			
+			result += vec4(diffuse_color + specular_color, 0.0);
+		}
 	}
-
+	vec3 ambient = fragment.color * vec3(0.05);
+	result += vec4(ambient, 0.0);
 	return result;
 }
 
@@ -240,14 +253,14 @@ out VS_OUT
 
 void main()
 {	
-	mat4 mv_matrix = model;
+	mat4 mv_matrix = view * model;
 	vec4 P = mv_matrix * vec4(position, 1.0);
 	vs_out.N = mat3(mv_matrix) * normal;
 	vs_out.L = light_position - P.xyz;
 	vs_out.V = -P.xyz;
 	vs_out.uv = uv;
 
-	gl_Position = proj * view * P;
+	gl_Position = proj * P;
 }
 
 )";
@@ -261,7 +274,7 @@ uniform sampler2D diffuse_texture;
 
 uniform vec3 ambient_level = vec3(0.05);
 uniform vec3 specular_albedo = vec3(1.0);
-uniform float specular_power = 128.0 * 2.0;
+uniform float specular_power = 60.0;
 
 out vec4 color;
 
@@ -281,10 +294,10 @@ void main()
 	vec3 L = normalize(fs_in.L);
 	vec3 V = normalize(fs_in.V);
 
-	vec3 R = reflect(L, N);
+	vec3 R = reflect(-L, N);
 
 	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
-	vec3 specular = pow(max(dot(R, V), 0.0), specular_power) * specular_albedo;
+	vec3 specular = pow(max(dot(V, R), 0.0), specular_power) * specular_albedo;
 	vec3 ambient = diffuse_albedo * ambient_level;
 
 	color = vec4(diffuse + ambient + specular, 1.0);
@@ -314,6 +327,11 @@ struct Application : public Program {
 
 	SB::Camera m_camera;
 	bool m_input_mode = false;
+
+	bool m_deferred_render = true;
+
+	bool m_light_paused = false;
+	float m_light_movement = 0.0;
 
 	//Geometry buffer data
 	GLuint m_vao;
@@ -361,8 +379,10 @@ struct Application : public Program {
 		glViewport(0, 0, 1600, 900);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//Render();
-		DeferredRender();
+		if (!m_deferred_render)
+			Render();
+		else
+			DeferredRender();
 
 	}
 	void OnGui() {
@@ -370,8 +390,9 @@ struct Application : public Program {
 		ImGui::Text("FPS: %d", m_fps);
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
-		ImGui::DragFloat3("Light Pos", glm::value_ptr(m_light_pos), 0.1f);
-		ImGui::DragFloat3("Camera Pos", glm::value_ptr(m_view_pos), 0.1f);
+		ImGui::Checkbox("Deferred Render On", &m_deferred_render);
+		ImGui::Checkbox("Light Paused", &m_light_paused);
+		ImGui::DragFloat("Light Movement", &m_light_movement, 0.01f);
 		ImGui::End();
 	}
 	void CreateGBuffer() {
@@ -448,6 +469,8 @@ struct Application : public Program {
 	}
 	void Render() {
 		float time = float(m_time) * 0.5f;
+		if (m_light_paused) { time = m_light_movement; }
+		
 
 		glm::vec3 light_pos = glm::vec3(sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f);
 		glm::mat4 light_model = glm::translate(light_pos) * glm::scale(glm::vec3(3.0));
