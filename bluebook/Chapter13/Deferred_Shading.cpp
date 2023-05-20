@@ -206,6 +206,7 @@ void main()
 static const GLchar* light_fragment_shader_source = R"(
 #version 450 core
 
+layout (location = 9)
 uniform vec3 light_color = vec3(1.0);
 
 out vec4 color;
@@ -239,9 +240,11 @@ uniform mat4 view;
 layout (location = 2)
 uniform mat4 proj;
 
-
 layout (location = 10)
-uniform vec3 light_position = vec3(100.0, 100.0, 100.0);
+uniform vec3 light_position;
+layout (location = 11)
+uniform vec3 cam_pos;
+
 
 out VS_OUT
 {
@@ -253,14 +256,13 @@ out VS_OUT
 
 void main()
 {	
-	mat4 mv_matrix = view * model;
-	vec4 P = mv_matrix * vec4(position, 1.0);
-	vs_out.N = mat3(mv_matrix) * normal;
+	vec4 P = model * vec4(position, 1.0);
+	vs_out.N = mat3(model) * normal;
 	vs_out.L = light_position - P.xyz;
-	vs_out.V = -P.xyz;
+	vs_out.V = cam_pos - P.xyz;
 	vs_out.uv = uv;
 
-	gl_Position = proj * P;
+	gl_Position = proj * view * P;
 }
 
 )";
@@ -272,9 +274,12 @@ static const GLchar* phong_fragment_shader_source = R"(
 layout (binding = 0)
 uniform sampler2D diffuse_texture;
 
+layout (location = 12)
 uniform vec3 ambient_level = vec3(0.05);
+layout (location = 13)
 uniform vec3 specular_albedo = vec3(1.0);
-uniform float specular_power = 60.0;
+layout (location = 14)
+uniform float specular_power = 40.0;
 
 out vec4 color;
 
@@ -328,7 +333,7 @@ struct Application : public Program {
 	SB::Camera m_camera;
 	bool m_input_mode = false;
 
-	bool m_deferred_render = true;
+	bool m_deferred_render = false;
 
 	bool m_light_paused = false;
 	float m_light_movement = 0.0;
@@ -475,6 +480,8 @@ struct Application : public Program {
 		glm::vec3 light_pos = glm::vec3(sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f);
 		glm::mat4 light_model = glm::translate(light_pos) * glm::scale(glm::vec3(3.0));
 
+		glEnable(GL_DEPTH_TEST);
+
 		glUseProgram(m_light_program);
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_model));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
@@ -487,6 +494,7 @@ struct Application : public Program {
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
 
 		glUniform3fv(10, 1, glm::value_ptr(light_pos));
+		glUniform3fv(11, 1, glm::value_ptr(m_camera.m_cam_position));
 
 		float scaling = 2.0f;
 		int size = 10;
