@@ -357,7 +357,7 @@ struct Application : public Program {
 		m_deferred_lighting_program = LoadShaders(deferred_lighting_shader_text);
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 8.0f, 15.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 		m_tex = Load_KTX("./resources/fiona.ktx");
-		m_cube[0].Load_OBJ("./resources/sphere.obj");
+		m_cube[0].Load_OBJ("./resources/smooth_sphere.obj");
 		m_cube[1].Load_OBJ("./resources/cube.obj");
 		m_cube[2].Load_OBJ("./resources/monkey.obj");
 
