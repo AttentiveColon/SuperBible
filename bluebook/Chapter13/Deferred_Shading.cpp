@@ -22,6 +22,9 @@ uniform mat4 view;
 layout (location = 2)
 uniform mat4 proj;
 
+layout (location = 15)
+uniform int material_id;
+
 
 out VS_OUT
 {
@@ -39,7 +42,7 @@ void main()
 	vs_out.ws_coords = P.xyz; 
 	vs_out.N = mat3(model) * normal;
 	vs_out.uv = uv;
-	vs_out.material_id = 1;
+	vs_out.material_id = uint(material_id);
 
 	gl_Position = proj * view * P;
 }
@@ -74,7 +77,7 @@ void main()
 	outvec0.w = fs_in.material_id;
 
 	outvec1.xyz = fs_in.ws_coords;
-	outvec1.w = 30.0;
+	outvec1.w = 40.0;
 
 	color0 = outvec0;
 	color1 = outvec1;
@@ -116,6 +119,8 @@ uniform vec3 light_color = vec3(1.0);
 layout (location = 11)
 uniform vec3 cam_pos;
 
+layout (location = 15)
+
 struct fragment_into_t
 {
 	vec3 color;
@@ -144,15 +149,21 @@ vec4 light_fragment(fragment_into_t fragment)
 {
 	vec3 diffuse_albedo = fragment.color;	
 
-	vec3 N = normalize(fragment.normal);
-	vec3 L = normalize(light_pos - fragment.ws_coord);
-	vec3 V = normalize(cam_pos - fragment.ws_coord);
+	vec3 diffuse = diffuse_albedo;
+	vec3 specular = vec3(0.0);
+	vec3 ambient = vec3(0.0);
 
-	vec3 R = reflect(-L, N);
+	if (fragment.material_id != 0)
+	{
+		vec3 N = normalize(fragment.normal);
+		vec3 L = normalize(light_pos - fragment.ws_coord);
+		vec3 V = normalize(cam_pos - fragment.ws_coord);
+		vec3 R = reflect(-L, N);
 
-	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
-	vec3 specular = pow(max(dot(V, R), 0.0), fragment.specular_power) * light_color;
-	vec3 ambient = diffuse_albedo * vec3(0.05);
+		diffuse *= max(dot(N, L), 0.0);
+		specular = pow(max(dot(V, R), 0.0), fragment.specular_power) * light_color;
+		ambient = diffuse_albedo * vec3(0.05);
+	}
 
 	return vec4(ambient + diffuse + specular, 1.0);	
 }
@@ -168,45 +179,6 @@ void main()
 static ShaderText deferred_lighting_shader_text[] = {
 	{GL_VERTEX_SHADER, deferred_lighting_vertex_shader_source, NULL},
 	{GL_FRAGMENT_SHADER, deferred_lighting_fragment_shader_source, NULL},
-	{GL_NONE, NULL, NULL}
-};
-
-static const GLchar* light_vertex_shader_source = R"(
-#version 450 core
-
-layout (location = 0)
-in vec3 position;
-
-layout (location = 0)
-uniform mat4 model;
-layout (location = 1)
-uniform mat4 view;
-layout (location = 2)
-uniform mat4 proj;
-
-void main()
-{
-	gl_Position = proj * view * model * vec4(position, 1.0);
-}
-)";
-
-static const GLchar* light_fragment_shader_source = R"(
-#version 450 core
-
-layout (location = 9)
-uniform vec3 light_color = vec3(1.0);
-
-out vec4 color;
-
-void main()
-{
-	color = vec4(light_color, 1.0);
-}
-)";
-
-static ShaderText light_shader_text[] = {
-	{GL_VERTEX_SHADER, light_vertex_shader_source, NULL},
-	{GL_FRAGMENT_SHADER, light_fragment_shader_source, NULL},
 	{GL_NONE, NULL, NULL}
 };
 
@@ -269,6 +241,8 @@ layout (location = 13)
 uniform vec3 specular_albedo = vec3(1.0);
 layout (location = 14)
 uniform float specular_power = 40.0;
+layout (location = 15)
+uniform bool is_lit = true;
 
 out vec4 color;
 
@@ -283,16 +257,24 @@ in VS_OUT
 void main()
 {
 	vec3 diffuse_albedo = texture(diffuse_texture, fs_in.uv).rgb;
+
+	vec3 diffuse = diffuse_albedo;
+	vec3 specular = vec3(0.0);
+	vec3 ambient = vec3(0.0);
+
+	if (is_lit)
+	{
 	
-	vec3 N = normalize(fs_in.N);
-	vec3 L = normalize(fs_in.L);
-	vec3 V = normalize(fs_in.V);
+		vec3 N = normalize(fs_in.N);
+		vec3 L = normalize(fs_in.L);
+		vec3 V = normalize(fs_in.V);
+		vec3 R = reflect(-L, N);
+		
+		diffuse *= max(dot(N, L), 0.0);
+		specular = pow(max(dot(V, R), 0.0), specular_power) * specular_albedo;
+		ambient = diffuse_albedo * ambient_level;
 
-	vec3 R = reflect(-L, N);
-
-	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
-	vec3 specular = pow(max(dot(V, R), 0.0), specular_power) * specular_albedo;
-	vec3 ambient = diffuse_albedo * ambient_level;
+	}
 
 	color = vec4(diffuse + ambient + specular, 1.0);
 }
@@ -304,7 +286,6 @@ static ShaderText phong_shader_text[] = {
 	{GL_NONE, NULL, NULL}
 };
 
-//GET SPECULAR WORKING 
 
 struct Application : public Program {
 	float m_clear_color[4];
@@ -333,7 +314,7 @@ struct Application : public Program {
 	GLuint m_gbuffer;
 	GLuint m_gbuffer_textures[3];
 
-#define OBJ_ARRAY_SIZE 30
+#define OBJ_ARRAY_SIZE 10
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
@@ -343,7 +324,6 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		m_phong_program = LoadShaders(phong_shader_text);
-		m_light_program = LoadShaders(light_shader_text);
 		m_deferred_input_program = LoadShaders(deferred_input_shader_text);
 		m_deferred_lighting_program = LoadShaders(deferred_lighting_shader_text);
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 8.0f, 15.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
@@ -454,6 +434,7 @@ struct Application : public Program {
 		glBindTextureUnit(0, m_tex);
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
+		glUniform1i(15, 1);
 		float scaling = 2.0f;
 		int size = OBJ_ARRAY_SIZE;
 		glm::mat4 model = glm::mat4(1.0f);
@@ -467,10 +448,9 @@ struct Application : public Program {
 		//Render light sphere
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_model));
 		glBindTextureUnit(0, m_white_tex);
+		glUniform1i(15, 0);
 		m_cube[0].OnDraw();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
 
 		glDrawBuffer(GL_BACK);
 		glDisable(GL_DEPTH_TEST);
@@ -492,21 +472,19 @@ struct Application : public Program {
 		glm::mat4 light_model = glm::translate(light_pos) * glm::scale(glm::vec3(3.0));
 
 		glEnable(GL_DEPTH_TEST);
-
-		glUseProgram(m_light_program);
-		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_model));
-		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
-		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
-		m_cube[0].OnDraw();
-
 		glUseProgram(m_phong_program);
-		glBindTextureUnit(0, m_tex);
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
-
 		glUniform3fv(10, 1, glm::value_ptr(light_pos));
 		glUniform3fv(11, 1, glm::value_ptr(m_camera.m_cam_position));
 
+		glBindTextureUnit(0, m_white_tex);
+		glUniform1i(15, 0);
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_model));
+		m_cube[0].OnDraw();
+
+		glBindTextureUnit(0, m_tex);
+		glUniform1i(15, 1);
 		float scaling = 2.0f;
 		int size = OBJ_ARRAY_SIZE;
 		glm::mat4 model = glm::mat4(1.0f);
@@ -516,7 +494,8 @@ struct Application : public Program {
 					model = glm::translate(glm::vec3(x * scaling, y * scaling, z * scaling)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f));
 					glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
 					m_cube[x % 3].OnDraw();
-				}		
+				}	
+		glDisable(GL_DEPTH_TEST);
 	}	
 };
 
