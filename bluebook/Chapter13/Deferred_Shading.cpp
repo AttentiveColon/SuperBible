@@ -64,12 +64,15 @@ in VS_OUT
 
 layout (binding = 0) uniform sampler2D u_diffuse_texture;
 
+layout (location = 5)
+uniform vec3 light_color = vec3(1.0);
+
 void main()
 {
 	uvec4 outvec0 = uvec4(0);
 	vec4 outvec1 = vec4(0);
 
-	vec3 color = texture(u_diffuse_texture, fs_in.uv).rgb;
+	vec3 color = texture(u_diffuse_texture, fs_in.uv).rgb * light_color;
 
 	outvec0.x = packHalf2x16(color.xy);
 	outvec0.y = packHalf2x16(vec2(color.z, fs_in.N.x));
@@ -119,7 +122,18 @@ uniform vec3 light_color = vec3(1.0);
 layout (location = 11)
 uniform vec3 cam_pos;
 
-layout (location = 15)
+struct LightData
+{
+	vec3 light_pos;
+	float light_intensity;
+	vec3 light_color;
+	float pad0;
+};
+
+layout (binding = 0) uniform LightUniform
+{
+	LightData light_data[4];
+};
 
 struct fragment_into_t
 {
@@ -155,14 +169,17 @@ vec4 light_fragment(fragment_into_t fragment)
 
 	if (fragment.material_id != 0)
 	{
-		vec3 N = normalize(fragment.normal);
-		vec3 L = normalize(light_pos - fragment.ws_coord);
-		vec3 V = normalize(cam_pos - fragment.ws_coord);
-		vec3 R = reflect(-L, N);
+		for (int i = 0; i < 4; ++i)
+		{
+			vec3 N = normalize(fragment.normal);
+			vec3 L = normalize(light_data[i].light_pos - fragment.ws_coord);
+			vec3 V = normalize(cam_pos - fragment.ws_coord);
+			vec3 R = reflect(-L, N);
 
-		diffuse *= max(dot(N, L), 0.0);
-		specular = pow(max(dot(V, R), 0.0), fragment.specular_power) * light_color;
-		ambient = diffuse_albedo * vec3(0.05);
+			diffuse = ((diffuse * max(dot(N, L), 0.0)) * light_data[i].light_color) * light_data[i].light_intensity;
+			specular += (pow(max(dot(V, R), 0.0), fragment.specular_power) * light_data[i].light_color) * light_data[i].light_intensity;
+		}
+		ambient += diffuse_albedo * vec3(0.05);
 	}
 
 	return vec4(ambient + diffuse + specular, 1.0);	
@@ -254,6 +271,8 @@ in VS_OUT
 	vec2 uv;
 } fs_in;
 
+
+
 void main()
 {
 	vec3 diffuse_albedo = texture(diffuse_texture, fs_in.uv).rgb;
@@ -286,6 +305,13 @@ static ShaderText phong_shader_text[] = {
 	{GL_NONE, NULL, NULL}
 };
 
+struct LightData {
+	glm::vec3 light_pos;
+	float light_intensity;
+	glm::vec3 light_color;
+	float pad0;
+};
+
 
 struct Application : public Program {
 	float m_clear_color[4];
@@ -314,6 +340,10 @@ struct Application : public Program {
 	GLuint m_gbuffer;
 	GLuint m_gbuffer_textures[3];
 
+	//Light Data
+	LightData m_light_data[4];
+	GLuint m_light_ubo;
+
 #define OBJ_ARRAY_SIZE 10
 
 	Application()
@@ -336,7 +366,8 @@ struct Application : public Program {
 
 		CreateGBuffer();
 		CreateWhiteTex();
-
+		CreateLightData();
+		CreateUniformLightBuffer();
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
@@ -351,6 +382,9 @@ struct Application : public Program {
 			m_input_mode = !m_input_mode;
 			input.SetRawMouseMode(window.GetHandle(), m_input_mode);
 		}
+
+		UpdateLightData();
+		UpdateLightUniform();
 	}
 	void OnDraw() {
 		glViewport(0, 0, 1600, 900);
@@ -371,6 +405,55 @@ struct Application : public Program {
 		ImGui::Checkbox("Light Paused", &m_light_paused);
 		ImGui::DragFloat("Light Movement", &m_light_movement, 0.01f);
 		ImGui::End();
+	}
+	void CreateUniformLightBuffer() {
+		glGenBuffers(1, &m_light_ubo);
+		glBindBuffer(GL_UNIFORM_BUFFER, m_light_ubo);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(LightData) * 4, nullptr, GL_STATIC_DRAW);
+
+		LightData* data = (LightData*)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(LightData) * 4, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+		for (int i = 0; i < 4; ++i) {
+			data[i].light_pos = m_light_data[i].light_pos;
+			data[i].light_color = m_light_data[i].light_color;
+			data[i].light_intensity = m_light_data[i].light_intensity;
+		}
+
+		glUnmapBuffer(GL_UNIFORM_BUFFER);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	}
+	void UpdateLightUniform() {
+		glBindBuffer(GL_UNIFORM_BUFFER, m_light_ubo);
+
+		LightData* data = (LightData*)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(LightData) * 4, GL_MAP_WRITE_BIT);
+		for (int i = 0; i < 4; ++i) {
+			data[i].light_pos = m_light_data[i].light_pos;
+			data[i].light_intensity = m_light_data[i].light_intensity;
+			data[i].light_color = m_light_data[i].light_color;
+			data[i].pad0 = 0.0;
+		}
+
+		glUnmapBuffer(GL_UNIFORM_BUFFER);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	}
+	void CreateLightData() {
+		float time = float(m_time * 0.5);
+		m_light_data[0] = { glm::vec3(sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f), 0.5f, glm::vec3(1.0f, 0.0, 0.0), 0.0f};
+		time += 0.25;
+		m_light_data[1] = { glm::vec3(cos(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f), 0.5f, glm::vec3(0.0f, 1.0, 0.0), 0.0f};
+		time += 0.50;
+		m_light_data[2] = { glm::vec3(sin(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f), 0.5f, glm::vec3(0.0f, 0.0, 1.0), 0.0f};
+		time += 0.75;
+		m_light_data[3] = { glm::vec3(cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f), 0.5f, glm::vec3(1.0f, 1.0, 1.0), 0.0f};
+	}
+	void UpdateLightData() {
+		float time = float(m_time * 0.5);
+		m_light_data[0] = { glm::vec3(sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f), 0.2f, glm::vec3(1.0f, 0.0, 0.0), 0.0f};
+		time += 0.25;
+		m_light_data[1] = { glm::vec3(cos(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f), 0.3f, glm::vec3(0.0f, 1.0, 0.0), 0.0f};
+		time += 0.50;
+		m_light_data[2] = { glm::vec3(sin(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f), 0.4f, glm::vec3(0.0f, 0.0, 1.0), 0.0f};
+		time += 0.75;
+		m_light_data[3] = { glm::vec3(cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f), 0.5f, glm::vec3(1.0f, 1.0, 1.0),  0.0f};
 	}
 	void CreateWhiteTex() {
 		static const GLubyte white_texture[] = { 0xff, 0xff, 0xff, 0xff };
@@ -434,6 +517,7 @@ struct Application : public Program {
 		glBindTextureUnit(0, m_tex);
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
+		glUniform3fv(5, 1, glm::value_ptr(glm::vec3(1.0f)));
 		glUniform1i(15, 1);
 		float scaling = 2.0f;
 		int size = OBJ_ARRAY_SIZE;
@@ -445,11 +529,15 @@ struct Application : public Program {
 					glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
 					m_cube[x % 3].OnDraw();
 				}
-		//Render light sphere
-		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_model));
-		glBindTextureUnit(0, m_white_tex);
-		glUniform1i(15, 0);
-		m_cube[0].OnDraw();
+		//Render light spheres
+		for (int i = 0; i < 4; ++i) {
+			glm::mat4 light_model = glm::translate(m_light_data[i].light_pos) * glm::scale(glm::vec3(3.0));
+			glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_model));
+			glBindTextureUnit(0, m_white_tex);
+			glUniform3fv(5, 1, glm::value_ptr(m_light_data[i].light_color));
+			glUniform1i(15, 0);
+			m_cube[0].OnDraw();
+		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		glDrawBuffer(GL_BACK);
@@ -460,6 +548,7 @@ struct Application : public Program {
 		glBindTextureUnit(1, m_gbuffer_textures[1]);
 		glUniform3fv(0, 1, glm::value_ptr(light_pos));
 		glUniform3fv(11, 1, glm::value_ptr(m_camera.m_cam_position));
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_light_ubo);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	}
