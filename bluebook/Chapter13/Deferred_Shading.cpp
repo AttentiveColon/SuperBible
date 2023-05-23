@@ -144,6 +144,13 @@ struct fragment_into_t
 	uint material_id;
 };
 
+vec3 CalculateAttenuation(float distance, float light_intensity, vec3 light_color)
+{
+	float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.01 * distance * distance);
+	attenuation *= light_intensity;
+	return light_color * attenuation;
+}
+
 void unpackGBuffer(ivec2 coord, out fragment_into_t fragment)
 {
 	uvec4 data0 = texelFetch(gbuf_tex0, ivec2(coord), 0);
@@ -172,13 +179,16 @@ vec4 light_fragment(fragment_into_t fragment)
 		diffuse = vec3(0.0);
 		for (int i = 0; i < 4; ++i)
 		{
+			float distance = length(light_data[i].light_pos - fragment.ws_coord);
+			vec3 attenuation = CalculateAttenuation(distance, light_data[i].light_intensity, light_data[i].light_color);
+			
 			vec3 N = normalize(fragment.normal);
 			vec3 L = normalize(light_data[i].light_pos - fragment.ws_coord);
 			vec3 V = normalize(cam_pos - fragment.ws_coord);
 			vec3 R = reflect(-L, N);
 
-			diffuse += max(dot(N, L), 0.0) * light_data[i].light_intensity * light_data[i].light_color * diffuse_albedo;
-			specular += (pow(max(dot(V, R), 0.0), fragment.specular_power) * light_data[i].light_color) * light_data[i].light_intensity;
+			diffuse += max(dot(N, L), 0.0) * diffuse_albedo * attenuation;
+			specular += pow(max(dot(V, R), 0.0), fragment.specular_power) * attenuation;
 		}
 		ambient += diffuse_albedo * vec3(0.05);
 	}
@@ -262,6 +272,11 @@ uniform float specular_power = 40.0;
 layout (location = 15)
 uniform bool is_lit = true;
 
+layout (location = 16)
+uniform vec3 light_color = vec3(1.0);
+layout (location = 17)
+uniform float light_intensity = 5.0;
+
 out vec4 color;
 
 in VS_OUT
@@ -272,7 +287,12 @@ in VS_OUT
 	vec2 uv;
 } fs_in;
 
-
+vec3 CalculateAttenuation(float distance, float light_intensity, vec3 light_color)
+{
+	float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.01 * distance * distance);
+	attenuation *= light_intensity;
+	return light_color * attenuation;
+}
 
 void main()
 {
@@ -284,14 +304,16 @@ void main()
 
 	if (is_lit)
 	{
-	
+		diffuse = vec3(0.0);
+		vec3 attenuation = CalculateAttenuation(length(fs_in.L), light_intensity, light_color);
+
 		vec3 N = normalize(fs_in.N);
 		vec3 L = normalize(fs_in.L);
 		vec3 V = normalize(fs_in.V);
 		vec3 R = reflect(-L, N);
 		
-		diffuse *= max(dot(N, L), 0.0);
-		specular = pow(max(dot(V, R), 0.0), specular_power) * specular_albedo;
+		diffuse = max(dot(N, L), 0.0) * diffuse_albedo * attenuation;
+		specular = pow(max(dot(V, R), 0.0), specular_power) * specular_albedo * attenuation;
 		ambient = diffuse_albedo * ambient_level;
 
 	}
@@ -346,6 +368,7 @@ struct Application : public Program {
 	GLuint m_light_ubo;
 
 #define OBJ_ARRAY_SIZE 30
+#define OBJ_SCALING 3.0f
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
@@ -448,13 +471,13 @@ struct Application : public Program {
 	}
 	void UpdateLightData() {
 		float time = float(m_time * 0.5);
-		m_light_data[0] = { glm::vec3(sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f), 0.5f, glm::vec3(1.0f, 0.0, 0.0), 0.0f};
+		m_light_data[0] = { glm::vec3(sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f), 7.5f, glm::vec3(1.0f, 0.0, 0.0), 0.0f};
 		time += 0.25;
-		m_light_data[1] = { glm::vec3(cos(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f), 0.5f, glm::vec3(0.0f, 1.0, 0.0), 0.0f};
+		m_light_data[1] = { glm::vec3(cos(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f), 5.5f, glm::vec3(0.0f, 1.0, 0.0), 0.0f};
 		time += 0.50;
-		m_light_data[2] = { glm::vec3(sin(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f), 0.5f, glm::vec3(0.0f, 0.0, 1.0), 0.0f};
+		m_light_data[2] = { glm::vec3(sin(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f), 4.5f, glm::vec3(0.0f, 0.0, 1.0), 0.0f};
 		time += 0.75;
-		m_light_data[3] = { glm::vec3(cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f), 0.5f, glm::vec3(1.0f, 1.0, 1.0),  0.0f};
+		m_light_data[3] = { glm::vec3(cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f), 3.5f, glm::vec3(1.0f, 1.0, 1.0),  0.0f};
 	}
 	void CreateWhiteTex() {
 		static const GLubyte white_texture[] = { 0xff, 0xff, 0xff, 0xff };
@@ -520,7 +543,7 @@ struct Application : public Program {
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
 		glUniform3fv(5, 1, glm::value_ptr(glm::vec3(1.0f)));
 		glUniform1i(15, 1);
-		float scaling = 2.0f;
+		float scaling = OBJ_SCALING;
 		int size = OBJ_ARRAY_SIZE;
 		glm::mat4 model = glm::mat4(1.0f);
 		for (int z = 0; z < size; ++z)
@@ -528,7 +551,7 @@ struct Application : public Program {
 				for (int x = 0; x < size; ++x) {
 					model = glm::translate(glm::vec3(x * scaling, y * scaling, z * scaling)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f));
 					glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
-					m_cube[x % 3].OnDraw();
+					m_cube[0].OnDraw();
 				}
 		//Render light spheres
 		for (int i = 0; i < 4; ++i) {
@@ -575,7 +598,7 @@ struct Application : public Program {
 
 		glBindTextureUnit(0, m_tex);
 		glUniform1i(15, 1);
-		float scaling = 2.0f;
+		float scaling = OBJ_SCALING;
 		int size = OBJ_ARRAY_SIZE;
 		glm::mat4 model = glm::mat4(1.0f);
 		for (int z = 0; z < size; ++z) 
@@ -583,7 +606,7 @@ struct Application : public Program {
 				for (int x = 0; x < size; ++x) {
 					model = glm::translate(glm::vec3(x * scaling, y * scaling, z * scaling)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f));
 					glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
-					m_cube[x % 3].OnDraw();
+					m_cube[0].OnDraw();
 				}	
 		glDisable(GL_DEPTH_TEST);
 	}	
