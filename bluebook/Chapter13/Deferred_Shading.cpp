@@ -169,6 +169,7 @@ vec4 light_fragment(fragment_into_t fragment)
 
 	if (fragment.material_id != 0)
 	{
+		diffuse = vec3(0.0);
 		for (int i = 0; i < 4; ++i)
 		{
 			vec3 N = normalize(fragment.normal);
@@ -176,7 +177,7 @@ vec4 light_fragment(fragment_into_t fragment)
 			vec3 V = normalize(cam_pos - fragment.ws_coord);
 			vec3 R = reflect(-L, N);
 
-			diffuse = ((diffuse * max(dot(N, L), 0.0)) * light_data[i].light_color) * light_data[i].light_intensity;
+			diffuse += max(dot(N, L), 0.0) * light_data[i].light_intensity * light_data[i].light_color * diffuse_albedo;
 			specular += (pow(max(dot(V, R), 0.0), fragment.specular_power) * light_data[i].light_color) * light_data[i].light_intensity;
 		}
 		ambient += diffuse_albedo * vec3(0.05);
@@ -344,7 +345,7 @@ struct Application : public Program {
 	LightData m_light_data[4];
 	GLuint m_light_ubo;
 
-#define OBJ_ARRAY_SIZE 10
+#define OBJ_ARRAY_SIZE 30
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
@@ -447,11 +448,11 @@ struct Application : public Program {
 	}
 	void UpdateLightData() {
 		float time = float(m_time * 0.5);
-		m_light_data[0] = { glm::vec3(sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f), 0.2f, glm::vec3(1.0f, 0.0, 0.0), 0.0f};
+		m_light_data[0] = { glm::vec3(sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f), 0.5f, glm::vec3(1.0f, 0.0, 0.0), 0.0f};
 		time += 0.25;
-		m_light_data[1] = { glm::vec3(cos(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f), 0.3f, glm::vec3(0.0f, 1.0, 0.0), 0.0f};
+		m_light_data[1] = { glm::vec3(cos(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f), 0.5f, glm::vec3(0.0f, 1.0, 0.0), 0.0f};
 		time += 0.50;
-		m_light_data[2] = { glm::vec3(sin(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f), 0.4f, glm::vec3(0.0f, 0.0, 1.0), 0.0f};
+		m_light_data[2] = { glm::vec3(sin(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f), 0.5f, glm::vec3(0.0f, 0.0, 1.0), 0.0f};
 		time += 0.75;
 		m_light_data[3] = { glm::vec3(cos(time) * 30.0f + 5.0f, cos(time) * 30.0f + 5.0f, sin(time) * 30.0f + 5.0f), 0.5f, glm::vec3(1.0f, 1.0, 1.0),  0.0f};
 	}
