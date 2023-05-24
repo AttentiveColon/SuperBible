@@ -16,6 +16,6 @@
 //#define MSAA8X
 
 //Current Project
-#define DEFERRED_SHADING
+#define SSAO
 
 

@@ -168,6 +168,7 @@
     <ClCompile Include="bluebook\Chapter13\ShadowMap2.cpp" />
     <ClCompile Include="bluebook\Chapter13\Shadow_Mapping.cpp" />
     <ClCompile Include="bluebook\Chapter13\Spherical_Enviroment_Mapping.cpp" />
+    <ClCompile Include="bluebook\Chapter13\SSAO.cpp" />
     <ClCompile Include="bluebook\Chapter13\Toon_Shader.cpp" />
     <ClCompile Include="bluebook\Chapter13\Toon_Shader2.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_1.cpp" />
