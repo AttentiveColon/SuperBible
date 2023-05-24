@@ -366,6 +366,8 @@ struct Application : public Program {
 	LightData m_light_data[4];
 	GLuint m_light_ubo;
 	vector<LightData> m_lights;
+	vector<glm::vec3> m_lights_to;
+	vector<glm::vec3> m_lights_from;
 
 	//Random Engine
 	Random m_random;
@@ -412,6 +414,7 @@ struct Application : public Program {
 			input.SetRawMouseMode(window.GetHandle(), m_input_mode);
 		}
 
+		UpdateLights();
 		UpdateLightUniform();
 
 		if (input.Pressed(GLFW_KEY_SPACE)) {
@@ -443,20 +446,23 @@ struct Application : public Program {
 		return m_random.Float() > 0.5f;
 	}
 	void AddLight(float scale, float offset) {
-		float time = float(m_time * 0.25);
-		float time_offset = m_random.Float();
-		time += time_offset;
-		float xOp = (RandomBool()) ? sin(time) : cos(time);
-		float yOp = (RandomBool()) ? sin(time) : cos(time);
-		float zOp = (RandomBool()) ? sin(time) : cos(time);
-
-		glm::vec3 position = glm::vec3(xOp * scale + offset, yOp * scale + offset, zOp * scale + offset);
+		float bias = -(OBJ_ARRAY_SIZE * OBJ_SCALING / 2.0f);
+		glm::vec3 position = glm::vec3((m_random.Float() * 2.0 - 1.0) * bias, (m_random.Float() * 2.0 - 1.0) * bias, (m_random.Float() * 2.0 - 1.0) * bias);
 		float intensity = m_random.Float() * 2.0f;
 		glm::vec3 light_color = glm::vec3(m_random.Float(), m_random.Float(), m_random.Float());
 		float pad = 0.0f;
 		LightData ld = { position, intensity, light_color, pad };
 
 		m_lights.push_back(ld);
+
+		glm::vec3 light_to = glm::vec3((m_random.Float() * 2.0 - 1.0) * bias, (m_random.Float() * 2.0 - 1.0) * bias, (m_random.Float() * 2.0 - 1.0) * bias);
+		m_lights_to.push_back(light_to);
+		m_lights_from.push_back(ld.light_pos);
+	}
+	void UpdateLights() {
+		for (int i = 0; i < m_lights.size(); ++i) {
+			m_lights[i].light_pos = glm::mix(m_lights_from[i], m_lights_to[i], sin(m_time * 0.1));
+		}
 	}
 	void CreateUniformLightBuffer() {
 		glGenBuffers(1, &m_light_ubo);
