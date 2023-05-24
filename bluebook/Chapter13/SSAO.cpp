@@ -98,6 +98,7 @@ static ShaderText shader_text[] = {
 	{GL_NONE, NULL, NULL}
 };
 
+
 struct Application : public Program {
 	float m_clear_color[4];
 	u64 m_fps;
@@ -112,6 +113,18 @@ struct Application : public Program {
 	SB::Camera m_camera;
 	bool m_input_mode = false;
 
+	GLuint m_render_fbo;
+	GLuint m_fbo_textures[3];
+
+	GLuint m_quad_vao;
+	GLuint m_points_buffer;
+
+	struct SAMPLE_POINTS {
+		glm::vec4 point[256];
+		glm::vec4 random_vectors[256];
+	};
+
+	Random m_random;
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
@@ -124,7 +137,38 @@ struct Application : public Program {
 		m_program = LoadShaders(shader_text);
 		m_object.Load_OBJ("./resources/monkey.obj");
 		m_texture = Load_KTX("./resources/fiona.ktx");
+		m_random.Init();
+
+		glGenVertexArrays(1, &m_quad_vao);
+		glBindVertexArray(m_quad_vao);
+
 		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
+
+		SAMPLE_POINTS point_data;
+
+		for (int i = 0; i < 256; i++)
+		{
+			do
+			{
+				point_data.point[i][0] = m_random.Float() * 2.0f - 1.0f;
+				point_data.point[i][1] = m_random.Float() * 2.0f - 1.0f;
+				point_data.point[i][2] = m_random.Float(); //  * 2.0f - 1.0f;
+				point_data.point[i][3] = 0.0f;
+			} while (length(point_data.point[i]) > 1.0f);
+			normalize(point_data.point[i]);
+		}
+		for (int i = 0; i < 256; i++)
+		{
+			point_data.random_vectors[i][0] = m_random.Float();
+			point_data.random_vectors[i][1] = m_random.Float();
+			point_data.random_vectors[i][2] = m_random.Float();
+			point_data.random_vectors[i][3] = m_random.Float();
+		}
+		
+		glGenBuffers(1, &m_points_buffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, m_points_buffer);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(SAMPLE_POINTS), &point_data, GL_STATIC_DRAW);
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
@@ -162,6 +206,38 @@ struct Application : public Program {
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::DragFloat3("Light Pos", glm::value_ptr(m_light_pos), 0.1f);
 		ImGui::End();
+	}
+	void CreateFBO() {
+		glGenFramebuffers(1, &m_render_fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_render_fbo);
+		glGenTextures(3, m_fbo_textures);
+
+		glBindTexture(GL_TEXTURE_2D, m_fbo_textures[0]);
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB16F, 2048, 2048);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+		glBindTexture(GL_TEXTURE_2D, m_fbo_textures[1]);
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, 2048, 2048);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+		glBindTexture(GL_TEXTURE_2D, m_fbo_textures[2]);
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32F, 2048, 2048);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_fbo_textures[0], 0);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, m_fbo_textures[1], 0);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_fbo_textures[2], 0);
+
+		static const GLenum draw_buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+
+		glDrawBuffers(2, draw_buffers);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 };
 
