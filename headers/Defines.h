@@ -16,6 +16,6 @@
 //#define MSAA8X
 
 //Current Project
-#define JULIA_FRACTALS
+#define RAY_TRACING
 
 

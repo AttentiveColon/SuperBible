@@ -165,6 +165,7 @@
     <ClCompile Include="bluebook\Chapter13\Normal_Maps.cpp" />
     <ClCompile Include="bluebook\Chapter13\Per_Pixel_Gloss.cpp" />
     <ClCompile Include="bluebook\Chapter13\Phong_Shading.cpp" />
+    <ClCompile Include="bluebook\Chapter13\Ray_Tracing.cpp" />
     <ClCompile Include="bluebook\Chapter13\Rim_Lighting.cpp" />
     <ClCompile Include="bluebook\Chapter13\ShadowMap2.cpp" />
     <ClCompile Include="bluebook\Chapter13\Shadow_Mapping.cpp" />
