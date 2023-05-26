@@ -16,6 +16,6 @@
 //#define MSAA8X
 
 //Current Project
-#define RAY_TRACING
+#define DISTANCE_FIELDS
 
 

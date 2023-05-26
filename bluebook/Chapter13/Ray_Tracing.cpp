@@ -31,9 +31,7 @@ void main(void)
 
     gl_Position = pos;
     vs_out.ray_origin = ray_origin * vec3(1.0, 1.0, -1.0);
-    // vs_out.ray_origin = vec3(0.0);
     vs_out.ray_direction = (ray_lookat * vec4(pos.xyz * direction_scale * vec3(1.0, aspect, 2.0) + direction_bias, 0.0)).xyz;
-    // vs_out.ray_direction = pos.xyz * vec3(1.0, aspect, 4.0);
 }
 )";
 
@@ -59,7 +57,7 @@ void main(void)
     origin = fs_in.ray_origin;
     reflected = fs_in.ray_direction;
     refracted = vec3(0.0);
-    reflected_color = vec3(1.0);
+    reflected_color = vec3(0.1);
     refracted_color = vec3(0.0);
 }
 
@@ -134,9 +132,9 @@ layout (std140, binding = 3) uniform LIGHTS
     light       L[120];
 } lights;
 
-uniform int num_spheres = 7;
+uniform int num_spheres = 3;
 uniform int num_planes = 6;
-uniform int num_lights = 5;
+uniform int num_lights = 3;
 
 float intersect_ray_sphere(ray R,
                            sphere S,
@@ -461,6 +459,9 @@ struct Application : public Program {
     u64 m_fps;
     f64 m_time;
 
+    SB::Camera m_camera;
+    bool m_input_mode = false;
+
     GLuint m_prepare_program, m_trace_program, m_blit_program;
 
     GLuint m_vao;
@@ -471,7 +472,7 @@ struct Application : public Program {
     GLuint m_tex_position[MAX_RECURSION_DEPTH], m_tex_reflected[MAX_RECURSION_DEPTH], m_tex_refracted[MAX_RECURSION_DEPTH];
     GLuint m_tex_reflection_intensity[MAX_RECURSION_DEPTH], m_tex_refraction_intensity[MAX_RECURSION_DEPTH];
 
-    int m_max_depth = 4;
+    int m_max_depth = 15;
 
     Application()
         :m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
@@ -483,6 +484,9 @@ struct Application : public Program {
         m_prepare_program = LoadShaders(prepare_shader_text);
         m_trace_program = LoadShaders(trace_shader_text);
         m_blit_program = LoadShaders(blit_shader_text);
+
+        m_camera = SB::Camera("Camera", glm::vec3(0.0f, 8.0f, 15.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
+
         
         glGenBuffers(1, &m_uniforms_buffer);
         glBindBuffer(GL_UNIFORM_BUFFER, m_uniforms_buffer);
@@ -556,6 +560,16 @@ struct Application : public Program {
     void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
         m_fps = window.GetFPS();
         m_time = window.GetTime();
+
+        if (m_input_mode) {
+            m_camera.OnUpdate(input, 3.0f, 0.2f, dt);
+        }
+
+        //Implement Camera Movement Functions
+        if (input.Pressed(GLFW_KEY_LEFT_CONTROL)) {
+            m_input_mode = !m_input_mode;
+            input.SetRawMouseMode(window.GetHandle(), m_input_mode);
+        }
     }
     void OnDraw() {
         static const GLfloat zeros[] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -577,9 +591,12 @@ struct Application : public Program {
 
         glm::mat4 model_matrix = glm::scale(glm::vec3(7.0f));
 
-        block->mv_matrix = view_matrix * model_matrix;
-        block->view_matrix = view_matrix;
-        block->proj_matrix = glm::perspective(0.5f, 16.0f / 9.0f, 0.1f, 1000.0f);
+        //block->mv_matrix = view_matrix * model_matrix;
+        //block->view_matrix = view_matrix;
+        //block->proj_matrix = glm::perspective(0.5f, 16.0f / 9.0f, 0.1f, 1000.0f);
+        block->mv_matrix = model_matrix;
+        block->view_matrix = m_camera.m_view;
+        block->proj_matrix = m_camera.m_proj;
 
         glUnmapBuffer(GL_UNIFORM_BUFFER);
 
@@ -654,9 +671,11 @@ struct Application : public Program {
         glViewport(0, 0, 1600, 900);
 
         glUseProgram(m_prepare_program);
-        glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(view_matrix));
-        glUniform3fv(1, 1, glm::value_ptr(view_position));
+        //glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(view_matrix));
+        //glUniform3fv(1, 1, glm::value_ptr(view_position));
         //glUniform1f(2, 16.0f / 9.0f);
+        glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
+        glUniform3fv(1, 1, glm::value_ptr(m_camera.Eye()));
         glBindFramebuffer(GL_FRAMEBUFFER, m_ray_fbo[0]);
         static const GLenum draw_buffers[] =
         {
