@@ -16,6 +16,6 @@
 //#define MSAA8X
 
 //Current Project
-#define DISTANCE_FIELDS
+#define BITMAP_FONTS
 
 
