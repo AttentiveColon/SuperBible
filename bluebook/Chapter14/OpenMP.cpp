@@ -37,7 +37,7 @@ struct Application : public Program {
 		std::cout << "Elapsed No Thread Load Time: " << elapsted_time_no_threads << " milliseconds" << std::endl;
 
 		start_time = std::chrono::steady_clock::now();
-		#pragma omp parallel for schedule (dynamic) //num_threads(max_threads)
+		#pragma omp parallel for schedule (dynamic) num_threads(max_threads)
 		for (int i = 0; i < 8; ++i) {
 			u64 result = 0;
 			for (int j = 0; j < INT32_MAX; ++j) {
