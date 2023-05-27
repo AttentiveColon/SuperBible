@@ -108,6 +108,17 @@ namespace packet
 			glDrawArraysInstancedBaseInstance(pParams->mode, pParams->first, pParams->count, pParams->primcount, pParams->baseinstance);
 		}
 	};
+
+	union ALL_PACKETS
+	{
+	public:
+		PFN_EXECUTE execute;
+	private:
+		base Base;
+		BIND_PROGRAM BindProgram;
+		BIND_VERTEX_ARRAY BindVertexArray;
+		DRAW_ARRAYS DrawArrays;
+	};
 }
 
 struct Application : public Program {
