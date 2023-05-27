@@ -50,6 +50,66 @@ static const GLfloat colors[] = {
 	1.0f, 0.0f, 1.0f, 1.0f,
 };
 
+namespace packet
+{
+	struct base;
+
+	typedef void (APIENTRY PFN_EXECUTE)(const base* pParams);
+
+	struct base
+	{
+		PFN_EXECUTE pfnExecute;
+	};
+
+	struct BIND_PROGRAM : public base
+	{
+		GLuint program;
+
+		static void APIENTRY execute(const BIND_PROGRAM* pParams)
+		{
+			glUseProgram(pParams->program);
+		}
+	};
+
+	struct BIND_VERTEX_ARRAY : public base
+	{
+		GLuint vao;
+
+		static void APIENTRY execute(const BIND_VERTEX_ARRAY* pParams)
+		{
+			glBindVertexArray(pParams->vao);
+		}
+	};
+
+	struct BIND_BUFFER_RANGE : public base
+	{
+		GLenum target;
+		GLuint index;
+		GLuint buffer;
+		GLintptr offset;
+		GLsizeiptr size;
+
+		static void APIENTRY execute(const BIND_BUFFER_RANGE* pParams)
+		{
+			glBindBufferRange(pParams->target, pParams->index, pParams->buffer, pParams->offset, pParams->size);
+		}
+	};
+
+	struct DRAW_ARRAYS : public base
+	{
+		GLenum mode;
+		GLint first;
+		GLsizei count;
+		GLsizei primcount;
+		GLuint baseinstance;
+
+		static void APIENTRY execute(const DRAW_ARRAYS* pParams)
+		{
+			glDrawArraysInstancedBaseInstance(pParams->mode, pParams->first, pParams->count, pParams->primcount, pParams->baseinstance);
+		}
+	};
+}
+
 struct Application : public Program {
 	float m_clear_color[4];
 	u64 m_fps;
@@ -68,10 +128,11 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		//Init Stream
+		//
+		//-----------
+
 		m_program = LoadShaders(shader_text);
 		glGenVertexArrays(1, &m_vao);
-		//Create Uniform buffer block
-
 		
 
 		glGenBuffers(1, &m_buffer_block);
