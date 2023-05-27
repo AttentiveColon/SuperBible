@@ -105,14 +105,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\glew-2.1.0\include;$(ProjectDir)ThirdParty\glm;$(ProjectDir)headers;$(ProjectDir)ThirdParty\imgui;$(ProjectDir)ThirdParty\irrKlang\include;$(ProjectDir)ThirdParty\OBJ-loader;$(ProjectDir)ThirdParty\glfw\include;$(ProejctDir)ThirdParty\tinygltf;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\glew-2.1.0\include;$(ProjectDir)ThirdParty\glm;$(ProjectDir)headers;$(ProjectDir)ThirdParty\imgui;$(ProjectDir)ThirdParty\irrKlang\include;$(ProjectDir)ThirdParty\OBJ-loader;$(ProjectDir)ThirdParty\glfw\include;$(LLVMInstallDir)\lib;$(ProejctDir)ThirdParty\tinygltf;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>-Xclang -fopenmp %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)ThirdParty\irrKlang\lib\Winx64-visualStudio\;$(ProjectDir)ThirdParty\glew-2.1.0\lib\Release\x64;$(ProjectDir)ThirdParty\glfw\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;glew32.lib;opengl32.lib;irrKlang.lib;</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;glew32.lib;opengl32.lib;irrKlang.lib;libomp.lib;</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
@@ -127,8 +128,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\glew-2.1.0\include;$(ProjectDir)ThirdParty\glm;$(ProjectDir)headers;$(ProjectDir)ThirdParty\imgui;$(ProjectDir)ThirdParty\irrKlang\include;$(ProjectDir)ThirdParty\OBJ-loader;$(ProjectDir)ThirdParty\glfw\include;$(ProejctDir)ThirdParty\tinygltf;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\glew-2.1.0\include;$(ProjectDir)ThirdParty\glm;$(ProjectDir)headers;$(ProjectDir)ThirdParty\imgui;$(ProjectDir)ThirdParty\irrKlang\include;$(ProjectDir)ThirdParty\OBJ-loader;$(ProjectDir)ThirdParty\glfw\include;$(LLVMInstallDir)\lib;$(ProejctDir)ThirdParty\tinygltf;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>-Xclang -fopenmp %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -136,7 +138,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)ThirdParty\irrKlang\lib\Winx64-visualStudio\;$(ProjectDir)ThirdParty\glew-2.1.0\lib\Release\x64;$(ProjectDir)ThirdParty\glfw\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;glew32.lib;opengl32.lib;irrKlang.lib;MSVCRT.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;glew32.lib;opengl32.lib;irrKlang.lib;libomp.lib;MSVCRT.lib</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>

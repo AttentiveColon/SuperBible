@@ -4,6 +4,7 @@
 #include "Texture.h"
 #include "Model.h"
 #include "Mesh.h"
+#include <omp.h>
 
 static const GLchar* vs_source = R"(
 #version 450 core
@@ -13,6 +14,7 @@ void main()
 	gl_Position = vec4(float((gl_VertexID >> 1) & 1) * 2.0 - 1.0, float((gl_VertexID & 1)) * 2.0 - 1.0, 0.0, 1.0);
 }
 )";
+
 static const GLchar* fs_source = R"(
 #version 450 core
 
