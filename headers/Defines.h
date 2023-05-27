@@ -16,6 +16,6 @@
 //#define MSAA8X
 
 //Current Project
-#define OPENMP
+#define OMP_PARTICLES
 
 

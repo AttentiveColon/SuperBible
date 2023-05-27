@@ -177,6 +177,7 @@
     <ClCompile Include="bluebook\Chapter13\SSAO.cpp" />
     <ClCompile Include="bluebook\Chapter13\Toon_Shader.cpp" />
     <ClCompile Include="bluebook\Chapter13\Toon_Shader2.cpp" />
+    <ClCompile Include="bluebook\Chapter14\OMP_Particles.cpp" />
     <ClCompile Include="bluebook\Chapter14\OpenMP.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_1.cpp" />
     <ClCompile Include="bluebook\Chapter2\ch2_2.cpp" />
