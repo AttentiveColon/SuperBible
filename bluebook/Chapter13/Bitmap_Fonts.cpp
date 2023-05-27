@@ -4,7 +4,7 @@
 #include "Texture.h"
 #include "Model.h"
 #include "Mesh.h"
-#include <omp.h>
+
 
 static const GLchar* vs_source = R"(
 #version 450 core
