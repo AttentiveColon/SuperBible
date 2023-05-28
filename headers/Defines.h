@@ -16,6 +16,6 @@
 //#define MSAA8X
 
 //Current Project
-#define PACKET_BUFFER
+#define INDIRECT_MATERIAL
 
 

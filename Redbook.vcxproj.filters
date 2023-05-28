@@ -348,6 +348,18 @@
     <ClCompile Include="bluebook\Chapter13\Bitmap_Fonts.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\Chapter14\OMP_Particles.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bluebook\Chapter14\OpenMP.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bluebook\Chapter14\Packet_Buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bluebook\Chapter14\Indirect_Material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">
