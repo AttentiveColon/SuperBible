@@ -16,6 +16,6 @@
 //#define MSAA8X
 
 //Current Project
-#define INDIRECT_MATERIAL
+#define CULL_INDIRECT
 
 
