@@ -16,6 +16,6 @@
 //#define MSAA8X
 
 //Current Project
-#define CULL_INDIRECT
+#define PMB_STREAMING
 
 
