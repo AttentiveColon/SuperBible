@@ -21,6 +21,8 @@ layout (location = 4)
 uniform mat4 u_view;
 layout (location = 5)
 uniform mat4 u_proj;
+layout (location = 6)
+uniform vec3 u_cam_pos;
 
 layout (binding = 0, std140)
 uniform Material
@@ -41,12 +43,11 @@ out VS_OUT
 
 void main(void)
 {
-	mat4 mv_matrix = u_view * u_model;
 
-    vec4 P = mv_matrix * vec4(position, 1.0);
-	vec3 N = mat3(mv_matrix) * normal;
+    vec4 P = u_model * vec4(position, 1.0);
+	vec3 N = mat3(u_model) * normal;
 	vec3 L = light_pos - P.xyz;
-	vec3 V = -P.xyz;
+	vec3 V = u_cam_pos - P.xyz;
 
 	N = normalize(N);
 	L = normalize(L);
@@ -58,7 +59,7 @@ void main(void)
 	vec3 specular = pow(max(dot(R, V), 0.0), specular_power) * specular_albedo;
 
 	vs_out.color = ambient + diffuse + specular;
-	gl_Position = u_proj * P;
+	gl_Position = u_proj * u_view * P;
 }
 )";
 
@@ -166,6 +167,7 @@ struct Application : public Program {
 		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(m_cube_rotation));
 		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
+		glUniform3fv(6, 1, glm::value_ptr(m_camera.Eye()));
 
 		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(Material_Uniform), m_data, GL_DYNAMIC_DRAW);
