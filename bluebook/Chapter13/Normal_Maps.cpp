@@ -167,7 +167,10 @@ void main(void)
 	vec3 T = normalize(n_matrix * tangent.xyz);
 	vec3 B = normalize(cross(N, tangent.xyz) * tangent.w);
 
+	//mat3 TBN = transpose(mat3(T, B, N));
+
 	vec3 L = light_pos - P.xyz;
+	//vs_out.light_dir = normalize(TBN * L);
 	vs_out.light_dir = normalize(vec3(dot(L, T), dot(L, B), dot(L, N)));
 
 	vec3 V = u_cam_pos - P.xyz;
@@ -311,7 +314,7 @@ struct Application : public Program {
 		m_time = window.GetTime();
 
 		if (m_input_mode) {
-			m_camera.OnUpdate(input, 3.0f, 0.2f, dt);
+			m_camera.OnUpdate(input, 1.0f, 0.1f, dt);
 		}
 
 		//Implement Camera Movement Functions
