@@ -21,6 +21,8 @@ layout (location = 4)
 uniform mat4 u_view;
 layout (location = 5)
 uniform mat4 u_proj;
+layout (location = 6)
+uniform vec3 u_cam_pos;
 
 layout (binding = 0, std140)
 uniform Material
@@ -43,14 +45,14 @@ out VS_OUT
 
 void main(void)
 {
-	mat4 mv_matrix = u_view * u_model;
+	
 
-    vec4 P = mv_matrix * vec4(position, 1.0);
-	vs_out.N = mat3(mv_matrix) * normal;
+    vec4 P = u_model * vec4(position, 1.0);
+	vs_out.N = mat3(u_model) * normal;
 	vs_out.L = light_pos - P.xyz;
-	vs_out.V = -P.xyz;
+	vs_out.V = u_cam_pos - P.xyz;
 
-	gl_Position = u_proj * P;
+	gl_Position = u_proj * u_view * P;
 }
 )";
 
@@ -115,6 +117,8 @@ layout (location = 4)
 uniform mat4 u_view;
 layout (location = 5)
 uniform mat4 u_proj;
+layout (location = 6)
+uniform vec3 u_cam_pos;
 
 layout (binding = 0, std140)
 uniform Material
@@ -137,14 +141,13 @@ out VS_OUT
 
 void main(void)
 {
-	mat4 mv_matrix = u_view * u_model;
 
-    vec4 P = mv_matrix * vec4(position, 1.0);
-	vs_out.N = mat3(mv_matrix) * normal;
+    vec4 P = u_model * vec4(position, 1.0);
+	vs_out.N = mat3(u_model) * normal;
 	vs_out.L = light_pos - P.xyz;
-	vs_out.V = -P.xyz;
+	vs_out.V = u_cam_pos - P.xyz;
 
-	gl_Position = u_proj * P;
+	gl_Position = u_proj * u_view * P;
 }
 )";
 
@@ -244,7 +247,7 @@ struct Application : public Program {
 		m_phong_program = LoadShaders(phong_shader_text);
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 4.0f, 2.0f), glm::vec3(0.0f, 5.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 		m_cube.Load_OBJ("./resources/Skull/Skull.obj");
-		//m_cube.Load_OBJ("./resources/cube.obj");
+		//m_cube.Load_OBJ("./resources/smooth_sphere.obj");
 		m_random.Init();
 
 		glGenBuffers(1, &m_ubo);
@@ -282,6 +285,7 @@ struct Application : public Program {
 		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(m_cube_rotation));
 		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(5, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
+		glUniform3fv(6, 1, glm::value_ptr(m_camera.Eye()));
 
 		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(Material_Uniform), m_data, GL_DYNAMIC_DRAW);

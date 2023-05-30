@@ -16,6 +16,6 @@
 //#define MSAA8X
 
 //Current Project
-#define PMB_FRACTAL
+#define BLINN_PHONG
 
 
