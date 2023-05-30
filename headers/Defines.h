@@ -16,6 +16,6 @@
 //#define MSAA8X
 
 //Current Project
-#define GOURAUD_SHADING
+#define NORMAL_MAPS
 
 

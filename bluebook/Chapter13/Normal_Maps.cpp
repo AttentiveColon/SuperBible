@@ -5,7 +5,7 @@
 #include "Model.h"
 #include "Mesh.h"
 
-static const GLchar* rim_lighting_vertex_shader_source = R"(
+static const GLchar* blinn_phong_vertex_shader_source = R"(
 #version 450 core
 
 layout (location = 0)
@@ -14,6 +14,8 @@ layout (location = 1)
 in vec3 normal;
 layout (location = 2)
 in vec2 uv;
+layout (location = 3)
+in vec4 tangent;
 
 layout (location = 0)
 uniform mat4 u_model;
@@ -21,6 +23,8 @@ layout (location = 1)
 uniform mat4 u_view;
 layout (location = 2)
 uniform mat4 u_proj;
+layout (location = 3)
+uniform vec3 u_cam_pos;
 
 layout (binding = 0, std140)
 uniform Material
@@ -47,19 +51,18 @@ out VS_OUT
 
 void main(void)
 {
-	mat4 mv_matrix = u_view * u_model;
 
-    vec4 P = mv_matrix * vec4(position, 1.0);
-	vs_out.N = mat3(mv_matrix) * normal;
+    vec4 P = u_model * vec4(position, 1.0);
+	vs_out.N = mat3(u_model) * normal;
 	vs_out.L = light_pos - P.xyz;
-	vs_out.V = -P.xyz;
+	vs_out.V = u_cam_pos - P.xyz;
 	vs_out.uv = vec2(uv.x, -uv.y);
 
-	gl_Position = u_proj * P;
+	gl_Position = u_proj * u_view * P;
 }
 )";
 
-static const GLchar* rim_lighting_fragment_shader_source = R"(
+static const GLchar* blinn_phong_fragment_shader_source = R"(
 #version 450 core
 
 layout  (binding = 0)
@@ -90,13 +93,6 @@ in VS_OUT
 
 out vec4 color;
 
-vec3 calculate_rim(vec3 N, vec3 V)
-{
-	float f = 1.0 - dot(N, V);
-	f = smoothstep(0.0, 1.0, f);
-	f = pow(f, rim_power);
-	return f * rim_color;
-}
 
 void main()
 {
@@ -113,9 +109,9 @@ void main()
 }
 )";
 
-static ShaderText rim_lighting_shader_text[] = {
-	{GL_VERTEX_SHADER, rim_lighting_vertex_shader_source, NULL},
-	{GL_FRAGMENT_SHADER, rim_lighting_fragment_shader_source, NULL},
+static ShaderText blinn_phong_shader_text[] = {
+	{GL_VERTEX_SHADER, blinn_phong_vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, blinn_phong_fragment_shader_source, NULL},
 	{GL_NONE, NULL, NULL}
 };
 
@@ -137,6 +133,8 @@ layout (location = 1)
 uniform mat4 u_view;
 layout (location = 2)
 uniform mat4 u_proj;
+layout (location = 3)
+uniform vec3 u_cam_pos;
 
 layout (binding = 0, std140)
 uniform Material
@@ -158,17 +156,13 @@ out VS_OUT
 	vec2 uv;
 	vec3 eye_dir;
 	vec3 light_dir;
-	vec3 normal;
-	mat3 TBN;
 } vs_out;
 
 void main(void)
 {
-	mat4 mv_matrix = u_view * u_model;
-	mat3 n_matrix = transpose(inverse(mat3(mv_matrix)));
+	mat3 n_matrix = transpose(inverse(mat3(u_model)));
+    vec4 P = u_model * vec4(position, 1.0);
 
-    vec4 P = mv_matrix * vec4(position, 1.0);
-	vec3 V = P.xyz;
 	vec3 N = normalize(n_matrix * normal);
 	vec3 T = normalize(n_matrix * tangent.xyz);
 	vec3 B = normalize(cross(N, tangent.xyz) * tangent.w);
@@ -176,12 +170,11 @@ void main(void)
 	vec3 L = light_pos - P.xyz;
 	vs_out.light_dir = normalize(vec3(dot(L, T), dot(L, B), dot(L, N)));
 
-	V = -P.xyz;
+	vec3 V = u_cam_pos - P.xyz;
 	vs_out.eye_dir = normalize(vec3(dot(V, T), dot(V, B), dot(V, N)));
 
 	vs_out.uv = uv;
-	vs_out.normal = normal;
-	gl_Position = u_proj * P;
+	gl_Position = u_proj * u_view * P;
 }
 )";
 
@@ -214,19 +207,9 @@ in VS_OUT
 	vec2 uv;
 	vec3 eye_dir;
 	vec3 light_dir;
-	vec3 normal;
-	mat3 TBN;
 } fs_in;
 
 out vec4 color;
-
-vec3 calculate_rim(vec3 N, vec3 V)
-{
-	float f = 1.0 - dot(N, V);
-	f = smoothstep(0.0, 1.0, f);
-	f = pow(f, rim_power);
-	return f * rim_color;
-}
 
 void main()
 {
@@ -235,18 +218,17 @@ void main()
 
 	vec3 V = normalize(fs_in.eye_dir);
 	vec3 L = normalize(fs_in.light_dir);
-	vec3 N = normalize(texture(u_normal_map, normal_uv).rgb * 2.0 - 1.0);
+	vec3 N = normalize(texture(u_normal_map, normal_uv).rgb * 2.0 - vec3(1.0));
 
-	//vec3 N = normalize(fs_in.normal);
+
 	vec3 R = reflect(-L, N);
 
 	vec3 diffuse_color = texture(u_diffuse, diffuse_uv).rgb;
 	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_color;
 	vec3 specular = max(pow(dot(R, V), specular_power), 0.0) * specular_albedo;
 
-	vec3 rim = calculate_rim(N, V);
 	
-	color = vec4(diffuse + specular + rim, 1.0);
+	color = vec4(diffuse + specular, 1.0);
 }
 )";
 
@@ -311,11 +293,12 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		m_normal_program = LoadShaders(normal_shader_text);
-		m_phong_program = LoadShaders(rim_lighting_shader_text);
+		m_phong_program = LoadShaders(blinn_phong_shader_text);
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
 		m_cube.Load_OBJ_Tan("./resources/rook2/rook.obj");
+		//m_cube.Load_OBJ_Tan("./resources/smooth_2.obj");
 		m_tex_base = Load_KTX("./resources/rook2/rook_base.ktx");
 		m_tex_normal = Load_KTX("./resources/rook2/rook_normal.ktx");
 		m_random.Init();
@@ -357,6 +340,7 @@ struct Application : public Program {
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_mesh_rotation));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
+		glUniform3fv(3, 1, glm::value_ptr(m_camera.Eye()));
 
 
 		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
