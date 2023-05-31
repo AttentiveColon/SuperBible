@@ -375,6 +375,9 @@
     <ClCompile Include="bluebook\ChapterRedux\Normal_Mapped_Deferred_Rendering.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\ChapterRedux\Assimp_Normal_Maps.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">

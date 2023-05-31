@@ -244,6 +244,7 @@
     <ClCompile Include="bluebook\Chapter9\Sample_Rate_Shading.cpp" />
     <ClCompile Include="bluebook\Chapter9\Shaped_Points.cpp" />
     <ClCompile Include="bluebook\Chapter9\Stencil_Test.cpp" />
+    <ClCompile Include="bluebook\ChapterRedux\Assimp_Normal_Maps.cpp" />
     <ClCompile Include="bluebook\ChapterRedux\Normal_Mapped_Deferred_Rendering.cpp" />
     <ClCompile Include="bluebook\ChapterRedux\Shadows_Redux.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />

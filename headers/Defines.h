@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define NORMAL_MAPS
+#define ASSIMP_NORMAL_MAPS
 
 
 //TODO: Load_OBJ_TAN is computing tangents as per face instead of per vertex, figure that out
