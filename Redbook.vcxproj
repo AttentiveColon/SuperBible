@@ -112,7 +112,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)ThirdParty\assimp\lib\;$(ProjectDir)ThirdParty\irrKlang\lib\Winx64-visualStudio\;$(ProjectDir)ThirdParty\glew-2.1.0\lib\Release\x64;$(ProjectDir)ThirdParty\glfw\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;glew32.lib;opengl32.lib;irrKlang.lib;libomp.lib;</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;glew32.lib;opengl32.lib;irrKlang.lib;libomp.lib;assimp-vc143-mt.lib;</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
@@ -136,7 +136,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)ThirdParty\assimp\lib\;$(ProjectDir)ThirdParty\irrKlang\lib\Winx64-visualStudio\;$(ProjectDir)ThirdParty\glew-2.1.0\lib\Release\x64;$(ProjectDir)ThirdParty\glfw\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;glew32.lib;opengl32.lib;irrKlang.lib;libomp.lib;MSVCRT.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;glew32.lib;opengl32.lib;irrKlang.lib;libomp.lib;assimp-vc143-mt.lib;MSVCRT.lib</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>

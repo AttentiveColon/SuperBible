@@ -296,7 +296,7 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		int num_threads = omp_get_max_threads();
-		//Assimp::Importer importer;
+		Assimp::Importer importer;
 		m_normal_program = LoadShaders(normal_shader_text);
 		m_phong_program = LoadShaders(blinn_phong_shader_text);
 
