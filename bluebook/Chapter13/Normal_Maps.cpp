@@ -56,7 +56,7 @@ void main(void)
 	vs_out.N = mat3(u_model) * normal;
 	vs_out.L = light_pos - P.xyz;
 	vs_out.V = u_cam_pos - P.xyz;
-	vs_out.uv = vec2(uv.x, -uv.y);
+	vs_out.uv = vec2(uv.x, uv.y);
 
 	gl_Position = u_proj * u_view * P;
 }
@@ -165,7 +165,7 @@ void main(void)
 
 	vec3 N = normalize(n_matrix * normal);
 	vec3 T = normalize(n_matrix * tangent.xyz);
-	vec3 B = normalize(cross(N, tangent.xyz) * tangent.w);
+	vec3 B = normalize(cross(N, T) * tangent.w);
 
 	//mat3 TBN = transpose(mat3(T, B, N));
 
@@ -176,7 +176,7 @@ void main(void)
 	vec3 V = u_cam_pos - P.xyz;
 	vs_out.eye_dir = normalize(vec3(dot(V, T), dot(V, B), dot(V, N)));
 
-	vs_out.uv = uv;
+	vs_out.uv = vec2(uv.x, -uv.y);
 	gl_Position = u_proj * u_view * P;
 }
 )";
@@ -216,17 +216,14 @@ out vec4 color;
 
 void main()
 {
-	vec2 normal_uv = vec2(fs_in.uv.x, -fs_in.uv.y);
-	vec2 diffuse_uv = vec2(fs_in.uv.x, -fs_in.uv.y);
-
 	vec3 V = normalize(fs_in.eye_dir);
 	vec3 L = normalize(fs_in.light_dir);
-	vec3 N = normalize(texture(u_normal_map, normal_uv).rgb * 2.0 - vec3(1.0));
+	vec3 N = normalize(texture(u_normal_map, fs_in.uv).rgb * 2.0 - vec3(1.0));
 
 
 	vec3 R = reflect(-L, N);
 
-	vec3 diffuse_color = texture(u_diffuse, diffuse_uv).rgb;
+	vec3 diffuse_color = texture(u_diffuse, fs_in.uv).rgb;
 	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_color;
 	vec3 specular = max(pow(dot(R, V), specular_power), 0.0) * specular_albedo;
 
@@ -301,6 +298,7 @@ struct Application : public Program {
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
 		m_cube.Load_OBJ_Tan("./resources/rook2/rook.obj");
+		//m_mesh = SB::GetMesh("./resources/rook/rook.glb");
 		//m_cube.Load_OBJ_Tan("./resources/smooth_2.obj");
 		m_tex_base = Load_KTX("./resources/rook2/rook_base.ktx");
 		m_tex_normal = Load_KTX("./resources/rook2/rook_normal.ktx");
@@ -350,11 +348,12 @@ struct Application : public Program {
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(Material_Uniform), m_data, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
 
-		//glBindVertexArray(m_mesh.m_vao);
+
 		glBindTextureUnit(0, m_tex_base);
 		glBindTextureUnit(1, m_tex_normal);
 		m_cube.OnDraw();
-		//glDrawElements(m_mesh.m_topology, m_mesh.m_count, GL_UNSIGNED_INT, (void*)0);
+		//SB::DrawMesh(m_mesh);
+
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");

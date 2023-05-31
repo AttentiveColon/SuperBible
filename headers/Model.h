@@ -1104,6 +1104,11 @@ namespace SB
 		
 		return mesh_data;
 	}
+
+	static void DrawMesh(MeshData mesh) {
+		glBindVertexArray(mesh.m_vao);
+		glDrawElements(mesh.m_topology, mesh.m_count, GL_UNSIGNED_INT, (void*)0);
+	}
 }
 
 
