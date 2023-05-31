@@ -4,6 +4,9 @@
 #include "Texture.h"
 #include "Model.h"
 #include "Mesh.h"
+#include "assimp/Importer.hpp"
+#include <omp.h>
+
 
 static const GLchar* blinn_phong_vertex_shader_source = R"(
 #version 450 core
@@ -292,6 +295,8 @@ struct Application : public Program {
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
+		int num_threads = omp_get_max_threads();
+		//Assimp::Importer importer;
 		m_normal_program = LoadShaders(normal_shader_text);
 		m_phong_program = LoadShaders(blinn_phong_shader_text);
 
