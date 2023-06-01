@@ -32,6 +32,11 @@ uniform mat4 proj;
 layout (location = 15)
 uniform int material_id;
 
+layout (binding = 5) uniform MODEL_MATRIX_BUFFER
+{
+	mat4 model_matrix[1000];
+};
+
 
 out VS_OUT
 {
@@ -44,7 +49,7 @@ out VS_OUT
 void main()
 {	
 	
-	vec4 P = model * vec4(position, 1.0);
+	vec4 P = model * model_matrix[gl_InstanceID] * vec4(position, 1.0);
 
 	vs_out.ws_coords = P.xyz; 
 	vs_out.N = mat3(model) * normal;
@@ -233,6 +238,11 @@ static void DrawMesh(const Mesh& mesh) {
 	glDrawElements(GL_TRIANGLES, mesh.count, GL_UNSIGNED_INT, (void*)0);
 }
 
+static void DrawMesh(const Mesh& mesh, size_t count) {
+	glBindVertexArray(mesh.vao);
+	glDrawElementsInstanced(GL_TRIANGLES, mesh.count, GL_UNSIGNED_INT, (void*)0, count);
+}
+
 Mesh ImportMesh(const char* filename) {
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_FlipUVs);
@@ -340,6 +350,10 @@ struct Application : public Program {
 	//Meshes
 	Mesh m_mesh;
 	GLuint m_mesh_diffuse_tex, m_mesh_normal_tex;
+
+	//Model position data
+	GLuint m_model_matrix_buffer;
+	GLuint m_light_model_matrix_buffer;
 	
 	//Geometry buffer data
 	GLuint m_vao;
@@ -373,6 +387,8 @@ struct Application : public Program {
 		m_mesh = ImportMesh("./resources/rook2/rook.obj");
 		m_mesh_diffuse_tex = Load_KTX("./resources/rook2/rook_base.ktx");
 		m_mesh_normal_tex = Load_KTX("./resources/rook2/rook_normal.ktx");
+		m_model_matrix_buffer = CreateInstancePositions();
+		m_light_model_matrix_buffer = CreateLightInstancePositionsBuffer();
 
 		m_random.Init();
 
@@ -399,6 +415,7 @@ struct Application : public Program {
 
 		UpdateLights();
 		UpdateLightUniform();
+		UpdateLightInstanceBuffer();
 
 		if (input.Pressed(GLFW_KEY_SPACE)) {
 			AddLight(m_random.Float() * 60.0f, m_random.Float() * 30.0f);
@@ -501,6 +518,48 @@ struct Application : public Program {
 		glBindVertexArray(m_vao);
 
 	}
+	GLuint CreateInstancePositions() {
+		float scaling = OBJ_SCALING;
+		int size = OBJ_ARRAY_SIZE;
+		vector<glm::mat4> model_array;
+		for (int z = 0; z < size; ++z)
+			for (int y = 0; y < size; ++y)
+				for (int x = 0; x < size; ++x) {
+					float bias = -((size * scaling) / 2.0);
+					model_array.push_back(glm::translate(glm::vec3(x * scaling + bias, y * scaling + bias, z * scaling + bias)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f)));
+				}
+
+		GLuint model_matrix_buffer;
+		glCreateBuffers(1, &model_matrix_buffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, model_matrix_buffer);
+		glBufferStorage(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * pow(OBJ_ARRAY_SIZE, 3), &model_array[0], 0);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+		return model_matrix_buffer;
+	}
+	GLuint CreateLightInstancePositionsBuffer() {
+		GLuint light_model_matrix_buffer;
+		glCreateBuffers(1, &light_model_matrix_buffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, light_model_matrix_buffer);
+		glBufferStorage(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 100, nullptr, GL_MAP_WRITE_BIT);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		
+		return light_model_matrix_buffer;
+	}
+	void UpdateLightInstanceBuffer() {
+		vector<glm::mat4> light_model_data;
+		for (int i = 0; i < m_lights.size(); ++i) {
+			light_model_data.push_back(glm::translate(m_lights[i].light_pos) * glm::scale(glm::vec3(1.0f)));
+		}
+
+		glBindBuffer(GL_UNIFORM_BUFFER, m_light_model_matrix_buffer);
+		glm::mat4* data = (glm::mat4*)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4) * light_model_data.size(), GL_MAP_WRITE_BIT);
+		for (int i = 0; i < light_model_data.size(); ++i) {
+			data[i] = light_model_data[i];
+		}
+		glUnmapNamedBuffer(m_light_model_matrix_buffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	}
 	void DeferredRender() {
 		float time = float(m_time) * 0.5f;
 		static const GLuint uint_zeros[] = { 0, 0, 0, 0 };
@@ -516,26 +575,20 @@ struct Application : public Program {
 		glClearBufferuiv(GL_COLOR, 0, uint_zeros);
 		glClearBufferuiv(GL_COLOR, 1, uint_zeros);
 		glClearBufferfv(GL_DEPTH, 0, float_ones);
+
 		//Render Scene without lighting
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 		glUseProgram(m_deferred_input_program);
 		glBindTextureUnit(0, m_mesh_diffuse_tex);
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
 		glUniform3fv(5, 1, glm::value_ptr(glm::vec3(1.0f)));
 		glUniform1i(15, 1);
-		float scaling = OBJ_SCALING;
-		int size = OBJ_ARRAY_SIZE;
-		glm::mat4 model = glm::mat4(1.0f);
-		for (int z = 0; z < size; ++z)
-			for (int y = 0; y < size; ++y)
-				for (int x = 0; x < size; ++x) {
-					float bias = -((size * scaling) / 2.0);
-					model = glm::translate(glm::vec3(x * scaling + bias, y * scaling + bias, z * scaling + bias)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f));
-					glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
-					DrawMesh(m_mesh);
-				}
+		glBindBufferBase(GL_UNIFORM_BUFFER, 5, m_model_matrix_buffer);
+		DrawMesh(m_mesh, pow(OBJ_ARRAY_SIZE, 3));
+
 		//Render light spheres
 		for (int i = 0; i < m_lights.size(); ++i) {
 			glm::mat4 light_model = glm::translate(m_lights[i].light_pos) * glm::scale(glm::vec3(1.0));
