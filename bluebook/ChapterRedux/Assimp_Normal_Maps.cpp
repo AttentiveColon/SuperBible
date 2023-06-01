@@ -18,9 +18,11 @@ in vec3 position;
 layout (location = 1)
 in vec3 normal;
 layout (location = 2)
-in vec2 uv;
+in vec3 tangent;
 layout (location = 3)
-in vec4 tangent;
+in vec3 bitangent;
+layout (location = 4)
+in vec2 texcoord;
 
 layout (location = 0)
 uniform mat4 u_model;
@@ -61,7 +63,7 @@ void main(void)
 	vs_out.N = mat3(u_model) * normal;
 	vs_out.L = light_pos - P.xyz;
 	vs_out.V = u_cam_pos - P.xyz;
-	vs_out.uv = vec2(uv.x, uv.y);
+	vs_out.uv = texcoord;
 
 	gl_Position = u_proj * u_view * P;
 }
@@ -119,12 +121,6 @@ static ShaderText blinn_phong_shader_text[] = {
 	{GL_FRAGMENT_SHADER, blinn_phong_fragment_shader_source, NULL},
 	{GL_NONE, NULL, NULL}
 };
-
-//vec3 position
-//vec3 normals
-//vec3 tangents
-//vec3 bitangents
-//vec2 uvs
 
 static const GLchar* normal_vertex_shader_source = R"(
 #version 450 core
@@ -189,7 +185,7 @@ void main(void)
 	vec3 V = u_cam_pos - P.xyz;
 	vs_out.eye_dir = normalize(vec3(dot(V, T), dot(V, B), dot(V, N)));
 
-	vs_out.uv = vec2(texcoord.x, -texcoord.y);
+	vs_out.uv = texcoord;
 	gl_Position = u_proj * u_view * P;
 }
 )";
@@ -277,7 +273,7 @@ struct Meshy
 
 Meshy ImportMesh(const char* filename) {
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace);
+	const aiScene* scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_FlipUVs);
 
 	if (nullptr == scene) {
 		const char* error = importer.GetErrorString();
@@ -391,7 +387,7 @@ struct Application : public Program {
 
 	ObjMesh m_cube;
 
-	SB::MeshData m_mesh;
+
 	GLuint m_tex_base, m_tex_normal;
 	glm::mat4 m_mesh_rotation;
 
@@ -400,7 +396,7 @@ struct Application : public Program {
 
 	Random m_random;
 
-	Meshy m_meshy_mesh;
+	Meshy m_mesh;
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
@@ -410,14 +406,13 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		int num_threads = omp_get_max_threads();
-		Assimp::Importer importer;
 		m_normal_program = LoadShaders(normal_shader_text);
 		m_phong_program = LoadShaders(blinn_phong_shader_text);
 
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
-		m_meshy_mesh = ImportMesh("./resources/rook2/rook.obj");
+		m_mesh = ImportMesh("./resources/rook2/rook.obj");
 		m_tex_base = Load_KTX("./resources/rook2/rook_base.ktx");
 		m_tex_normal = Load_KTX("./resources/rook2/rook_normal.ktx");
 		m_random.Init();
@@ -469,8 +464,8 @@ struct Application : public Program {
 
 		glBindTextureUnit(0, m_tex_base);
 		glBindTextureUnit(1, m_tex_normal);
-		glBindVertexArray(m_meshy_mesh.vao);
-		glDrawElements(GL_TRIANGLES, m_meshy_mesh.count, GL_UNSIGNED_INT, (void*)0);
+		glBindVertexArray(m_mesh.vao);
+		glDrawElements(GL_TRIANGLES, m_mesh.count, GL_UNSIGNED_INT, (void*)0);
 
 	}
 	void OnGui() {
