@@ -42,6 +42,8 @@ out VS_OUT
 {
 	vec3 ws_coords;
 	vec3 N;
+	vec3 T;
+	vec3 B;
 	vec2 uv;
 	flat uint material_id;
 } vs_out;
@@ -53,6 +55,8 @@ void main()
 
 	vs_out.ws_coords = P.xyz; 
 	vs_out.N = mat3(model) * normal;
+	vs_out.T = tangent;
+	vs_out.B = bitangent;
 	vs_out.uv = uv;
 	vs_out.material_id = uint(material_id);
 
@@ -70,25 +74,36 @@ in VS_OUT
 {
 	vec3 ws_coords;
 	vec3 N;
+	vec3 T;
+	vec3 B;
 	vec2 uv;
 	flat uint material_id;
 } fs_in;
 
 layout (binding = 0) uniform sampler2D u_diffuse_texture;
+layout (binding = 1) uniform sampler2D u_normal_texture;
 
 layout (location = 5)
 uniform vec3 light_color = vec3(1.0);
 
 void main()
 {
+	vec3 N = normalize(fs_in.N);
+	vec3 T = normalize(fs_in.T);
+	vec3 B = normalize(fs_in.B);
+	mat3 TBN = mat3(T, B, N);
+
+	vec3 nm = texture(u_normal_texture, fs_in.uv).xyz * 2.0 - vec3(1.0);
+	nm = TBN * normalize(nm);
+
 	uvec4 outvec0 = uvec4(0);
 	vec4 outvec1 = vec4(0);
 
 	vec3 color = texture(u_diffuse_texture, fs_in.uv).rgb * light_color;
 
 	outvec0.x = packHalf2x16(color.xy);
-	outvec0.y = packHalf2x16(vec2(color.z, fs_in.N.x));
-	outvec0.z = packHalf2x16(fs_in.N.yz);
+	outvec0.y = packHalf2x16(vec2(color.z, nm.x));
+	outvec0.z = packHalf2x16(nm.yz);
 	outvec0.w = fs_in.material_id;
 
 	outvec1.xyz = fs_in.ws_coords;
@@ -340,15 +355,11 @@ struct Application : public Program {
 	ObjMesh m_cube[3];
 	GLuint m_tex, m_white_tex;
 
-	//glm::vec3 m_view_pos = glm::vec3(-10.0f);
-
-	//glm::vec3 m_light_pos = glm::vec3(1.0f, 41.0f, 50.0f);
-
 	SB::Camera m_camera;
 	bool m_input_mode = false;
 
 	//Meshes
-	Mesh m_mesh;
+	Mesh m_mesh, m_light_mesh;
 	GLuint m_mesh_diffuse_tex, m_mesh_normal_tex;
 
 	//Model position data
@@ -365,8 +376,6 @@ struct Application : public Program {
 	LightData m_light_data[4];
 	GLuint m_light_ubo;
 	vector<LightData> m_lights;
-	vector<glm::vec3> m_lights_to;
-	vector<glm::vec3> m_lights_from;
 
 	//Random Engine
 	Random m_random;
@@ -385,6 +394,7 @@ struct Application : public Program {
 		m_deferred_lighting_program = LoadShaders(deferred_lighting_shader_text);
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 8.0f, 15.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 		m_mesh = ImportMesh("./resources/rook2/rook.obj");
+		m_light_mesh = ImportMesh("./resources/smooth_sphere.obj");
 		m_mesh_diffuse_tex = Load_KTX("./resources/rook2/rook_base.ktx");
 		m_mesh_normal_tex = Load_KTX("./resources/rook2/rook_normal.ktx");
 		m_model_matrix_buffer = CreateInstancePositions();
@@ -404,7 +414,7 @@ struct Application : public Program {
 		m_time = window.GetTime();
 
 		if (m_input_mode) {
-			m_camera.OnUpdate(input, 3.0f, 0.2f, dt);
+			m_camera.OnUpdate(input, 1.0f, 0.1f, dt);
 		}
 
 		//Implement Camera Movement Functions
@@ -413,7 +423,6 @@ struct Application : public Program {
 			input.SetRawMouseMode(window.GetHandle(), m_input_mode);
 		}
 
-		UpdateLights();
 		UpdateLightUniform();
 		UpdateLightInstanceBuffer();
 
@@ -433,6 +442,11 @@ struct Application : public Program {
 		ImGui::Text("Time: %f", m_time);
 		ImGui::ColorEdit4("Clear Color", m_clear_color);
 		ImGui::Text("Light Count: %d", m_lights.size());
+		for (int i = 0; i < m_lights.size(); ++i) {
+			ImGui::Text("Light %d", i);
+			ImGui::DragFloat3("Light Pos", glm::value_ptr(m_lights[i].light_pos), 0.01f);
+			ImGui::DragFloat3("Color", glm::value_ptr(m_lights[i].light_color), 0.01f);
+		}
 		ImGui::End();
 	}
 	bool RandomBool() {
@@ -447,15 +461,6 @@ struct Application : public Program {
 		LightData ld = { position, intensity, light_color, pad };
 
 		m_lights.push_back(ld);
-
-		glm::vec3 light_to = glm::vec3((m_random.Float() * 2.0 - 1.0) * bias, (m_random.Float() * 2.0 - 1.0) * bias, (m_random.Float() * 2.0 - 1.0) * bias);
-		m_lights_to.push_back(light_to);
-		m_lights_from.push_back(ld.light_pos);
-	}
-	void UpdateLights() {
-		for (int i = 0; i < m_lights.size(); ++i) {
-			m_lights[i].light_pos = glm::mix(m_lights_from[i], m_lights_to[i], sin(m_time * 0.1));
-		}
 	}
 	void CreateUniformLightBuffer() {
 		glGenBuffers(1, &m_light_ubo);
@@ -581,6 +586,7 @@ struct Application : public Program {
 		glDepthFunc(GL_LEQUAL);
 		glUseProgram(m_deferred_input_program);
 		glBindTextureUnit(0, m_mesh_diffuse_tex);
+		glBindTextureUnit(1, m_mesh_normal_tex);
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
@@ -591,12 +597,12 @@ struct Application : public Program {
 
 		//Render light spheres
 		for (int i = 0; i < m_lights.size(); ++i) {
-			glm::mat4 light_model = glm::translate(m_lights[i].light_pos) * glm::scale(glm::vec3(1.0));
+			glm::mat4 light_model = glm::translate(m_lights[i].light_pos) * glm::scale(glm::vec3(0.05f));
 			glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(light_model));
 			glBindTextureUnit(0, m_white_tex);
 			glUniform3fv(5, 1, glm::value_ptr(m_lights[i].light_color));
 			glUniform1i(15, 0);
-			DrawMesh(m_mesh);
+			DrawMesh(m_light_mesh);
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
