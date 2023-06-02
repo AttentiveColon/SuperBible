@@ -147,14 +147,26 @@ in VS_OUT
 
 out vec4 color;
 
-float ShadowCalculation(vec4 fragPosLightSpace)
+float ShadowCalculation(vec4 fragPosLightSpace, vec3 N, vec3 L, int range)
 {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 	projCoords = projCoords * 0.5 + 0.5;
-	float closestDepth = texture(u_shadow, projCoords.xy).r;
 	float currentDepth = projCoords.z;
-	float bias = 0.005;
-	float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+	float bias = max(0.05 * (1.0 - dot(N, L)), 0.005);
+	float shadow = 0.0;
+	vec2 texelSize = 1.0 / textureSize(u_shadow, 0);
+	for (int x = -range; x <= range; ++x)
+	{
+		for (int y = -range; y <= range; ++y)
+		{
+			float pcfDepth = texture(u_shadow, projCoords.xy + vec2(x,y) * texelSize).r;
+			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+		}
+	}
+	float divisor = pow(range + range + 1, 2);
+	shadow /= divisor;
+	if (projCoords.z > 1.0)
+		shadow = 0.0;
 	return shadow;
 }
 
@@ -169,7 +181,7 @@ void main()
 	vec3 diffuse = max(dot(N, L), 0.0) * texture(u_diffuse, fs_in.uv).rgb;
 	vec3 specular = pow(max(dot(N, H), 0.0), specular_power) * specular_albedo;
 
-	float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
+	float shadow = ShadowCalculation(fs_in.FragPosLightSpace, N, L, 1);
 	color = vec4(ambient + (1.0 - shadow) * diffuse + (1.0 - shadow) * specular, 1.0);
 	if (is_light) color = vec4(1.0);
 }
@@ -295,7 +307,7 @@ Mesh ImportMesh(const char* filename) {
 	return result;
 }
 
-static const unsigned int SHADOW_WIDTH = 5012, SHADOW_HEIGHT = 5012;
+static const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
 
 struct Application : public Program {
 	float m_clear_color[4];
@@ -344,7 +356,8 @@ struct Application : public Program {
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
-		m_light_proj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 70.5f);
+		//m_light_proj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 70.5f);
+		m_light_proj = glm::perspective(1.0, 1.0 / 1.0, 1.0, 1000.0);
 		m_light_view = glm::lookAt(m_light_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		m_shadow_FBO = CreateShadowFrameBuffer();
 
@@ -352,6 +365,7 @@ struct Application : public Program {
 		m_mesh[1] = ImportMesh("./resources/smooth_sphere.obj");
 		m_mesh[2] = ImportMesh("./resources/one_plane.glb");
 		m_mesh[3] = ImportMesh("./resources/sphere.obj");
+		m_mesh[4] = ImportMesh("./resources/one_plane.glb");
 		m_tex_base = Load_KTX("./resources/rook2/rook_base.ktx");
 		m_tex_normal = Load_KTX("./resources/rook2/rook_normal.ktx");
 		m_random.Init();
@@ -381,7 +395,10 @@ struct Application : public Program {
 		m_mesh_model[2] = glm::translate(glm::vec3(-5.0f)) * glm::rotate(90.0f, glm::vec3(0.5f, 0.5f, 0.0)) * glm::scale(glm::vec3(2.0f));
 		//Light
 		m_mesh_model[3] = glm::translate(m_light_pos) * glm::scale(glm::vec3(0.5f));
+		//Floor Plane
+		m_mesh_model[4] = glm::translate(glm::vec3(0.0f, -3.0f, 0.0f)) * glm::scale(glm::vec3(3.0f));
 
+		m_light_view = glm::lookAt(m_light_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 		Material_Uniform temp_material = { m_light_pos, 0.0, m_diffuse_albedo, 0.0, m_specular_albedo, m_specular_power, m_ambient, 0.0 };
 		memcpy(m_data, &temp_material, sizeof(Material_Uniform));
@@ -391,17 +408,21 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
 		glEnable(GL_DEPTH_TEST);
+		//glEnable(GL_CULL_FACE);
 
 		//Shadow pass
 		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_FBO);
 			glClear(GL_DEPTH_BUFFER_BIT);
+			//glCullFace(GL_FRONT);
 			glUseProgram(m_shadow_program);
 			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_light_view));
 			glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_light_proj));
 			DrawMesh(m_mesh[0], m_mesh_model[0]);
 			DrawMesh(m_mesh[1], m_mesh_model[1]);
 			DrawMesh(m_mesh[2], m_mesh_model[2]);
+			DrawMesh(m_mesh[4], m_mesh_model[4]);
+			//glCullFace(GL_BACK);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
@@ -426,6 +447,7 @@ struct Application : public Program {
 		DrawMesh(m_mesh[0], m_mesh_model[0]);
 		DrawMesh(m_mesh[1], m_mesh_model[1]);
 		DrawMesh(m_mesh[2], m_mesh_model[2]);
+		DrawMesh(m_mesh[4], m_mesh_model[4]);
 		glUniform1i(15, true);
 		DrawMesh(m_mesh[3], m_mesh_model[3]);
 
@@ -456,8 +478,10 @@ struct Application : public Program {
 			SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
