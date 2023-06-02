@@ -9,6 +9,39 @@
 #include "assimp/postprocess.h"
 #include <omp.h>
 
+static const GLchar* shadow_map_vertex_shader_source = R"(
+#version 450 core
+
+layout (location = 0)
+in vec3 position;
+
+layout (location = 0)
+uniform mat4 u_model;
+layout (location = 1)
+uniform mat4 u_view;
+layout (location = 2)
+uniform mat4 u_proj;
+
+void main()
+{
+	gl_Position = u_proj * u_view * u_model * vec4(position, 1.0);
+}
+)";
+
+static const GLchar* shadow_map_fragment_shader_source = R"(
+#version 450 core
+
+void main()
+{
+
+}
+)";
+
+static ShaderText shadow_map_shader_text[] = {
+	{GL_VERTEX_SHADER, shadow_map_vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, shadow_map_fragment_shader_source, NULL},
+	{GL_NONE, NULL, NULL}
+};
 
 static const GLchar* blinn_phong_vertex_shader_source = R"(
 #version 450 core
@@ -32,6 +65,8 @@ layout (location = 2)
 uniform mat4 u_proj;
 layout (location = 3)
 uniform vec3 u_cam_pos;
+layout (location = 4)
+uniform mat4 u_light_matrix;
 
 layout (binding = 0, std140)
 uniform Material
@@ -50,20 +85,24 @@ uniform Material
 
 out VS_OUT
 {
+	vec3 FragPos;
 	vec3 N;
 	vec3 L;
 	vec3 V;
 	vec2 uv;
+	vec4 FragPosLightSpace;
 } vs_out;
 
 void main(void)
 {
 
     vec4 P = u_model * vec4(position, 1.0);
+	vs_out.FragPos = P.xyz;
 	vs_out.N = mat3(u_model) * normal;
 	vs_out.L = light_pos - P.xyz;
 	vs_out.V = u_cam_pos - P.xyz;
 	vs_out.uv = texcoord;
+	vs_out.FragPosLightSpace = u_light_matrix * P;
 
 	gl_Position = u_proj * u_view * P;
 }
@@ -74,6 +113,9 @@ static const GLchar* blinn_phong_fragment_shader_source = R"(
 
 layout  (binding = 0)
 uniform sampler2D u_diffuse;
+
+layout (binding = 2)
+uniform sampler2D u_shadow;
 
 layout (binding = 0, std140)
 uniform Material
@@ -95,13 +137,26 @@ uniform bool is_light;
 
 in VS_OUT
 {
+	vec3 FragPos;
 	vec3 N;
 	vec3 L;
 	vec3 V;
 	vec2 uv;
+	vec4 FragPosLightSpace;
 } fs_in;
 
 out vec4 color;
+
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+	projCoords = projCoords * 0.5 + 0.5;
+	float closestDepth = texture(u_shadow, projCoords.xy).r;
+	float currentDepth = projCoords.z;
+	float bias = 0.005;
+	float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+	return shadow;
+}
 
 void main()
 {
@@ -114,7 +169,8 @@ void main()
 	vec3 diffuse = max(dot(N, L), 0.0) * texture(u_diffuse, fs_in.uv).rgb;
 	vec3 specular = pow(max(dot(N, H), 0.0), specular_power) * specular_albedo;
 
-	color = vec4(ambient + diffuse + specular, 1.0);
+	float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
+	color = vec4(ambient + (1.0 - shadow) * diffuse + (1.0 - shadow) * specular, 1.0);
 	if (is_light) color = vec4(1.0);
 }
 )";
@@ -239,12 +295,14 @@ Mesh ImportMesh(const char* filename) {
 	return result;
 }
 
+static const unsigned int SHADOW_WIDTH = 5012, SHADOW_HEIGHT = 5012;
+
 struct Application : public Program {
 	float m_clear_color[4];
 	u64 m_fps;
 	f64 m_time;
 
-	GLuint m_normal_program;
+	GLuint m_shadow_program;
 	GLuint m_phong_program;
 
 
@@ -257,11 +315,12 @@ struct Application : public Program {
 	float m_specular_power = 128.0f;
 	glm::vec3 m_ambient = vec3(0.1f, 0.1f, 0.1f);
 
+	glm::mat4 m_light_view;
+	glm::mat4 m_light_proj;
+	GLuint m_shadow_FBO;
 
 
-
-
-	GLuint m_tex_base, m_tex_normal;
+	GLuint m_tex_base, m_tex_normal, m_tex_shadow;
 
 	SB::Camera m_camera;
 	bool m_input_mode = false;
@@ -280,9 +339,14 @@ struct Application : public Program {
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		int num_threads = omp_get_max_threads();
 		m_phong_program = LoadShaders(blinn_phong_shader_text);
+		m_shadow_program = LoadShaders(shadow_map_shader_text);
 
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
+
+		m_light_proj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 70.5f);
+		m_light_view = glm::lookAt(m_light_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m_shadow_FBO = CreateShadowFrameBuffer();
 
 		m_mesh[0] = ImportMesh("./resources/rook2/rook.obj");
 		m_mesh[1] = ImportMesh("./resources/smooth_sphere.obj");
@@ -326,14 +390,28 @@ struct Application : public Program {
 		static const GLfloat one = 1.0f;
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
-
 		glEnable(GL_DEPTH_TEST);
 
-		
+		//Shadow pass
+		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_FBO);
+			glClear(GL_DEPTH_BUFFER_BIT);
+			glUseProgram(m_shadow_program);
+			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_light_view));
+			glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_light_proj));
+			DrawMesh(m_mesh[0], m_mesh_model[0]);
+			DrawMesh(m_mesh[1], m_mesh_model[1]);
+			DrawMesh(m_mesh[2], m_mesh_model[2]);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+		glViewport(0, 0, 1600, 900);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glUseProgram(m_phong_program);
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
 		glUniform3fv(3, 1, glm::value_ptr(m_camera.Eye()));
+		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_light_proj * m_light_view));
 
 
 		glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
@@ -343,6 +421,7 @@ struct Application : public Program {
 
 		glBindTextureUnit(0, m_tex_base);
 		glBindTextureUnit(1, m_tex_normal);
+		glBindTextureUnit(2, m_tex_shadow);
 		glUniform1i(15, false);
 		DrawMesh(m_mesh[0], m_mesh_model[0]);
 		DrawMesh(m_mesh[1], m_mesh_model[1]);
@@ -363,6 +442,31 @@ struct Application : public Program {
 		ImGui::DragFloat("Specular Power", &m_specular_power, 0.1f);
 		ImGui::ColorEdit3("Ambient", glm::value_ptr(m_ambient));
 		ImGui::End();
+	}
+	GLuint CreateShadowFrameBuffer() {
+		GLuint depthMapFBO;
+		glGenFramebuffers(1, &depthMapFBO);
+
+		
+		
+		GLuint depthMap;
+		glGenTextures(1, &depthMap);
+		glBindTexture(GL_TEXTURE_2D, depthMap);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+			SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+		glDrawBuffer(GL_NONE);
+		glReadBuffer(GL_NONE);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		m_tex_shadow = depthMap;
+		return depthMapFBO;
 	}
 };
 
