@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define NORMAL_MAPPED_DEFERRED_RENDERING
+#define SHADOWS_REDUX
 
 
 //TODO: 
