@@ -77,7 +77,7 @@ uniform Material
 	float pad1;
 	vec3 specular_albedo;
 	float specular_power;
-	vec3 ambient;
+	vec3 ambient_albedo;
 	float pad2;
 	vec3 rim_color;
 	float rim_power;
@@ -126,7 +126,7 @@ uniform Material
 	float pad1;
 	vec3 specular_albedo;
 	float specular_power;
-	vec3 ambient;
+	vec3 ambient_albedo;
 	float pad2;
 	vec3 rim_color;
 	float rim_power;
@@ -180,9 +180,10 @@ void main()
 
 	vec3 diffuse = max(dot(N, L), 0.0) * texture(u_diffuse, fs_in.uv).rgb;
 	vec3 specular = pow(max(dot(N, H), 0.0), specular_power) * specular_albedo;
+	vec3 ambient = texture(u_diffuse, fs_in.uv).rgb * ambient_albedo;
 
 	float shadow = ShadowCalculation(fs_in.FragPosLightSpace, N, L, 1);
-	color = vec4(ambient + (1.0 - shadow) * diffuse + (1.0 - shadow) * specular, 1.0);
+	color = (1.0 - shadow) * vec4(diffuse + specular, 1.0) + vec4(ambient, 1.0);
 	if (is_light) color = vec4(1.0);
 }
 )";
