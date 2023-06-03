@@ -16,15 +16,12 @@
 //#define MSAA8X
 
 //Current Project
-#define SHADOWS_REDUX
+#define SHADOW_PROJ
 
 
 //TODO: 
 
 //Double check, but I can probably remove the entire original rook folder and files
-
-//Get a proper shadow mapping example working
-
 //Remove all unused resource files
 
 

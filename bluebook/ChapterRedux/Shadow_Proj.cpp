@@ -93,6 +93,11 @@ out VS_OUT
 	vec4 FragPosLightSpace;
 } vs_out;
 
+const mat4 bias = mat4(0.5, 0.0, 0.0, 0.0,
+					   0.0, 0.5, 0.0, 0.0,
+					   0.0, 0.0, 0.5, 0.0,
+					   0.5, 0.5, 0.5, 1.0);
+
 void main(void)
 {
 
@@ -102,7 +107,7 @@ void main(void)
 	vs_out.L = light_pos - P.xyz;
 	vs_out.V = u_cam_pos - P.xyz;
 	vs_out.uv = texcoord;
-	vs_out.FragPosLightSpace = u_light_matrix * vec4(position, 1.0);
+	vs_out.FragPosLightSpace = bias * u_light_matrix * P;
 
 	gl_Position = u_proj * u_view * P;
 }
@@ -162,10 +167,10 @@ void main()
 	vec3 specular = pow(max(dot(N, H), 0.0), specular_power) * specular_albedo;
 	vec3 ambient = ambient_albedo;
 
-
-	//float shadow = texture(u_shadow, fs_in.FragPosLightSpace.xyz / fs_in.FragPosLightSpace.w, -1.0);
+	float bias = max(0.05 * (1.0 - dot(N, L)), 0.005);
 	float shadow = textureProj(u_shadow, fs_in.FragPosLightSpace);
-	color = vec4(((diffuse + specular + ambient) * shadow), 1.0);
+	
+	color = vec4(((diffuse + specular) * shadow), 1.0) + vec4(ambient, 1.0);
 	if (is_light) color = vec4(1.0);
 }
 )";
@@ -391,6 +396,7 @@ struct Application : public Program {
 		glClearBufferfv(GL_COLOR, 0, m_clear_color);
 		glClearBufferfv(GL_DEPTH, 0, &one);
 		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
 		//glEnable(GL_CULL_FACE);
 
 		//Shadow pass
@@ -422,9 +428,8 @@ struct Application : public Program {
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(Material_Uniform), m_data, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
 
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+		/*glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, m_tex_shadow);*/
 		glBindTextureUnit(0, m_tex_shadow);
 		//glBindTextureUnit(1, m_tex_base);
 		//glBindTextureUnit(1, m_tex_normal);
@@ -462,12 +467,12 @@ struct Application : public Program {
 			SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		/*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 		float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);*/
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
