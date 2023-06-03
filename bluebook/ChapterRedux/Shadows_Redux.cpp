@@ -116,6 +116,7 @@ uniform sampler2D u_diffuse;
 
 layout (binding = 2)
 uniform sampler2D u_shadow;
+//uniform sampler2DShadow u_shadow;
 
 layout (binding = 0, std140)
 uniform Material
@@ -183,6 +184,8 @@ void main()
 	vec3 ambient = texture(u_diffuse, fs_in.uv).rgb * ambient_albedo;
 
 	float shadow = ShadowCalculation(fs_in.FragPosLightSpace, N, L, 1);
+	//float shadow = textureProj(u_shadow, fs_in.FragPosLightSpace) < (fs_in.FragPosLightSpace.z - 1.0) ? 0.3 : 1.0;
+	//color = vec4(shadow * vec3(diffuse + specular) + ambient, 1.0);
 	color = (1.0 - shadow) * vec4(diffuse + specular, 1.0) + vec4(ambient, 1.0);
 	if (is_light) color = vec4(1.0);
 }
@@ -357,8 +360,8 @@ struct Application : public Program {
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
-		//m_light_proj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 70.5f);
-		m_light_proj = glm::perspective(1.0, 1.0 / 1.0, 1.0, 1000.0);
+		m_light_proj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 70.5f);
+		//m_light_proj = glm::perspective(1.0, 1.0 / 1.0, 1.0, 1000.0);
 		m_light_view = glm::lookAt(m_light_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		m_shadow_FBO = CreateShadowFrameBuffer();
 
@@ -483,6 +486,8 @@ struct Application : public Program {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 		float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
