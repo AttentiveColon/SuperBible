@@ -1,5 +1,5 @@
 #include "Defines.h"
-#ifdef SHADOWS_REDUX
+#ifdef SHADOW_PROJ
 #include "System.h"
 #include "Texture.h"
 #include "Model.h"
@@ -419,16 +419,16 @@ struct Application : public Program {
 		//Shadow pass
 		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_FBO);
-			glClear(GL_DEPTH_BUFFER_BIT);
-			//glCullFace(GL_FRONT);
-			glUseProgram(m_shadow_program);
-			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_light_view));
-			glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_light_proj));
-			DrawMesh(m_mesh[0], m_mesh_model[0]);
-			DrawMesh(m_mesh[1], m_mesh_model[1]);
-			DrawMesh(m_mesh[2], m_mesh_model[2]);
-			DrawMesh(m_mesh[4], m_mesh_model[4]);
-			//glCullFace(GL_BACK);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		//glCullFace(GL_FRONT);
+		glUseProgram(m_shadow_program);
+		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_light_view));
+		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_light_proj));
+		DrawMesh(m_mesh[0], m_mesh_model[0]);
+		DrawMesh(m_mesh[1], m_mesh_model[1]);
+		DrawMesh(m_mesh[2], m_mesh_model[2]);
+		DrawMesh(m_mesh[4], m_mesh_model[4]);
+		//glCullFace(GL_BACK);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
@@ -475,7 +475,7 @@ struct Application : public Program {
 	GLuint CreateShadowFrameBuffer() {
 		GLuint depthMapFBO;
 		glGenFramebuffers(1, &depthMapFBO);
-		
+
 		GLuint depthMap;
 		glGenTextures(1, &depthMap);
 		glBindTexture(GL_TEXTURE_2D, depthMap);
@@ -514,4 +514,4 @@ SystemConf config = {
 };
 
 MAIN(config)
-#endif //SHADOWS_REDUX
+#endif //SHADOW_PROJ

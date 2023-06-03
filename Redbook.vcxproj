@@ -247,6 +247,7 @@
     <ClCompile Include="bluebook\ChapterRedux\Assimp_Normal_Maps.cpp" />
     <ClCompile Include="bluebook\ChapterRedux\Normal_Mapped_Deferred_Rendering.cpp" />
     <ClCompile Include="bluebook\ChapterRedux\Shadows_Redux.cpp" />
+    <ClCompile Include="bluebook\ChapterRedux\Shadow_Proj.cpp" />
     <ClCompile Include="source\GL_Helpers.cpp" />
     <ClCompile Include="source\boilerplate_main.cpp" />
     <ClCompile Include="source\Mesh.cpp" />

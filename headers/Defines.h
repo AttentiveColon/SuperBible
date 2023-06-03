@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define SHADOWS_REDUX
+#define SHADOW_PROJ
 
 
 //TODO: 
