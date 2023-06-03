@@ -183,11 +183,7 @@ void main()
 	vec3 specular = pow(max(dot(N, H), 0.0), specular_power) * specular_albedo;
 	vec3 ambient = texture(u_diffuse, fs_in.uv).rgb * ambient_albedo;
 
-	float shadow = ShadowCalculation(fs_in.FragPosLightSpace, N, L, 1);
-
-
-	//float shadow = texture(u_shadow, fs_in.FragPosLightSpace.xyz);
-	//float shadow = textureProj(u_shadow, fs_in.FragPosLightSpace);
+	float shadow = ShadowCalculation(fs_in.FragPosLightSpace, N, L, 5);
 	color = vec4((diffuse + specular + ambient) * shadow, 1.0);
 	if (is_light) color = vec4(1.0);
 }
@@ -313,7 +309,7 @@ Mesh ImportMesh(const char* filename) {
 	return result;
 }
 
-static const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
+static const unsigned int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
 
 struct Application : public Program {
 	float m_clear_color[4];
@@ -481,8 +477,8 @@ struct Application : public Program {
 		glBindTexture(GL_TEXTURE_2D, depthMap);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
 			SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 		float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
