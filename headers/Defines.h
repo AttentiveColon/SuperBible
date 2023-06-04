@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define SHADOW_PROJ
+#define DEFERRED_RENDERING_SHADOWS
 
 
 //TODO: 

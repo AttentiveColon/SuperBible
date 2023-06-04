@@ -381,6 +381,9 @@
     <ClCompile Include="bluebook\ChapterRedux\Shadow_Proj.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bluebook\ChapterRedux\Deferred_Rendering_Shadows.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\GL_Helpers.h">
