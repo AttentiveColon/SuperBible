@@ -116,8 +116,8 @@ void main(void)
 static const GLchar* blinn_phong_fragment_shader_source = R"(
 #version 450 core
 
-//layout  (binding = 1)
-//uniform sampler2D u_diffuse;
+layout  (binding = 1)
+uniform sampler2D u_diffuse;
 
 layout (binding = 0)
 uniform sampler2DShadow u_shadow;
@@ -161,11 +161,9 @@ void main()
 
 	vec3 H = normalize(L + V);
 
-	//vec3 diffuse = max(dot(N, L), 0.0) * texture(u_diffuse, fs_in.uv).rgb;
-	//vec3 ambient = texture(u_diffuse, fs_in.uv).rgb * ambient_albedo;
-	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
+	vec3 ambient = texture(u_diffuse, fs_in.uv).rgb * ambient_albedo;
+	vec3 diffuse = max(dot(N, L), 0.0) * texture(u_diffuse, fs_in.uv).rgb;
 	vec3 specular = pow(max(dot(N, H), 0.0), specular_power) * specular_albedo;
-	vec3 ambient = ambient_albedo;
 
 	float bias = max(0.05 * (1.0 - dot(N, L)), 0.005);
 	float shadow = textureProj(u_shadow, fs_in.FragPosLightSpace);
@@ -344,7 +342,7 @@ struct Application : public Program {
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
-		//m_light_proj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 70.5f);
+		//m_light_proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.01f, 70.5f);
 		m_light_proj = glm::perspective(1.0, 1.0 / 1.0, 1.0, 1000.0);
 		m_light_view = glm::lookAt(m_light_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		m_shadow_FBO = CreateShadowFrameBuffer();
@@ -403,6 +401,8 @@ struct Application : public Program {
 		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_FBO);
 		glClear(GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_POLYGON_OFFSET_FILL);
+		glPolygonOffset(4.0f, 4.0f);
 		//glCullFace(GL_FRONT);
 		glUseProgram(m_shadow_program);
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_light_view));
@@ -417,6 +417,7 @@ struct Application : public Program {
 
 		glViewport(0, 0, 1600, 900);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDisable(GL_POLYGON_OFFSET_FILL);
 		glUseProgram(m_phong_program);
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view));
 		glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj));
@@ -428,10 +429,9 @@ struct Application : public Program {
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(Material_Uniform), m_data, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
 
-		/*glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, m_tex_shadow);*/
+
 		glBindTextureUnit(0, m_tex_shadow);
-		//glBindTextureUnit(1, m_tex_base);
+		glBindTextureUnit(1, m_tex_base);
 		//glBindTextureUnit(1, m_tex_normal);
 		glUniform1i(15, false);
 		DrawMesh(m_mesh[0], m_mesh_model[0]);
