@@ -78,7 +78,7 @@ layout (binding = 0) uniform sampler2D u_diffuse_texture;
 layout (binding = 1) uniform sampler2D u_normal_texture;
 
 layout (location = 5)
-uniform vec3 light_color = vec3(1.0);
+uniform vec3 diffuse_albedo = vec3(1.0);
 
 void main()
 {
@@ -93,7 +93,7 @@ void main()
 	uvec4 outvec0 = uvec4(0);
 	vec4 outvec1 = vec4(0);
 
-	vec3 color = texture(u_diffuse_texture, fs_in.uv).rgb * light_color;
+	vec3 color = texture(u_diffuse_texture, fs_in.uv).rgb * diffuse_albedo;
 
 	outvec0.x = packHalf2x16(color.xy);
 	outvec0.y = packHalf2x16(vec2(color.z, nm.x));
@@ -152,7 +152,7 @@ struct LightData
 
 layout (binding = 0) uniform LightUniform
 {
-	LightData light_data[4];
+	LightData light_data[3];
 };
 
 struct fragment_into_t
@@ -354,16 +354,19 @@ struct Application : public Program {
 	//Meshes
 	Mesh m_mesh[3];
 	GLuint m_mesh_diffuse_tex[3], m_mesh_normal_tex[3];
-	glm::mat4 m_model[3];
+	glm::mat4 m_model[5];
 
 	//Geometry buffer data
 	GLuint m_vao;
 	GLuint m_deferred_input_program, m_deferred_lighting_program;
 	GLuint m_gbuffer;
-	GLuint m_gbuffer_textures[5];
+	GLuint m_gbuffer_textures[3];
 
 	//White Texture
 	GLuint m_white_tex;
+
+	//Light Buffer
+	GLuint m_light_ubo;
 
 
 #define OBJ_ARRAY_SIZE 10
@@ -392,7 +395,18 @@ struct Application : public Program {
 		m_model[0] = glm::translate(glm::vec3(0.0f, 0.0165f, 0.0f));
 		m_model[1] = glm::mat4(1.0f);
 		m_model[2] = glm::inverse(glm::lookAt(glm::vec3(0.0f, 0.5f, 0.5f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f))) * glm::scale(glm::vec3(0.02f));
+		m_model[3] = glm::inverse(glm::lookAt(glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f))) * glm::scale(glm::vec3(0.02f));
+		m_model[4] = glm::inverse(glm::lookAt(glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f))) * glm::scale(glm::vec3(0.02f));
 
+		glGenBuffers(1, &m_light_ubo);
+		glBindBuffer(GL_UNIFORM_BUFFER, m_light_ubo);
+		LightData ld[3] = {
+							{glm::vec3(0.0f, 0.5f, 0.5f), 1.0f, glm::vec3(1.0f), 0.0f},
+							{glm::vec3(-0.5f, 0.5f, 0.0f), 1.0f, glm::vec3(1.0f, 0.0f, 0.0f), 0.0f},
+							{glm::vec3(0.5f, 0.5f, 0.0f), 1.0f, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f}
+		};
+		glBufferStorage(GL_UNIFORM_BUFFER, sizeof(LightData) * 3, &ld, 0);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		glEnable(GL_DEPTH_TEST);
 
@@ -484,7 +498,8 @@ struct Application : public Program {
 			glUseProgram(m_deferred_input_program);
 			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view)); //view
 			glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj)); //proj
-			glUniform1i(15, 0); //material id - zero for not lit
+			glUniform3fv(5, 1, glm::value_ptr(glm::vec3(1.0f)));
+			glUniform1i(15, 1); //material id - zero for not lit
 				glBindTextureUnit(0, m_mesh_diffuse_tex[0]); //bind diffuse
 				glBindTextureUnit(1, m_mesh_normal_tex[0]); //bind normal
 				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_model[0])); //model
@@ -493,8 +508,15 @@ struct Application : public Program {
 				glBindTextureUnit(1, m_mesh_normal_tex[1]);
 				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_model[1]));
 					DrawMesh(m_mesh[1]);
+			glUniform1i(15, 0);
 				glBindTextureUnit(0, m_mesh_diffuse_tex[2]);
 				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_model[2]));
+					DrawMesh(m_mesh[2]);
+				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_model[3]));
+				glUniform3fv(5, 1, glm::value_ptr(glm::vec3(1.0f, 0.0f, 0.0f)));
+					DrawMesh(m_mesh[2]);
+				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_model[4]));
+				glUniform3fv(5, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 1.0f)));
 					DrawMesh(m_mesh[2]);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -505,6 +527,8 @@ struct Application : public Program {
 		glBindTextureUnit(0, m_gbuffer_textures[0]);
 		glBindTextureUnit(1, m_gbuffer_textures[1]);
 		glUniform3fv(11, 1, glm::value_ptr(m_camera.m_cam_position));
+		glUniform1i(12, 3);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_light_ubo);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	}
