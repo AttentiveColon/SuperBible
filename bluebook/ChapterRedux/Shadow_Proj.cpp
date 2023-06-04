@@ -139,7 +139,7 @@ uniform Material
 };
 
 layout (location = 15)
-uniform bool is_light;
+uniform bool is_lit;
 
 in VS_OUT
 {
@@ -155,21 +155,24 @@ out vec4 color;
 
 void main()
 {
-	vec3 N = normalize(fs_in.N);
-	vec3 L = normalize(fs_in.L);
-	vec3 V = normalize(fs_in.V);
+	if (is_lit)
+	{
+		vec3 N = normalize(fs_in.N);
+		vec3 L = normalize(fs_in.L);
+		vec3 V = normalize(fs_in.V);
 
-	vec3 H = normalize(L + V);
+		vec3 H = normalize(L + V);
 
-	vec3 ambient = texture(u_diffuse, fs_in.uv).rgb * ambient_albedo;
-	vec3 diffuse = max(dot(N, L), 0.0) * texture(u_diffuse, fs_in.uv).rgb;
-	vec3 specular = pow(max(dot(N, H), 0.0), specular_power) * specular_albedo;
+		vec3 ambient = texture(u_diffuse, fs_in.uv).rgb * ambient_albedo;
+		vec3 diffuse = max(dot(N, L), 0.0) * texture(u_diffuse, fs_in.uv).rgb;
+		vec3 specular = pow(max(dot(N, H), 0.0), specular_power) * specular_albedo;
 
-	float bias = max(0.05 * (1.0 - dot(N, L)), 0.005);
-	float shadow = textureProj(u_shadow, fs_in.FragPosLightSpace);
-	
-	color = vec4(((diffuse + specular) * shadow), 1.0) + vec4(ambient, 1.0);
-	if (is_light) color = vec4(1.0);
+		float bias = max(0.05 * (1.0 - dot(N, L)), 0.005);
+		float shadow = textureProj(u_shadow, fs_in.FragPosLightSpace);
+		
+		color = vec4(((diffuse + specular) * shadow), 1.0) + vec4(ambient, 1.0);
+	}
+	else color = texture(u_diffuse, fs_in.uv);
 }
 )";
 
@@ -303,7 +306,6 @@ struct Application : public Program {
 	GLuint m_shadow_program;
 	GLuint m_phong_program;
 
-
 	GLuint m_ubo;
 	Material_Uniform* m_data;
 
@@ -317,16 +319,15 @@ struct Application : public Program {
 	glm::mat4 m_light_proj;
 	GLuint m_shadow_FBO;
 
-
-	GLuint m_tex_base, m_tex_normal, m_tex_shadow;
+	GLuint m_tex_base, m_tex_normal, m_tex_shadow, m_tex_spotlight;
 
 	SB::Camera m_camera;
 	bool m_input_mode = false;
 
-	Random m_random;
-
 	Mesh m_mesh[5];
 	glm::mat4 m_mesh_model[5];
+
+	bool m_spot_light = true;
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
@@ -342,19 +343,21 @@ struct Application : public Program {
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.1f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
-		//m_light_proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.01f, 70.5f);
-		m_light_proj = glm::perspective(1.0, 1.0 / 1.0, 1.0, 1000.0);
+		if (m_spot_light)
+			m_light_proj = glm::perspective(1.0, 1.0 / 1.0, 1.0, 1000.0);
+		else
+			m_light_proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.01f, 70.5f);
 		m_light_view = glm::lookAt(m_light_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		m_shadow_FBO = CreateShadowFrameBuffer();
 
 		m_mesh[0] = ImportMesh("./resources/rook2/rook.obj");
 		m_mesh[1] = ImportMesh("./resources/smooth_sphere.obj");
 		m_mesh[2] = ImportMesh("./resources/one_plane.glb");
-		m_mesh[3] = ImportMesh("./resources/sphere.obj");
+		m_mesh[3] = ImportMesh("./resources/spot_light/spotlight.obj");
 		m_mesh[4] = ImportMesh("./resources/one_plane.glb");
 		m_tex_base = Load_KTX("./resources/rook2/rook_base.ktx");
 		m_tex_normal = Load_KTX("./resources/rook2/rook_normal.ktx");
-		m_random.Init();
+		m_tex_spotlight = Load_KTX("./resources/spot_light/spotlight.ktx");
 
 		glGenBuffers(1, &m_ubo);
 		m_data = new Material_Uniform;
@@ -373,6 +376,11 @@ struct Application : public Program {
 			input.SetRawMouseMode(window.GetHandle(), m_input_mode);
 		}
 
+		if (m_spot_light)
+			m_light_proj = glm::perspective(1.0, 1.0 / 1.0, 1.0, 1000.0);
+		else
+			m_light_proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.01f, 70.5f);
+
 		//Rook
 		m_mesh_model[0] = glm::rotate(cos((float)m_time * 1.1f), glm::vec3(1.0, 1.0, 0.0)) * glm::scale(glm::vec3(2.0f));
 		//Sphere
@@ -380,7 +388,8 @@ struct Application : public Program {
 		//Plane
 		m_mesh_model[2] = glm::translate(glm::vec3(-5.0f)) * glm::rotate(90.0f, glm::vec3(0.5f, 0.5f, 0.0)) * glm::scale(glm::vec3(2.0f));
 		//Light
-		m_mesh_model[3] = glm::translate(m_light_pos) * glm::scale(glm::vec3(0.5f));
+		//m_mesh_model[3] = glm::translate(m_light_pos) * glm::mat4_cast(glm::rotation(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f))) * glm::scale(glm::vec3(0.25f));
+		m_mesh_model[3] = glm::inverse(glm::lookAt(m_light_pos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f))) * glm::scale(glm::vec3(0.25f));
 		//Floor Plane
 		m_mesh_model[4] = glm::translate(glm::vec3(0.0f, -3.0f, 0.0f)) * glm::scale(glm::vec3(3.0f));
 
@@ -433,13 +442,17 @@ struct Application : public Program {
 		glBindTextureUnit(0, m_tex_shadow);
 		glBindTextureUnit(1, m_tex_base);
 		//glBindTextureUnit(1, m_tex_normal);
-		glUniform1i(15, false);
+		glUniform1i(15, true); //IsLit
 		DrawMesh(m_mesh[0], m_mesh_model[0]);
 		DrawMesh(m_mesh[1], m_mesh_model[1]);
 		DrawMesh(m_mesh[2], m_mesh_model[2]);
 		DrawMesh(m_mesh[4], m_mesh_model[4]);
-		glUniform1i(15, true);
-		DrawMesh(m_mesh[3], m_mesh_model[3]);
+		if (m_spot_light)
+		{
+			glUniform1i(15, false);
+			glBindTextureUnit(1, m_tex_spotlight);
+			DrawMesh(m_mesh[3], m_mesh_model[3]);
+		}
 
 
 	}
@@ -453,7 +466,7 @@ struct Application : public Program {
 		ImGui::ColorEdit3("Specular Albedo", glm::value_ptr(m_specular_albedo));
 		ImGui::DragFloat("Specular Power", &m_specular_power, 0.1f);
 		ImGui::ColorEdit3("Ambient", glm::value_ptr(m_ambient));
-
+		ImGui::Checkbox("SpotLight", &m_spot_light);
 		ImGui::End();
 	}
 	GLuint CreateShadowFrameBuffer() {
