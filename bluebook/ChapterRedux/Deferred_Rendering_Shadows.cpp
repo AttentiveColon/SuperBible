@@ -123,7 +123,6 @@ in VS_OUT
 
 layout (binding = 0) uniform sampler2D u_diffuse_texture;
 layout (binding = 1) uniform sampler2D u_normal_texture;
-layout (binding = 2) uniform sampler2DShadow u_shadow_texture;
 
 layout (location = 5)
 uniform vec3 diffuse_albedo = vec3(1.0);
@@ -141,8 +140,7 @@ void main()
 	uvec4 outvec0 = uvec4(0);
 	vec4 outvec1 = vec4(0);
 
-	float shadow = textureProj(u_shadow_texture, fs_in.ls_coords);
-	vec3 color = texture(u_diffuse_texture, fs_in.uv).rgb * diffuse_albedo * shadow;
+	vec3 color = texture(u_diffuse_texture, fs_in.uv).rgb * diffuse_albedo;
 
 	outvec0.x = packHalf2x16(color.xy);
 	outvec0.y = packHalf2x16(vec2(color.z, nm.x));
@@ -184,6 +182,9 @@ layout (location = 0) out vec4 color_out;
 
 layout (binding = 0) uniform usampler2D gbuf_tex0;
 layout (binding = 1) uniform sampler2D gbuf_tex1;
+layout (binding = 2) uniform sampler2DShadow u_shadow_map0;
+layout (binding = 3) uniform sampler2DShadow u_shadow_map1;
+layout (binding = 4) uniform sampler2DShadow u_shadow_map2;
 
 
 layout (location = 11)
@@ -202,6 +203,12 @@ struct LightData
 layout (binding = 0) uniform LightUniform
 {
 	LightData light_data[3];
+};
+
+layout (binding = 1) uniform LightView
+{
+	mat4 light_view[3];
+	mat4 light_proj;
 };
 
 struct fragment_into_t
@@ -235,6 +242,11 @@ void unpackGBuffer(ivec2 coord, out fragment_into_t fragment)
 	fragment.specular_power = data1.w;
 }
 
+const mat4 bias = mat4(0.5, 0.0, 0.0, 0.0,
+					   0.0, 0.5, 0.0, 0.0,
+					   0.0, 0.0, 0.5, 0.0,
+					   0.5, 0.5, 0.5, 1.0);
+
 vec4 light_fragment(fragment_into_t fragment)
 {
 	vec3 diffuse_albedo = fragment.color;	
@@ -246,7 +258,7 @@ vec4 light_fragment(fragment_into_t fragment)
 	if (fragment.material_id != 0)
 	{
 		diffuse = vec3(0.0);
-		for (int i = 0; i < light_num; ++i)
+		for (int i = 0; i < 3; ++i)
 		{
 			float distance = length(light_data[i].light_pos - fragment.ws_coord);
 			vec3 attenuation = CalculateAttenuation(distance, light_data[i].light_intensity, light_data[i].light_color);
@@ -256,8 +268,14 @@ vec4 light_fragment(fragment_into_t fragment)
 			vec3 V = normalize(cam_pos - fragment.ws_coord);
 			vec3 R = reflect(-L, N);
 
-			diffuse += max(dot(N, L), 0.0) * diffuse_albedo * attenuation;
-			specular += pow(max(dot(V, R), 0.0), fragment.specular_power) * attenuation;
+			vec4 FragPosLightSpace = bias * light_proj * light_view[i] * vec4(fragment.ws_coord, 1.0);
+			float shadow = 1.0;
+			if (i == 0) shadow = textureProj(u_shadow_map0, FragPosLightSpace);
+			if (i == 1) shadow = textureProj(u_shadow_map1, FragPosLightSpace);
+			if (i == 2) shadow = textureProj(u_shadow_map2, FragPosLightSpace);
+			
+			diffuse += max(dot(N, L), 0.0) * diffuse_albedo * attenuation * shadow;
+			specular += pow(max(dot(V, R), 0.0), fragment.specular_power) * attenuation * shadow;
 		}
 		ambient += diffuse_albedo * vec3(0.05);
 	}
@@ -284,6 +302,11 @@ struct LightData {
 	float light_intensity;
 	glm::vec3 light_color;
 	float pad0;
+};
+
+struct LightView {
+	glm::mat4 light_view[3];
+	glm::mat4 light_proj;
 };
 
 struct Mesh {
@@ -420,14 +443,15 @@ struct Application : public Program {
 	GLuint m_light_ubo;
 	glm::mat4 m_light_view[3];
 	glm::mat4 m_light_proj;
+	GLuint m_light_view_ubo;
 
 	//Shadow 
 	GLuint m_depth_FBO[3];
 	GLuint m_shadow_tex[3];
+	GLuint m_shadow_tex_array;
 
-
-#define OBJ_ARRAY_SIZE 10
-#define OBJ_SCALING 0.1f
+#define SHADOW_WIDTH 2048
+#define SHADOW_HEIGHT 2048
 
 	Application()
 		:m_clear_color{ 0.1f, 0.1f, 0.1f, 1.0f },
@@ -471,6 +495,15 @@ struct Application : public Program {
 		glBufferStorage(GL_UNIFORM_BUFFER, sizeof(LightData) * 3, &ld, 0);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
+		glGenBuffers(1, &m_light_view_ubo);
+		glBindBuffer(GL_UNIFORM_BUFFER, m_light_view_ubo);
+		LightView lv = {
+			{m_light_view[0], m_light_view[1], m_light_view[2]},
+			m_light_proj
+		};
+		glBufferStorage(GL_UNIFORM_BUFFER, sizeof(LightView), &lv, 0);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 		CreateGBuffer();
 		CreateShadowFrameBuffers();
 		CreateWhiteTex();
@@ -488,6 +521,8 @@ struct Application : public Program {
 			m_input_mode = !m_input_mode;
 			input.SetRawMouseMode(window.GetHandle(), m_input_mode);
 		}
+
+		m_model[0] = glm::translate(glm::vec3(sin((float)m_time) * 0.2f, 0.0f, cos((float)m_time) * 0.2f)) * glm::translate(glm::vec3(0.0f, 0.0165f, 0.0f));
 		
 	}
 	void OnDraw() {
@@ -543,8 +578,6 @@ struct Application : public Program {
 
 	}
 	void CreateShadowFrameBuffers() {
-#define SHADOW_WIDTH 2048
-#define SHADOW_HEIGHT 2048
 		for (int i = 0; i < 3; ++i) {
 			glGenFramebuffers(1, &m_depth_FBO[i]);
 			
@@ -578,6 +611,7 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 
+		//Render basic scene for shadow maps
 		for (int i = 0; i < 3; ++i) {
 			glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 			glBindFramebuffer(GL_FRAMEBUFFER, m_depth_FBO[i]);
@@ -603,7 +637,6 @@ struct Application : public Program {
 		glClearBufferfv(GL_DEPTH, 0, float_ones);
 			//Render Scene without lighting
 			glUseProgram(m_deferred_input_program);
-			glBindTextureUnit(2, m_shadow_tex[0]);
 			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view)); //view
 			glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj)); //proj
 			glUniformMatrix4fv(8, 1, GL_FALSE, glm::value_ptr(m_light_view[0])); //lightview
@@ -636,11 +669,16 @@ struct Application : public Program {
 		glBindVertexArray(m_vao);
 		glBindTextureUnit(0, m_gbuffer_textures[0]);
 		glBindTextureUnit(1, m_gbuffer_textures[1]);
+		glBindTextureUnit(2, m_shadow_tex[0]);
+		glBindTextureUnit(3, m_shadow_tex[1]);
+		glBindTextureUnit(4, m_shadow_tex[2]);
 		glUniform3fv(11, 1, glm::value_ptr(m_camera.m_cam_position));
 		glUniform1i(12, 3);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_light_ubo);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_light_view_ubo);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
+		glUseProgram(0);
 	}
 };
 
