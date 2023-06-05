@@ -377,6 +377,8 @@ Mesh ImportMesh(const char* filename) {
 }
 
 
+//Shadow pass isn't writing into frame buffer, figure that out
+
 struct Application : public Program {
 	float m_clear_color[4];
 	u64 m_fps;
@@ -582,7 +584,7 @@ struct Application : public Program {
 		glViewport(0, 0, 1600, 900);
 		glDisable(GL_POLYGON_OFFSET_FILL);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_gbuffer);
-		//glDrawBuffers(2, draw_buffers);
+		glDrawBuffers(2, draw_buffers);
 		glClearBufferuiv(GL_COLOR, 0, uint_zeros);
 		glClearBufferuiv(GL_COLOR, 1, uint_zeros);
 		glClearBufferfv(GL_DEPTH, 0, float_ones);
