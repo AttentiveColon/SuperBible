@@ -63,6 +63,11 @@ uniform mat4 view;
 layout (location = 2)
 uniform mat4 proj;
 
+layout (location = 8)
+uniform mat4 light_view;
+layout (location = 9)
+uniform mat4 light_proj;
+
 layout (location = 15)
 uniform int material_id;
 
@@ -74,7 +79,13 @@ out VS_OUT
 	vec3 B;
 	vec2 uv;
 	flat uint material_id;
+	vec4 ls_coords;
 } vs_out;
+
+const mat4 bias = mat4(0.5, 0.0, 0.0, 0.0,
+					   0.0, 0.5, 0.0, 0.0,
+					   0.0, 0.0, 0.5, 0.0,
+					   0.5, 0.5, 0.5, 1.0);
 
 void main()
 {	
@@ -87,6 +98,7 @@ void main()
 	vs_out.B = bitangent;
 	vs_out.uv = uv;
 	vs_out.material_id = uint(material_id);
+	vs_out.ls_coords = bias * light_proj * light_view * P;
 
 	gl_Position = proj * view * P;
 }
@@ -106,6 +118,7 @@ in VS_OUT
 	vec3 B;
 	vec2 uv;
 	flat uint material_id;
+	vec4 ls_coords;
 } fs_in;
 
 layout (binding = 0) uniform sampler2D u_diffuse_texture;
@@ -128,8 +141,8 @@ void main()
 	uvec4 outvec0 = uvec4(0);
 	vec4 outvec1 = vec4(0);
 
-	float shadow = textureProj(u_shadow_texture, vec4(fs_in.ws_coords, 1.0));
-	vec3 color = texture(u_diffuse_texture, fs_in.uv).rgb * diffuse_albedo;
+	float shadow = textureProj(u_shadow_texture, fs_in.ls_coords);
+	vec3 color = texture(u_diffuse_texture, fs_in.uv).rgb * diffuse_albedo * shadow;
 
 	outvec0.x = packHalf2x16(color.xy);
 	outvec0.y = packHalf2x16(vec2(color.z, nm.x));
@@ -437,7 +450,7 @@ struct Application : public Program {
 		m_mesh_normal_tex[1] = Load_KTX("./resources/chessboard/chessboard_normal.ktx");
 		m_mesh_diffuse_tex[2] = Load_KTX("./resources/spot_light/spotlight.ktx");
 
-		m_light_proj = glm::perspective(1.0, 1.0 / 1.0, 1.0, 100.0);
+		m_light_proj = glm::perspective(1.0, 1.0 / 1.0, 0.1, 100.0);
 		m_light_view[0] = glm::lookAt(glm::vec3(0.0f, 0.5f, 0.5f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		m_light_view[1] = glm::lookAt(glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		m_light_view[2] = glm::lookAt(glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -593,6 +606,8 @@ struct Application : public Program {
 			glBindTextureUnit(2, m_shadow_tex[0]);
 			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view)); //view
 			glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj)); //proj
+			glUniformMatrix4fv(8, 1, GL_FALSE, glm::value_ptr(m_light_view[0])); //lightview
+			glUniformMatrix4fv(9, 1, GL_FALSE, glm::value_ptr(m_light_proj));	 //lightproj
 			glUniform3fv(5, 1, glm::value_ptr(glm::vec3(1.0f)));
 			glUniform1i(15, 1); //material id - zero for not lit
 				glBindTextureUnit(0, m_mesh_diffuse_tex[0]); //bind diffuse
