@@ -390,7 +390,7 @@ Mesh ImportMesh(const char* filename) {
 }
 
 
-//Shadow pass isn't writing into frame buffer, figure that out
+//Shadow depth pass now works, need to pass the shadow factor to the lighting calculation stage
 
 struct Application : public Program {
 	float m_clear_color[4];
