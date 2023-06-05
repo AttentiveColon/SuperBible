@@ -8,6 +8,40 @@
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
 
+static const GLchar* shadow_map_vertex_shader_source = R"(
+#version 450 core
+
+layout (location = 0)
+in vec3 position;
+
+layout (location = 0)
+uniform mat4 u_model;
+layout (location = 1)
+uniform mat4 u_view;
+layout (location = 2)
+uniform mat4 u_proj;
+
+void main()
+{
+	gl_Position = u_proj * u_view * u_model * vec4(position, 1.0);
+}
+)";
+
+static const GLchar* shadow_map_fragment_shader_source = R"(
+#version 450 core
+
+void main()
+{
+
+}
+)";
+
+static ShaderText shadow_map_shader_text[] = {
+	{GL_VERTEX_SHADER, shadow_map_vertex_shader_source, NULL},
+	{GL_FRAGMENT_SHADER, shadow_map_fragment_shader_source, NULL},
+	{GL_NONE, NULL, NULL}
+};
+
 static const GLchar* deferred_input_vertex_shader_source = R"(
 #version 450 core
 
@@ -76,6 +110,7 @@ in VS_OUT
 
 layout (binding = 0) uniform sampler2D u_diffuse_texture;
 layout (binding = 1) uniform sampler2D u_normal_texture;
+layout (binding = 2) uniform sampler2DShadow u_shadow_texture;
 
 layout (location = 5)
 uniform vec3 diffuse_albedo = vec3(1.0);
@@ -93,6 +128,7 @@ void main()
 	uvec4 outvec0 = uvec4(0);
 	vec4 outvec1 = vec4(0);
 
+	float shadow = textureProj(u_shadow_texture, vec4(fs_in.ws_coords, 1.0));
 	vec3 color = texture(u_diffuse_texture, fs_in.uv).rgb * diffuse_albedo;
 
 	outvec0.x = packHalf2x16(color.xy);
@@ -358,7 +394,7 @@ struct Application : public Program {
 
 	//Geometry buffer data
 	GLuint m_vao;
-	GLuint m_deferred_input_program, m_deferred_lighting_program;
+	GLuint m_deferred_input_program, m_deferred_lighting_program, m_shadowmap_program;
 	GLuint m_gbuffer;
 	GLuint m_gbuffer_textures[3];
 
@@ -367,6 +403,12 @@ struct Application : public Program {
 
 	//Light Buffer
 	GLuint m_light_ubo;
+	glm::mat4 m_light_view[3];
+	glm::mat4 m_light_proj;
+
+	//Shadow 
+	GLuint m_depth_FBO[3];
+	GLuint m_shadow_tex[3];
 
 
 #define OBJ_ARRAY_SIZE 10
@@ -381,6 +423,7 @@ struct Application : public Program {
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		m_deferred_input_program = LoadShaders(deferred_input_shader_text);
 		m_deferred_lighting_program = LoadShaders(deferred_lighting_shader_text);
+		m_shadowmap_program = LoadShaders(shadow_map_shader_text);
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 0.2f, -0.5f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 		m_mesh[0] = ImportMesh("./resources/rook2/rook.obj");
 		m_mesh[1] = ImportMesh("./resources/chessboard/chessboard.obj");
@@ -392,11 +435,16 @@ struct Application : public Program {
 		m_mesh_normal_tex[1] = Load_KTX("./resources/chessboard/chessboard_normal.ktx");
 		m_mesh_diffuse_tex[2] = Load_KTX("./resources/spot_light/spotlight.ktx");
 
+		m_light_proj = glm::perspective(1.0, 1.0 / 1.0, 1.0, 100.0);
+		m_light_view[0] = glm::lookAt(glm::vec3(0.0f, 0.5f, 0.5f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m_light_view[1] = glm::lookAt(glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m_light_view[2] = glm::lookAt(glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
 		m_model[0] = glm::translate(glm::vec3(0.0f, 0.0165f, 0.0f));
 		m_model[1] = glm::mat4(1.0f);
-		m_model[2] = glm::inverse(glm::lookAt(glm::vec3(0.0f, 0.5f, 0.5f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f))) * glm::scale(glm::vec3(0.02f));
-		m_model[3] = glm::inverse(glm::lookAt(glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f))) * glm::scale(glm::vec3(0.02f));
-		m_model[4] = glm::inverse(glm::lookAt(glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f))) * glm::scale(glm::vec3(0.02f));
+		m_model[2] = glm::inverse(m_light_view[0]) * glm::scale(glm::vec3(0.02f));
+		m_model[3] = glm::inverse(m_light_view[1]) * glm::scale(glm::vec3(0.02f));
+		m_model[4] = glm::inverse(m_light_view[2]) * glm::scale(glm::vec3(0.02f));
 
 		glGenBuffers(1, &m_light_ubo);
 		glBindBuffer(GL_UNIFORM_BUFFER, m_light_ubo);
@@ -408,9 +456,8 @@ struct Application : public Program {
 		glBufferStorage(GL_UNIFORM_BUFFER, sizeof(LightData) * 3, &ld, 0);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-		glEnable(GL_DEPTH_TEST);
-
 		CreateGBuffer();
+		CreateShadowFrameBuffers();
 		CreateWhiteTex();
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
@@ -480,22 +527,68 @@ struct Application : public Program {
 		glBindVertexArray(m_vao);
 
 	}
+	void CreateShadowFrameBuffers() {
+#define SHADOW_WIDTH 2048
+#define SHADOW_HEIGHT 2048
+		for (int i = 0; i < 3; ++i) {
+			glGenFramebuffers(1, &m_depth_FBO[i]);
+			
+			glGenTextures(1, &m_shadow_tex[i]);
+			glBindTexture(GL_TEXTURE_2D, m_shadow_tex[i]);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+				SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+			float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+			glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+
+			glBindFramebuffer(GL_FRAMEBUFFER, m_depth_FBO[i]);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_shadow_tex[i], 0);
+			glDrawBuffer(GL_NONE);
+			glReadBuffer(GL_NONE);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			
+		}
+	}
 	void DeferredRender() {
 		float time = float(m_time) * 0.5f;
 		static const GLuint uint_zeros[] = { 0, 0, 0, 0 };
 		static const GLfloat float_zeros[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		static const GLfloat float_ones[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		static const GLenum draw_buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
 
+		for (int i = 0; i < 3; ++i) {
+			glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+			glBindFramebuffer(GL_FRAMEBUFFER, m_depth_FBO[i]);
+			glClear(GL_DEPTH_BUFFER_BIT);
+			glEnable(GL_POLYGON_OFFSET_FILL);
+			glPolygonOffset(4.0f, 4.0f);
+				glUseProgram(m_shadowmap_program);
+				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_light_view[i]));
+				glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_light_proj));
+				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_model[0]));
+					DrawMesh(m_mesh[0]);
+				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_model[1]));
+					DrawMesh(m_mesh[1]);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+
+		glViewport(0, 0, 1600, 900);
+		glDisable(GL_POLYGON_OFFSET_FILL);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_gbuffer);
-		glDrawBuffers(2, draw_buffers);
+		//glDrawBuffers(2, draw_buffers);
 		glClearBufferuiv(GL_COLOR, 0, uint_zeros);
 		glClearBufferuiv(GL_COLOR, 1, uint_zeros);
 		glClearBufferfv(GL_DEPTH, 0, float_ones);
 			//Render Scene without lighting
-			glEnable(GL_DEPTH_TEST);
-			glDepthFunc(GL_LEQUAL);
 			glUseProgram(m_deferred_input_program);
+			glBindTextureUnit(2, m_shadow_tex[0]);
 			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_camera.m_view)); //view
 			glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_camera.m_proj)); //proj
 			glUniform3fv(5, 1, glm::value_ptr(glm::vec3(1.0f)));
