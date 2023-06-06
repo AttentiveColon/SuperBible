@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define CUBE_MAP_REDUX
+#define SKYBOX
 
 
 //TODO: 

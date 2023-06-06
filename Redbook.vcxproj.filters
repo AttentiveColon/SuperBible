@@ -384,7 +384,7 @@
     <ClCompile Include="bluebook\ChapterRedux\Deferred_Rendering_Shadows.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bluebook\ChapterRedux\Cube_Maps_Redux.cpp">
+    <ClCompile Include="bluebook\ChapterRedux\Skybox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
