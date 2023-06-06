@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define DEFERRED_RENDERING_SHADOWS
+#define CUBE_MAP_REDUX
 
 
 //TODO: 
