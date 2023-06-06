@@ -148,7 +148,7 @@ void main()
 	outvec0.w = fs_in.material_id;
 
 	outvec1.xyz = fs_in.ws_coords;
-	outvec1.w = 40.0;
+	outvec1.w = 200.0;
 
 	color0 = outvec0;
 	color1 = outvec1;
@@ -488,7 +488,7 @@ struct Application : public Program {
 		glGenBuffers(1, &m_light_ubo);
 		glBindBuffer(GL_UNIFORM_BUFFER, m_light_ubo);
 		LightData ld[3] = {
-							{glm::vec3(0.0f, 0.5f, 0.5f), 1.0f, glm::vec3(1.0f), 0.0f},
+							{glm::vec3(0.0f, 0.5f, 0.5f), 1.0f, glm::vec3(0.0f, 1.0f, 0.0f), 0.0f},
 							{glm::vec3(-0.5f, 0.5f, 0.0f), 1.0f, glm::vec3(1.0f, 0.0f, 0.0f), 0.0f},
 							{glm::vec3(0.5f, 0.5f, 0.0f), 1.0f, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f}
 		};
@@ -523,6 +523,8 @@ struct Application : public Program {
 		}
 
 		m_model[0] = glm::translate(glm::vec3(sin((float)m_time) * 0.2f, 0.0f, cos((float)m_time) * 0.2f)) * glm::translate(glm::vec3(0.0f, 0.0165f, 0.0f));
+
+
 		
 	}
 	void OnDraw() {
@@ -611,6 +613,11 @@ struct Application : public Program {
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 
+		glm::mat4 rook_position[4];
+		rook_position[0] = glm::translate(glm::vec3(sin((float)m_time) * 0.2f, 0.0f, cos((float)m_time) * 0.2f)) * glm::translate(glm::vec3(0.0f, 0.0165f, 0.0f));
+		rook_position[1] = glm::translate(glm::vec3(sin((float)m_time + 3.14f) * 0.2f, 0.0f, cos((float)m_time + 3.14f) * 0.2f)) * glm::translate(glm::vec3(0.0f, 0.0165f, 0.0f));
+		rook_position[2] = glm::translate(glm::vec3(sin((float)m_time + 1.57f) * 0.05f, 0.0f, cos((float)m_time + 1.57f) * 0.08f)) * glm::translate(glm::vec3(0.0f, 0.0165f, 0.0f));
+
 		//Render basic scene for shadow maps
 		for (int i = 0; i < 3; ++i) {
 			glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
@@ -621,7 +628,11 @@ struct Application : public Program {
 				glUseProgram(m_shadowmap_program);
 				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_light_view[i]));
 				glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(m_light_proj));
-				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_model[0]));
+				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(rook_position[0]));
+					DrawMesh(m_mesh[0]);
+				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(rook_position[1]));
+					DrawMesh(m_mesh[0]);
+				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(rook_position[2]));
 					DrawMesh(m_mesh[0]);
 				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_model[1]));
 					DrawMesh(m_mesh[1]);
@@ -645,7 +656,11 @@ struct Application : public Program {
 			glUniform1i(15, 1); //material id - zero for not lit
 				glBindTextureUnit(0, m_mesh_diffuse_tex[0]); //bind diffuse
 				glBindTextureUnit(1, m_mesh_normal_tex[0]); //bind normal
-				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_model[0])); //model
+				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(rook_position[0])); //model
+					DrawMesh(m_mesh[0]);
+				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(rook_position[1]));
+					DrawMesh(m_mesh[0]);
+				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(rook_position[2]));
 					DrawMesh(m_mesh[0]);
 				glBindTextureUnit(0, m_mesh_diffuse_tex[1]);
 				glBindTextureUnit(1, m_mesh_normal_tex[1]);
@@ -654,6 +669,7 @@ struct Application : public Program {
 			glUniform1i(15, 0);
 				glBindTextureUnit(0, m_mesh_diffuse_tex[2]);
 				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_model[2]));
+				glUniform3fv(5, 1, glm::value_ptr(glm::vec3(0.0f, 1.0f, 0.0f)));
 					DrawMesh(m_mesh[2]);
 				glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_model[3]));
 				glUniform3fv(5, 1, glm::value_ptr(glm::vec3(1.0f, 0.0f, 0.0f)));
