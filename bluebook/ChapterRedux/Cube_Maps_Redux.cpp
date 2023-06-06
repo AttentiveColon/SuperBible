@@ -27,9 +27,7 @@ uniform vec3 u_scale;
 
 void main(void)
 {
-
     vs_out.tc = position;
-
     gl_Position = u_proj * u_view * vec4((position * u_scale) + u_eye, 1.0);
 }
 
