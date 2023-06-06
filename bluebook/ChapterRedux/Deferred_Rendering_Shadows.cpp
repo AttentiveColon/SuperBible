@@ -412,9 +412,6 @@ Mesh ImportMesh(const char* filename) {
 	return result;
 }
 
-
-//Shadow depth pass now works, need to pass the shadow factor to the lighting calculation stage
-
 struct Application : public Program {
 	float m_clear_color[4];
 	u64 m_fps;

@@ -21,8 +21,9 @@
 
 //TODO: 
 
+//Revisit Enviroment mapping examples
+
 //Double check, but I can probably remove the entire original rook folder and files
 //Remove all unused resource files
 
-
-//FINAL: do a final deferred shader that includes blinn-phong, shadows, enviroment mapping and normal mapping
+//Do final check to make sure all projects run, clean everything up and get gifs for repo before completing and posting
