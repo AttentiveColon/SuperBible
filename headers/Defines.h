@@ -16,8 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define DEFERRED_RENDERING_SHADOWS
-
+#define UNIFORM_BUFFER
 
 //TODO: 
 
@@ -25,3 +24,8 @@
 //Remove all unused resource files
 
 //Do final check to make sure all projects run, clean everything up and get gifs for repo before completing and posting
+
+//Chapter2 - GOOD
+//Chapter3 - GOOD
+//Chapter4 - GOOD
+//Chapter5 - 

@@ -12,10 +12,13 @@ layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 uv;
 
+layout (location = 0) uniform mat4 u_viewproj;
 layout (location = 3) uniform mat4 u_model;
-layout (location = 4) uniform mat4 u_viewproj;
+layout (location = 4) uniform mat3 u_normal_matrix;
 layout (location = 5) uniform float u_time;
 layout (location = 6) uniform vec2 u_resolution;
+
+layout (location = 8) uniform float u_blend;
 
 out vec4 vs_normal;
 out vec2 vs_uv;
@@ -79,11 +82,6 @@ struct Application : public Program {
 		m_cam_rotation(0.0f)
 	{}
 
-	//TODO: Pack uniforms and vertex data into blocks
-
-	//TODO: Look into and try to limit excessive loading on startup
-	// (might have to create script to create custom model format)
-
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
 		//audio.PlayOneShot("./resources/startup.mp3");
@@ -124,7 +122,7 @@ struct Application : public Program {
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(m_program);
-		glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(m_viewproj));
+		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(m_viewproj));
 		glUniform1f(5, (float)m_time);
 		glUniform2i(6, 1600, 900);
 		m_model.OnDraw();

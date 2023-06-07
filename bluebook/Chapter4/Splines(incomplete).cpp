@@ -270,7 +270,7 @@ struct Application : public Program {
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
-		audio.PlayOneShot("./resources/startup.mp3");
+
 		glGenVertexArrays(1, &VAO);
 		glGenBuffers(1, &VBO);
 		glEnable(GL_LINE_SMOOTH);

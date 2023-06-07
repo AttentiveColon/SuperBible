@@ -82,7 +82,7 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
-		audio.PlayOneShot("./resources/startup.mp3");
+
 		m_program = LoadShaders(shader_text);
 		m_texture = Load_KTX("./resources/face1.ktx");
 		m_mesh.Load_OBJ("./resources/cube.obj");

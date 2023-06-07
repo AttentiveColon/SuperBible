@@ -103,7 +103,7 @@ struct Application : public Program {
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
-		audio.PlayOneShot("./resources/startup.mp3");
+
 		m_program = LoadShaders(shader_text);
 		m_program2 = LoadShaders(shader_text2);
 		glGenVertexArrays(1, &m_vao);

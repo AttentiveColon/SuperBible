@@ -61,7 +61,7 @@ struct Application : public Program {
 	}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
-		audio.PlayOneShot("./resources/startup.mp3");
+
 		m_program = LoadShaders(shader_text);
 		glCreateVertexArrays(1, &m_vertex_array_object);
 		glBindVertexArray(m_vertex_array_object);

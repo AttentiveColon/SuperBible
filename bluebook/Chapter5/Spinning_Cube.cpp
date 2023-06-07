@@ -73,7 +73,7 @@ struct Application : public Program {
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
-		audio.PlayOneShot("./resources/startup.mp3");
+
 		glEnable(GL_DEPTH_TEST);
 
 		m_program = LoadShaders(shader_text);

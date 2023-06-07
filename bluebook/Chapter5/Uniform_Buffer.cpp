@@ -100,7 +100,6 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		input.SetRawMouseMode(window.GetHandle(), true);
-		audio.PlayOneShot("./resources/startup.mp3");
 		glEnable(GL_DEPTH_TEST);
 
 		m_program = LoadShaders(shader_text);
