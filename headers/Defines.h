@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define SKYBOX
+#define ENVIROMENT_MAPPING_REDUX
 
 
 //TODO: 

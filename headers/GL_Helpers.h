@@ -59,6 +59,12 @@ struct WindowXY {
     i32 height;
 };
 
+struct Mesh
+{
+    GLuint vao;
+    size_t count;
+};
+
 GLuint LoadShaders(ShaderText*);
 GLuint LoadShaders(ShaderFiles*);
 size_t GetGLTypeSize(GLenum type);
@@ -68,3 +74,5 @@ void Debug_Callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsi
 
 void GetShaderCompilationStatus(GLuint shader);
 void GetProgramLinkedStatus(GLuint program);
+
+Mesh ImportMesh(const char*);
