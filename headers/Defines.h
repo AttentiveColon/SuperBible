@@ -25,7 +25,8 @@
 
 //Do final check to make sure all projects run, clean everything up and get gifs for repo before completing and posting
 
-//Chapter2 - GOOD
-//Chapter3 - GOOD
-//Chapter4 - GOOD
-//Chapter5 - 
+//			 Runs   Cleaned up  
+//Chapter2 - GOOD -
+//Chapter3 - GOOD -
+//Chapter4 - GOOD - 
+//Chapter5 - GOOD -
