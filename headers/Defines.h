@@ -21,8 +21,6 @@
 
 //TODO: 
 
-//Revisit Enviroment mapping examples
-
 //Double check, but I can probably remove the entire original rook folder and files
 //Remove all unused resource files
 
