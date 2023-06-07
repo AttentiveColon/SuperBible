@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define ENVIROMENT_MAPPING_REDUX
+#define DEFERRED_RENDERING_SHADOWS
 
 
 //TODO: 

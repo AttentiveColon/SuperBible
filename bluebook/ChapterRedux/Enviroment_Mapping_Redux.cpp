@@ -4,6 +4,12 @@
 #include "Texture.h"
 #include "Model.h"
 #include "Mesh.h"
+#include "assimp/Importer.hpp"
+#include "assimp/scene.h"
+#include "assimp/postprocess.h"
+
+struct Mesh;
+Mesh ImportMesh(const char*);
 
 static const GLchar* skybox_vertex_shader_source = R"(
 #version 450 core
@@ -145,6 +151,12 @@ static ShaderText shader_text[] = {
 	{GL_NONE, NULL, NULL}
 };
 
+struct Mesh
+{
+	GLuint vao;
+	size_t count;
+};
+
 static void Draw(const Mesh& mesh) {
 	glBindVertexArray(mesh.vao);
 	glDrawElements(GL_TRIANGLES, mesh.count, GL_UNSIGNED_INT, (void*)0);
@@ -251,4 +263,100 @@ SystemConf config = {
 };
 
 MAIN(config)
+
+
+
+Mesh ImportMesh(const char* filename) {
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_FlipUVs);
+
+	if (nullptr == scene) {
+		const char* error = importer.GetErrorString();
+		printf(error);
+		//assert(false);
+		Mesh mesh = { 0, 0 };
+		return mesh;
+	}
+
+	aiMesh* mesh = scene->mMeshes[0];
+	aiVector3t<float>* vertices = mesh->mVertices;
+	aiVector3t<float>* normals = mesh->mNormals;
+	aiVector3t<float>* tangents = mesh->mTangents;
+	aiVector3t<float>* bitangents = mesh->mBitangents;
+	aiVector3t<float>* texcoords = mesh->mTextureCoords[0];
+
+	vector<float> vertex_data;
+	for (int i = 0; i < mesh->mNumVertices; ++i) {
+		vertex_data.push_back(vertices[i].x);
+		vertex_data.push_back(vertices[i].y);
+		vertex_data.push_back(vertices[i].z);
+		vertex_data.push_back(normals[i].x);
+		vertex_data.push_back(normals[i].y);
+		vertex_data.push_back(normals[i].z);
+		vertex_data.push_back(tangents[i].x);
+		vertex_data.push_back(tangents[i].y);
+		vertex_data.push_back(tangents[i].z);
+		vertex_data.push_back(bitangents[i].x);
+		vertex_data.push_back(bitangents[i].y);
+		vertex_data.push_back(bitangents[i].z);
+		vertex_data.push_back(texcoords[i].x);
+		vertex_data.push_back(texcoords[i].y);
+	}
+
+	aiFace* faces = mesh->mFaces;
+
+	vector<unsigned int> index_data;
+	for (int i = 0; i < mesh->mNumFaces; ++i) {
+		index_data.push_back(faces[i].mIndices[0]);
+		index_data.push_back(faces[i].mIndices[1]);
+		index_data.push_back(faces[i].mIndices[2]);
+	}
+
+	GLuint vao, vertex_buffer, index_buffer;
+	glCreateVertexArrays(1, &vao);
+
+	glCreateBuffers(1, &vertex_buffer);
+	glNamedBufferStorage(vertex_buffer, vertex_data.size() * sizeof(float), &vertex_data[0], 0);
+
+	glCreateBuffers(1, &index_buffer);
+	glNamedBufferStorage(index_buffer, index_data.size() * sizeof(unsigned int), &index_data[0], 0);
+
+	//Position Vec3
+	glVertexArrayAttribBinding(vao, 0, 0);
+	glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+	glEnableVertexArrayAttrib(vao, 0);
+
+	//Normal Vec3
+	glVertexArrayAttribBinding(vao, 1, 0);
+	glVertexArrayAttribFormat(vao, 1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3);
+	glEnableVertexArrayAttrib(vao, 1);
+
+	//Tangent Vec3
+	glVertexArrayAttribBinding(vao, 2, 0);
+	glVertexArrayAttribFormat(vao, 2, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6);
+	glEnableVertexArrayAttrib(vao, 2);
+
+	//Bitangent Vec3
+	glVertexArrayAttribBinding(vao, 3, 0);
+	glVertexArrayAttribFormat(vao, 3, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 9);
+	glEnableVertexArrayAttrib(vao, 3);
+
+	//TexCoords Vec2
+	glVertexArrayAttribBinding(vao, 4, 0);
+	glVertexArrayAttribFormat(vao, 4, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 12);
+	glEnableVertexArrayAttrib(vao, 4);
+
+	glVertexArrayVertexBuffer(vao, 0, vertex_buffer, 0, sizeof(float) * 14);
+	glVertexArrayElementBuffer(vao, index_buffer);
+
+	glBindVertexArray(0);
+
+	Mesh result;
+	result.vao = vao;
+	result.count = index_data.size();
+	return result;
+}
+
 #endif //ENVIROMENT_MAPPING_REDUX
+
+
