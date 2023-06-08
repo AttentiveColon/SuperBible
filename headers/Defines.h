@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define SHADOW_PROJ
+#define BITMAP_FONTS
 
 //TODO: 
 
@@ -35,7 +35,7 @@
 //Chapter8  - GOOD - YES  - Yes
 //Chapter9  - GOOD - YES  - Yes
 //Chapter10 - GOOD - YES  - Yes
-//Chapter11 - OKAY - Yes  - Yes ->SPARES_TEXTURES crashes when closing
+//Chapter11 - GOOD - Yes  - Yes
 //Chapter12 - GOOD - YES  - Yes
 
 //Chapter13 - FIX  - YES  - YES

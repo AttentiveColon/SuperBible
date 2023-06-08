@@ -53,8 +53,8 @@ struct Text
 	int buffer_width, buffer_height;
 	char* screen_buffer;
 	bool dirty;
-	int cursor_x;
-	int cursor_y;
+	int cursor_x = 0;
+	int cursor_y = 0;
 	void Init(int width, int height, const char* font)
 	{
 		buffer_width = width;
@@ -160,7 +160,7 @@ struct Application : public Program {
 		static const char string[] = "The quick brown fox jumped over the lazy dog.";
 
 		//Initialize text struct
-		m_text.Init(12, 64, "./resources/cp437_9x16.ktx");
+		m_text.Init(32, 64, "./resources/cp437_9x16.ktx");
 
 		//Draw to text buffer
 		m_text.Print(string);
