@@ -214,7 +214,6 @@ struct Application : public Program {
 		glBindVertexArray(m_vao);
 		glUniformMatrix4fv(12, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
 		glUniform1f(13, m_explosion_factor);
-		//glDrawElements(GL_TRIANGLES, sizeof(buffer_indices) / sizeof(buffer_indices[0]), GL_UNSIGNED_INT, NULL);
 
 		m_mesh.OnDraw();
 	}

@@ -84,7 +84,7 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
-		//audio.PlayOneShot("./resources/startup.mp3");
+
 		m_program = LoadShaders(shader_text);
 		m_model = SB::Model("./resources/ABeautifulGame.glb");
 

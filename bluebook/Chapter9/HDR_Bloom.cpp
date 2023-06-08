@@ -429,7 +429,7 @@ struct Application : public Program {
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-        //from here
+        
 
         glUseProgram(m_program_resolve);
 

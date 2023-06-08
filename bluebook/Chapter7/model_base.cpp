@@ -269,14 +269,12 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
-		//audio.PlayOneShot("./resources/startup.mp3");
+
 		m_program = LoadShaders(shader_text);
 		m_light_program = LoadShaders(light_shader_text);
 		m_light_model = SB::Model("./resources/sphere_light.glb");
-		//m_model = SB::Model("./resources/ABeautifulGame.glb");
-		//m_model = SB::Model("./resources/sponza.glb");
-		m_model = SB::Model("../gltf_examples/2.0/sponza/glTF/Sponza.gltf");
-		//m_model = SB::Model("./resources/alpha_test.glb");
+		m_model = SB::Model("./resources/ABeautifulGame.glb");
+
 
 		if (m_model.m_camera.m_cameras.size()) {
 			m_camera = m_model.m_camera.GetCamera(0);

@@ -187,7 +187,7 @@ struct Application : public Program {
 		//SB::ModelDump model = SB::ModelDump("./resources/grass.glb");
 		m_camera = SB::Camera(std::string("Camera"), glm::vec3(-5.0f, 2.0f, 0.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
 
-		//m_grass_control_texture = Load_KTX("./resources/instance_texture.ktx");
+		
 		m_grass_control_texture = Load_KTX("./resources/face1.ktx");
 
 		//Create VAO, Describe and bind all related vertex and index buffers

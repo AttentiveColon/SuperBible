@@ -198,14 +198,6 @@ struct Application : public Program {
 				initial_positions[n] = glm::vec4(
 					fi - 0.5, fj - 0.1, 0.6f * glm::sin(fi) * glm::cos(fj), 1.0f
 				);
-				/*initial_positions[n] = glm::vec4(
-					(fi - 0.5f) * (float)POINTS_X,
-					(fj - 0.5f) * (float)POINTS_Y,
-					0.6f * glm::sin(fi) * glm::cos(fj),
-					1.0f
-				);*/
-
-				//std::cout << initial_positions[n].x << " " << initial_positions[n].y << " " << initial_positions[n].z << std::endl;
 
 
 				if (j < POINTS_Y / 2) {
@@ -290,9 +282,7 @@ struct Application : public Program {
 
 	}
 	void OnDraw() {
-		
 
-		//glUniform1f(3, (float)m_time);
 
 		glUseProgram(m_update_program);
 		glEnable(GL_RASTERIZER_DISCARD);

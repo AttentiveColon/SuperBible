@@ -228,7 +228,7 @@ struct Application : public Program {
 
 
 		m_program = LoadShaders(shader_text);
-		//SB::ModelDump model = SB::ModelDump("./resources/indirect_render_model.glb");
+
 		m_camera = SB::Camera(std::string("Camera"), glm::vec3(0.0f, 2.0f, 5.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 10000.0);
 
 
@@ -341,13 +341,6 @@ struct Application : public Program {
 		glVertexAttribDivisor(10, 1);
 		glEnableVertexAttribArray(10);
 
-		//glVertexArrayAttribBinding(m_vao, 10, 0);
-		//glVertexArrayBindingDivisor(m_vao, 10, 1);
-		//glEnableVertexArrayAttrib(m_vao, 10);
-
-		////bind the draw_id buffer
-		//glVertexArrayVertexBuffer(m_vao, 0, m_draw_index_buffer, 0, sizeof(GLuint));
-
 
 		//Unbind buffers
 		glBindVertexArray(0);
@@ -384,25 +377,6 @@ struct Application : public Program {
 
 		glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, NULL, NUM_DRAWS, 0);
 
-		////draw square
-		//if (time % 4 == 0) glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(sizeof(GLuint) * 0), 0);
-		////draw triangle
-		//else if (time % 4 == 1) glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (void*)(sizeof(GLuint) * 6), 4);
-		////draw diamond
-		//else if (time % 4 == 2) glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(sizeof(GLuint) * 9), 7);
-		////draw trapezoid
-		////else glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(sizeof(GLuint) * 15), 11);
-
-		////glMultiDrawElementsIndirect()
-		//else glDrawElementsInstancedBaseVertexBaseInstance(
-		//	GL_TRIANGLES, 
-		//	6,									//count
-		//	GL_UNSIGNED_INT, 
-		//	(void*)(sizeof(GLuint) * 15),		//firstIndex * sizeoftype
-		//	1,									//instanceCount
-		//	11,									//baseVertex
-		//	0									//baseInstance
-		//);
 	}
 	void OnGui() {
 		ImGui::Begin("User Defined Settings");

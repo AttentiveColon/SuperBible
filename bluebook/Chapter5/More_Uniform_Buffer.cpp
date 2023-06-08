@@ -126,7 +126,7 @@ struct Application : public Program {
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
-		//audio.PlayOneShot("./resources/startup.mp3");
+
 		m_program = LoadShaders(shader_text);
 		m_vao = GenerateQuad();
 
@@ -143,7 +143,6 @@ struct Application : public Program {
 
 		m_texture = CreateTextureArray(filenames, 3);
 
-		//m_texture = Load_KTX("./resources/texture_array_2d/green.ktx");
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();

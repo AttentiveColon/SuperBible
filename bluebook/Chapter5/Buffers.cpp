@@ -160,18 +160,8 @@ struct Application : public Program {
 	{}
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
-		audio.PlayOneShot("./resources/startup.mp3");
-		
 
 		m_triangle.OnInit();
-
-		//mapping data to buffer example
-
-		/*glCreateBuffers(1, &m_buffer);
-		glNamedBufferStorage(m_buffer, sizeof(data), NULL, GL_MAP_WRITE_BIT);
-		void* ptr = glMapNamedBufferRange(m_buffer, 0, sizeof(data), GL_MAP_WRITE_BIT);
-		memcpy(ptr, data, sizeof(1));
-		glUnmapNamedBuffer(m_buffer);*/
 
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {

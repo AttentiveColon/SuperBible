@@ -255,7 +255,7 @@
     <ClCompile Include="bluebook\Chapter9\Rotating_Points.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bluebook\Chapter10\Compute_Shader_Input_Outputs.cpp">
+    <ClCompile Include="bluebook\Chapter10\Compute_Shader_Inputs_Outputs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bluebook\Chapter10\Compute_Shader_Memory_Barrier.cpp">

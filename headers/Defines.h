@@ -26,13 +26,16 @@
 //Do final check to make sure all projects run, clean everything up and get gifs for repo before completing and posting
 
 //			 Runs   Gifs   Cleaned up  
-//Chapter2  - GOOD - Yes  - NOT YET
-//Chapter3  - GOOD - Yes  - NOT YET
-//Chapter4  - GOOD - Yes  - NOT YET
-//Chapter5  - GOOD - Yes  - NOT YET
-//Chapter6  - GOOD - Yes  - NOT YET
-//Chapter7  - GOOD - YES  - NOT YET
-//Chapter8  - GOOD - YES  - NOT YET
-//Chapter9  - GOOD - YES  - NOT YET
-//Chapter10 - GOOD - YES  - NOT YET
+//Chapter2  - GOOD - Yes  - Yes
+//Chapter3  - GOOD - Yes  - Yes
+//Chapter4  - GOOD - Yes  - Yes
+//Chapter5  - GOOD - Yes  - Yes
+//Chapter6  - GOOD - Yes  - Yes
+//Chapter7  - GOOD - YES  - Yes
+//Chapter8  - GOOD - YES  - Yes
+//Chapter9  - GOOD - YES  - Yes
+//Chapter10 - GOOD - YES  - Yes
 //Chapter11 - 
+
+
+//MiscFiles - N/A  - N/A  - Yes

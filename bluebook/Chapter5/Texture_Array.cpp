@@ -105,14 +105,6 @@ struct Application : public Program {
 		m_program = LoadShaders(shader_text);
 		m_vao = GenerateQuad();
 
-		/*const char* filenames[] = {
-			"./resources/texture_array_2d/red.ktx",
-			"./resources/texture_array_2d/blue.ktx",
-			"./resources/texture_array_2d/green.ktx",
-			"./resources/texture_array_2d/yellow.ktx",
-			"./resources/texture_array_2d/purple.ktx"
-		};*/
-
 		const char* filenames[] = {
 			"./resources/texture_array_2d/test_grid.ktx",
 			"./resources/texture_array_2d/test_grid2.ktx",
@@ -121,7 +113,6 @@ struct Application : public Program {
 
 		m_texture = CreateTextureArray(filenames, 3);
 
-		//m_texture = Load_KTX("./resources/texture_array_2d/green.ktx");
 	}
 	void OnUpdate(Input& input, Audio& audio, Window& window, f64 dt) {
 		m_fps = window.GetFPS();
