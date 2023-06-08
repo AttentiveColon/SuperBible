@@ -74,6 +74,7 @@ struct Application : public Program {
 
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		m_max_threads = omp_get_max_threads();
+		std::cout << m_max_threads << std::endl;
 		omp_set_num_threads(m_max_threads);
 
 		m_program = LoadShaders(shader_text);
@@ -161,7 +162,7 @@ struct Application : public Program {
 	void UpdateParticlesOMP(f64 dt) {
 		const Particle* const src = m_particles[m_frame & 1];
 		Particle* const dst = m_particles[(m_frame + 1) & 1];
-#pragma omp parallel for schedule (dynamic) num_threads(m_max_threads)
+#pragma omp parallel for schedule (static) num_threads(m_max_threads)
 		for (int i = 0; i < PARTICLE_COUNT; ++i) {
 			const Particle& me = src[i];
 			glm::vec3 delta_v(0.0f);

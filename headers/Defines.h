@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define TOON_SHADER2
+#define SKYBOX
 
 //TODO: 
 
@@ -52,7 +52,19 @@
 //RAY_TRACING - Get Gif - CLEAN
 
 
-//Chapter14 - 
+//Chapter14 - FIX - NONE - Yes
+// BROKEN (omp issue)
+//OMP_PARTICLES - BROKEN/OMP doesn't work on second pc - CLEAN
+//OPENMP - BROKEN/OMP doesn't work on second pc - CLEAN
+//PMB_FRACTAL - BROKEN/OMP doesn't work on second pc - CLEAN
+
+
+//ChapterRE - GOOD - GET - YES
+//DEFERRED_RENDERING_SHADOWS - Get Gif - CLEAN
+//ENVIROMENT_MAPPING_REDUX - Get Gif - CLEAN
+//NORMAL_MAPPED_DEFERRED_RENDERING - Get Gif - CLEAN
+//SHADOW_PROJ - Get Gif - CLEAN
+//SHADOWS_REDUX - Get Gif - CLEAN
 
 
 
