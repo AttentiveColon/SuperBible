@@ -1,5 +1,5 @@
 #include "Defines.h"
-#ifdef COMPUTER_SHADER_MEMORY_BARRIER
+#ifdef COMPUTE_SHADER_MEMORY_BARRIER
 #include "System.h"
 #include "Texture.h"
 #include "Model.h"
@@ -174,4 +174,4 @@ SystemConf config = {
 };
 
 MAIN(config)
-#endif //COMPUTER_SHADER_MEMORY_BARRIER
+#endif //COMPUTE_SHADER_MEMORY_BARRIER

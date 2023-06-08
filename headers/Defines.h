@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define UNIFORM_BUFFER
+#define VARIABLE_FILTERING
 
 //TODO: 
 
@@ -25,8 +25,14 @@
 
 //Do final check to make sure all projects run, clean everything up and get gifs for repo before completing and posting
 
-//			 Runs   Cleaned up  
-//Chapter2 - GOOD -
-//Chapter3 - GOOD -
-//Chapter4 - GOOD - 
-//Chapter5 - GOOD -
+//			 Runs   Gifs   Cleaned up  
+//Chapter2  - GOOD - Yes  - NOT YET
+//Chapter3  - GOOD - Yes  - NOT YET
+//Chapter4  - GOOD - Yes  - NOT YET
+//Chapter5  - GOOD - Yes  - NOT YET
+//Chapter6  - GOOD - Yes  - NOT YET
+//Chapter7  - GOOD - YES  - NOT YET
+//Chapter8  - GOOD - YES  - NOT YET
+//Chapter9  - GOOD - YES  - NOT YET
+//Chapter10 - GOOD - YES  - NOT YET
+//Chapter11 - 

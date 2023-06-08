@@ -49,6 +49,7 @@ in VS_OUT
 void main()
 {
 	color = vec4(fs_in.uv.x, fs_in.uv.y, 0.0, 1.0);
+	//color = vec4(1.0);
 }
 )";
 
@@ -70,7 +71,7 @@ struct Application : public Program {
 
 	bool m_wireframe = false;
 	ObjMesh m_cube;
-	glm::vec3 m_cube_pos = glm::vec3(0.0f, 0.0f, 1.0f);
+	glm::vec4 m_cube_pos = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 
 	bool m_line_smooth = false;
 	bool m_polygon_smooth = false;
@@ -84,7 +85,7 @@ struct Application : public Program {
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		m_program = LoadShaders(shader_text);
 
-		m_cube.Load_OBJ("./resources/cube.obj");
+		m_cube.Load_OBJ("./resources/smooth_sphere.obj");
 
 		m_camera = SB::Camera("Camera", glm::vec3(1.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.90, 0.001, 1000.0);
 	}
@@ -145,7 +146,7 @@ struct Application : public Program {
 		}
 
 		glUseProgram(m_program);
-		glUniformMatrix4fv(10, 1, GL_FALSE, glm::value_ptr(m_camera.ViewProj()));
+		glUniformMatrix4fv(10, 1, GL_FALSE, glm::value_ptr(m_camera.m_viewproj));
 		glUniform4fv(11, 1, glm::value_ptr(m_cube_pos));
 		m_cube.OnDraw();
 

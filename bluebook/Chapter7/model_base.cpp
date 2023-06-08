@@ -267,15 +267,6 @@ struct Application : public Program {
 		m_light_pos(glm::vec3(0.0f, 0.2f, 0.0f))
 	{}
 
-	//TODO: Functions to set and update light position, ambient level and light color uniforms
-
-	//TODO: Fix camera switching crash when no cameras in scene
-
-	//TODO: Fix input jumping on first mouse movement
-
-	//TODO: Look into and try to limit excessive loading on startup
-	// (might have to create script to create custom model format)
-
 	void OnInit(Input& input, Audio& audio, Window& window) {
 		glEnable(GL_DEPTH_TEST);
 		//audio.PlayOneShot("./resources/startup.mp3");

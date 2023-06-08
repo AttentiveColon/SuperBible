@@ -70,7 +70,7 @@ struct Application : public Program {
 
 	bool m_wireframe = false;
 	ObjMesh m_cube;
-	glm::vec3 m_cube_pos = glm::vec3(0.0f, 0.0f, 1.0f);
+	glm::vec4 m_cube_pos = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 
 	bool m_active = true;
 

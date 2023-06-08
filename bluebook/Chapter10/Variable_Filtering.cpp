@@ -220,7 +220,7 @@ struct Application : public Program {
 		m_compute_shader = LoadShaders(compute_shader_text);
 
 		m_cube.Load_OBJ("./resources/cube.obj");
-		m_camera = SB::Camera("Camera", glm::vec3(-3.0f, 2.0f, 1000.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 1.8, 0.001, 10000.0);
+		m_camera = SB::Camera("Camera", glm::vec3(-3.0f, 2.0f, 10.0f), glm::vec3(0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.001, 10000.0);
 
 		SetupDepthFBO();
 	}

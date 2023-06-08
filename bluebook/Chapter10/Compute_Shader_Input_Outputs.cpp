@@ -1,5 +1,5 @@
 #include "Defines.h"
-#ifdef COMPUTER_SHADER_INPUTS_OUTPUTS
+#ifdef COMPUTE_SHADER_INPUTS_OUTPUTS
 #include "System.h"
 #include "Texture.h"
 #include "Model.h"
@@ -176,4 +176,4 @@ SystemConf config = {
 };
 
 MAIN(config)
-#endif //COMPUTER_SHADER_INPUTS_OUTPUTS
+#endif //COMPUTE_SHADER_INPUTS_OUTPUTS
