@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define VARIABLE_FILTERING
+#define TOON_SHADER2
 
 //TODO: 
 
@@ -35,7 +35,30 @@
 //Chapter8  - GOOD - YES  - Yes
 //Chapter9  - GOOD - YES  - Yes
 //Chapter10 - GOOD - YES  - Yes
-//Chapter11 - 
+//Chapter11 - OKAY - Yes  - Yes ->SPARES_TEXTURES crashes when closing
+//Chapter12 - GOOD - YES  - Yes
+
+//Chapter13 - 
+//BITMAP_FONTS - crashes using msvc compiler - CLEAN
+//BLINN_PHONG - Get gif - CLEAN
+//CUBEMAP - Get gif - CLEAN
+//DEFERRED_SHADING - Get Gif - CLEAN
+//DISTANCE_FIELDS - GOOD - CLEAN
+//EQUIRECTANGULAR_ENVIROMENT_MAPS - GOOD - CLEAN
+//FOG - GOOD - CLEAN
+//GOURAUD_SHADING - GOOD - CLEAN
+//JULIA_FRACTALS - GOOD - CLEAN
+//NORMAL_MAPS - Get Gif - CLEAN
+//PER_PIXEL_GLOSS - BROKEN - CLEAN
+//PHONG_SHADING - GOOD - CLEAN
+//RAY_TRACING - Get Gif - CLEAN
+//RIM_LIGHTING - BROKEN/fix light model - CLEAN
+//SHADOW_MAPPING - GOOD - CLEAN
+//SHADOWMAP2 - GOOD - CLEAN
+//SPHERICAL_ENVIROMENT_MAPPING - BROKEN/fix light model - CLEAN
+//SSAO - GOOD - CLEAN
+//TOON_SHADER - GOOD - CLEAN
+//TOON_SHADER2 - 
 
 
 //MiscFiles - N/A  - N/A  - Yes

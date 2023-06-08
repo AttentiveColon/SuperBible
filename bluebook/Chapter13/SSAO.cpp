@@ -349,21 +349,6 @@ struct Application : public Program {
 		glUseProgram(m_ssao_program);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_points_buffer);
 
-		//uniforms
-		/*
-		 layout (location = 10)
-		uniform float ssao_level = 0.5;
-		layout (location = 11)
-		uniform float object_level = 1.0;
-		layout (location = 12)
-		uniform float ssao_radius = 5.0;
-		layout (location = 13)
-		uniform bool weight_by_angle = true;
-		layout (location = 14)
-		uniform uint point_count = 8;
-		layout (location = 15)
-		uniform bool randomize_points = true;
-		*/
 		glUniform1f(10, m_ssao_level);
 		glUniform1f(11, m_object_level);
 		glUniform1f(12, m_ssao_radius);
