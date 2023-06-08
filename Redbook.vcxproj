@@ -107,6 +107,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\glew-2.1.0\include;$(ProjectDir)ThirdParty\glm;$(ProjectDir)headers;$(ProjectDir)ThirdParty\imgui;$(ProjectDir)ThirdParty\irrKlang\include;$(ProjectDir)ThirdParty\OBJ-loader;$(ProjectDir)ThirdParty\glfw\include;$(LLVMInstallDir)\lib;$(ProjectDir)ThirdParty\tinygltf;$(ProjectDir)ThirdParty\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -129,6 +130,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\glew-2.1.0\include;$(ProjectDir)ThirdParty\glm;$(ProjectDir)headers;$(ProjectDir)ThirdParty\imgui;$(ProjectDir)ThirdParty\irrKlang\include;$(ProjectDir)ThirdParty\OBJ-loader;$(ProjectDir)ThirdParty\glfw\include;$(LLVMInstallDir)\lib;$(ProjectDir)ThirdParty\tinygltf;$(ProjectDir)ThirdParty\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

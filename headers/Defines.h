@@ -16,7 +16,7 @@
 //#define MSAA8X
 
 //Current Project
-#define SKYBOX
+#define SHADOW_PROJ
 
 //TODO: 
 
@@ -38,34 +38,14 @@
 //Chapter11 - OKAY - Yes  - Yes ->SPARES_TEXTURES crashes when closing
 //Chapter12 - GOOD - YES  - Yes
 
-//Chapter13 - FIX  - Get  - YES
+//Chapter13 - FIX  - YES  - YES
 // BROKEN
 //BITMAP_FONTS - crashes using msvc compiler - CLEAN
 //PER_PIXEL_GLOSS - BROKEN - CLEAN
 //RIM_LIGHTING - BROKEN/fix light model - CLEAN
 //SPHERICAL_ENVIROMENT_MAPPING - BROKEN/fix light model - CLEAN
-// GET GIF
-//BLINN_PHONG - Get gif - CLEAN
-//CUBEMAP - Get gif - CLEAN
-//DEFERRED_SHADING - Get Gif - CLEAN
-//NORMAL_MAPS - Get Gif - CLEAN
-//RAY_TRACING - Get Gif - CLEAN
 
 
-//Chapter14 - FIX - NONE - Yes
-// BROKEN (omp issue)
-//OMP_PARTICLES - BROKEN/OMP doesn't work on second pc - CLEAN
-//OPENMP - BROKEN/OMP doesn't work on second pc - CLEAN
-//PMB_FRACTAL - BROKEN/OMP doesn't work on second pc - CLEAN
-
-
-//ChapterRE - GOOD - GET - YES
-//DEFERRED_RENDERING_SHADOWS - Get Gif - CLEAN
-//ENVIROMENT_MAPPING_REDUX - Get Gif - CLEAN
-//NORMAL_MAPPED_DEFERRED_RENDERING - Get Gif - CLEAN
-//SHADOW_PROJ - Get Gif - CLEAN
-//SHADOWS_REDUX - Get Gif - CLEAN
-
-
-
+//Chapter14 - GOOD - Yes - Yes
+//ChapterRE - GOOD - YES - YES
 //MiscFiles - N/A  - N/A  - Yes
