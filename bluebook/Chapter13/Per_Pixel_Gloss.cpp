@@ -66,7 +66,7 @@ void main()
 	r.z += 1.0;
 	float m = 0.5 * inversesqrt(dot(r, r));
 
-	float gloss = texture(u_tex_glossmap, fs_in.uv * vec2(3.0, 1.0) * 2.0).r;
+	float gloss = texture(u_tex_glossmap, fs_in.uv * vec2(3.0, 1.0) * 1.0).r;
 	vec3 env_coord = vec3(r.xy * m + vec2(0.5), gloss);
 	color = texture(u_tex_envmap, env_coord);
 }
@@ -122,7 +122,7 @@ struct Application : public Program {
 
 		m_camera = SB::Camera("Camera", glm::vec3(0.0f, 1.0f, 2.5f), glm::vec3(0.0f, 2.0f, 0.0f), SB::CameraType::Perspective, 16.0 / 9.0, 0.9, 0.01, 1000.0);
 
-		m_cube.Load_OBJ("./resources/cube.obj");
+		m_cube.Load_OBJ("./resources/smooth_sphere.obj");
 		m_env_map = Load_KTX("./resources/mountains3d.ktx");
 		m_gloss_map = Load_KTX("./resources/pattern1.ktx");
 	}
