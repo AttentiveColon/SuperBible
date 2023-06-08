@@ -16,12 +16,9 @@
 //#define MSAA8X
 
 //Current Project
-#define BITMAP_FONTS
+#define RIM_LIGHTING
 
-//TODO: 
-
-//Double check, but I can probably remove the entire original rook folder and files
-//Remove all unused resource files
+//TODO:
 
 //Do final check to make sure all projects run, clean everything up and get gifs for repo before completing and posting
 
@@ -40,9 +37,7 @@
 
 //Chapter13 - FIX  - YES  - YES
 // BROKEN
-//BITMAP_FONTS - crashes using msvc compiler - CLEAN
 //PER_PIXEL_GLOSS - BROKEN - CLEAN
-//RIM_LIGHTING - BROKEN/fix light model - CLEAN
 //SPHERICAL_ENVIROMENT_MAPPING - BROKEN/fix light model - CLEAN
 
 
